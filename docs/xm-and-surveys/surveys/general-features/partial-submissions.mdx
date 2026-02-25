@@ -71,3 +71,101 @@ Partial submissions tracking is particularly valuable for:
 ## **Conclusion**
 
 By leveraging the partial submissions tracking feature in Formbricks, you gain comprehensive insights into respondent behaviors and survey interactions. This information is vital for enhancing survey design, improving response rates, and ensuring more reliable and meaningful data collection.
+
+## Progress Save Mechanism
+
+Formbricks captures partial submissions on the server side via the response service. When a respondent interacts with a survey, each answer is sent to the server and persisted incrementally, ensuring that no data is lost if the respondent exits before completing the survey.
+
+### The `finished` Flag
+
+The core mechanism behind partial submissions is the `finished` field on the response object:
+
+- When `finished: false` — the response is a **partial submission** (in-progress).
+- When `finished: true` — the response is a **completed submission**.
+
+The `finished` flag is set via the `updateResponse` function, which handles all response updates as the respondent progresses through the survey.
+
+`Source: apps/web/lib/response/service.ts:L487-557`
+
+### How `updateResponse` Works
+
+The `updateResponse` function (line 487 of `apps/web/lib/response/service.ts`) accepts the following parameters:
+
+- **`responseId`** — The unique identifier of the response being updated.
+- **`responseInput`** — An object containing `data`, `finished`, `ttc`, `language`, `variables`, and `endingId`.
+- **`tx`** (optional) — A Prisma transaction client for ensuring data consistency across multiple database operations.
+
+Key behaviors of the function:
+
+1. **Data Merging**: New response data is merged with existing data using `{ ...currentResponse.data, ...responseInput.data }`. This preserves previously answered questions while adding new ones — ensuring incremental accumulation of responses.
+
+2. **TTC (Time-to-Complete) Merging**: Time-to-complete metrics are preserved from previous blocks via `{ ...currentTtc, ...responseInput.ttc }`, maintaining accurate timing data across the entire survey session.
+
+3. **TTC Total Calculation**: The total TTC is only calculated when `finished` is `true` (via `calculateTtcTotal`). This means partial responses retain per-block TTC without a misleading total value.
+
+4. **Variable Merging**: Calculated variables are merged similarly to response data, preserving all computed values from previous blocks.
+
+5. **Transaction Support**: The function supports an optional Prisma transaction client (`tx`), enabling atomic updates when response persistence is part of a larger database operation.
+
+### Incremental Persistence
+
+Response data is persisted incrementally. Each time a respondent advances to the next question or block, the current answer is sent to the server and merged into the existing response record. This batch streaming approach ensures that even if a respondent drops off at any point, all previously submitted answers are preserved.
+
+`Source: apps/web/lib/response/service.ts:L342-441` — the `getResponseDownloadFile` function includes a `Finished` column in export headers, enabling downstream filtering of partial vs. complete responses.
+
+## Resume Behavior
+
+### Data Persistence
+
+Each partial response is stored in the database with all previously answered questions intact. The response record accumulates data as the respondent progresses through the survey — each interaction adds to the existing record rather than creating a new one.
+
+### Response Identification
+
+Responses are tracked by a unique response ID generated when the first answer is submitted. For link surveys, the response may additionally be tied to a `singleUseId` for single-use link scenarios, ensuring that each unique link produces exactly one response record.
+
+### Current Resume Capabilities
+
+- Once a response is created (first answer submitted), all subsequent answers update the **same response record** within the active session.
+- If a respondent closes the browser and returns via an anonymous link survey, a **new response** is typically created (no automatic cross-session resume for anonymous link surveys).
+- For authenticated or identified respondents, the system can match responses via contact attributes, enabling continuation of in-progress surveys.
+
+### Data Available in Partial Responses
+
+Partial responses contain all data accumulated up to the drop-off point:
+
+- All previously answered question data
+- Time-to-complete metrics per question and block
+- Variables calculated up to the point of disengagement
+- Language selection
+- Hidden field values (set at survey load time)
+
+### Export Behavior
+
+Partial responses appear in exports with `Finished: false` in the export data. This is included as a standard column in both CSV and XLSX exports, allowing you to filter between complete and partial responses during analysis.
+
+<Note>
+  Partial submissions are automatically included in response exports. Use the "Finished" column to filter between complete and partial responses in your analysis.
+</Note>
+
+## Typeform Progress Persistence Comparison
+
+The following table compares Formbricks' partial submission and progress persistence capabilities against Typeform's equivalent features:
+
+| Feature | Typeform | Formbricks | Status |
+|---|---|---|---|
+| Partial data capture | ✅ Auto-save per question | ✅ Auto-save per question | ✅ Full |
+| Server-side persistence | ✅ | ✅ Response record with `finished: false` | ✅ Full |
+| Progress indicator | ✅ Visual progress bar | ✅ Configurable progress indicator | ✅ Full |
+| Browser resume (same session) | ✅ Automatic | ✅ Within same session | ✅ Full |
+| Cross-session resume | ✅ Via unique link token | Partial — depends on link type (single-use vs anonymous) | 🟡 Partial |
+| Drop-off analytics | ✅ | ✅ Analyze Drop-Offs toggle with per-question metrics | ✅ Full |
+| TTC per question | ✅ | ✅ Time-to-Complete tracked per question/block | ✅ Full |
+| Data merging | ✅ | ✅ Incremental merge of response data and variables | ✅ Full |
+
+### Key Differences
+
+- **Cross-session resume**: Typeform provides automatic cross-session resume via unique URL tokens more natively for all form types. Formbricks supports cross-session resume for single-use links and identified respondents, but anonymous link surveys create a new response on revisit.
+- **TTC granularity**: Formbricks provides more granular TTC metrics, tracking time per block and only calculating the total on completion (via `calculateTtcTotal`), giving more accurate per-step timing data.
+- **Incremental variable calculations**: Formbricks stores full response data incrementally, including variable calculations at each step. This means partial responses retain computed variable state, not just raw answer data.
+
+For the complete Typeform parity analysis, see the [Gap Report](/development/typeform-parity/gap-report).

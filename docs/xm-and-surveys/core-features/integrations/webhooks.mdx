@@ -369,3 +369,93 @@ Example of Response Finished webhook payload:
   }
 ]
 ```
+
+---
+
+## Webhook Payload Schema
+
+Every webhook delivery contains a JSON payload with a consistent structure across all trigger types (`responseCreated`, `responseUpdated`, and `responseFinished`). The payload body and request headers follow the same format regardless of which event fired the webhook, making it straightforward to write a single handler for all Formbricks webhook events.
+
+### Payload Body
+
+The top-level payload object contains three fields:
+
+| Field | Type | Description |
+|---|---|---|
+| `webhookId` | string | The unique identifier of the webhook configuration that triggered this delivery. |
+| `event` | string | The trigger type: `responseCreated`, `responseUpdated`, or `responseFinished`. |
+| `data` | object | The response data object containing all response details and an embedded survey summary. |
+
+Source: `apps/web/app/api/(internal)/pipeline/route.ts:L102-115`
+
+### Response Data Fields
+
+The `data` object contains the full response record plus an embedded `survey` summary. The following fields are included:
+
+| Field | Type | Description |
+|---|---|---|
+| `id` | string | The response's unique identifier. |
+| `createdAt` | string (ISO 8601) | When the response was first created. |
+| `updatedAt` | string (ISO 8601) | When the response was last updated. |
+| `surveyId` | string | The ID of the survey this response belongs to. |
+| `finished` | boolean | Whether the response has been completed (`true`) or is still in progress (`false`). |
+| `data` | object | The answer data, keyed by element ID (e.g., `{"q1": "clicked", "q2": "Just browsing"}`). |
+| `ttc` | object | Time-to-completion metrics per element, in milliseconds. For `responseFinished`, includes `_total` for total completion time. |
+| `meta` | object | Browser and device metadata including `country`, `url`, and `userAgent` object with `browser`, `device`, and `os` fields. |
+| `contactAttributes` | object \| null | Contact attributes associated with the respondent, if available. |
+| `singleUseId` | string \| null | Single-use link identifier, if the response came from a single-use link. |
+| `language` | string | The locale/language code of the respondent (e.g., `"en"`). |
+| `variables` | object | Survey variable values captured during the response. |
+
+### Embedded Survey Summary
+
+The `data.survey` object provides metadata about the survey that generated the response:
+
+| Field | Type | Description |
+|---|---|---|
+| `survey.title` | string | The name of the survey. |
+| `survey.type` | string | The survey type (e.g., `"link"`, `"app"`, `"website"`). |
+| `survey.status` | string | The survey status (e.g., `"inProgress"`, `"completed"`, `"paused"`). |
+| `survey.createdAt` | string (ISO 8601) | When the survey was created. |
+| `survey.updatedAt` | string (ISO 8601) | When the survey was last updated. |
+
+### Request Headers
+
+Every webhook request includes the following Standard Webhooks–compliant headers:
+
+| Header | Description | Example |
+|---|---|---|
+| `content-type` | Always `application/json` | `application/json` |
+| `webhook-id` | Unique message identifier (UUID v7) | `019ba292-c1f6-7618-aaf2-ecf8e39d1cc7` |
+| `webhook-timestamp` | Unix timestamp (seconds) when the webhook was dispatched | `1704547200` |
+| `webhook-signature` | HMAC-SHA256 signature (only included if the webhook has a signing secret configured) | `v1,K3Q2bXlzZWNyZXQ=` |
+
+Source: `apps/web/app/api/(internal)/pipeline/route.ts:L122-136`, `packages/database/zod/webhooks.ts`
+
+---
+
+## Typeform Webhook Compatibility
+
+Formbricks and Typeform use different webhook payload structures. While Typeform fires a single `form_response` event when a form submission is completed, Formbricks provides a more granular event model with three distinct triggers — giving you visibility into the full response lifecycle from creation through completion.
+
+### Trigger Mapping
+
+The following table maps Typeform webhook events to their Formbricks equivalents:
+
+| Typeform Event | Formbricks Trigger | Notes |
+|---|---|---|
+| `form_response` (completed) | `responseFinished` | Primary completion event — direct mapping. |
+| — | `responseCreated` | Formbricks-specific: fires when a respondent starts a survey (no Typeform equivalent). |
+| — | `responseUpdated` | Formbricks-specific: fires on each page/question submission before completion (no Typeform equivalent). |
+
+### Key Structural Differences
+
+Formbricks provides **more granular webhook events** than Typeform. With three triggers (`responseCreated`, `responseUpdated`, `responseFinished`) compared to Typeform's single `form_response` event, you can track partial submissions and monitor response progress in real time.
+
+The payload structures also differ between the two platforms. Typeform nests answers in a `form_response.answers[]` array with field-typed values, while Formbricks uses a flat `data.data` object keyed by element IDs. This makes Formbricks payloads simpler to parse when you need to access a specific answer by its element identifier.
+
+Both platforms support HMAC-SHA256 webhook signatures for verifying payload authenticity, but the header names and encoding formats differ. Formbricks follows the [Standard Webhooks](https://github.com/standard-webhooks/standard-webhooks) specification with `webhook-id`, `webhook-timestamp`, and `webhook-signature` headers, while Typeform uses its own signature format.
+
+<Note>
+  For a detailed field-by-field structural comparison, see the [Webhook Parity](/development/typeform-parity/webhook-parity) analysis.
+</Note>

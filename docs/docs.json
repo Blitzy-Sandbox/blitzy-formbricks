@@ -484,7 +484,7 @@
       "source": "/docs/link-surveys/global/limit-submissions"
     },
     {
-      "destination": "/docs/xm-and-surveys/surveys/general-features/market-research-panel",
+      "destination": "/docs/xm-and-surveys/surveys/link-surveys/market-research-panel",
       "source": "/docs/link-surveys/market-research-panel"
     },
     {
@@ -512,7 +512,7 @@
       "source": "/docs/link-surveys/source-tracking"
     },
     {
-      "destination": "/docs/xm-and-surveys/surveys/general-features/schedule-start-end-dates",
+      "destination": "/docs/xm-and-surveys/overview",
       "source": "/docs/link-surveys/global/schedule-start-end-dates"
     },
     {
@@ -536,11 +536,11 @@
       "source": "/docs/app-surveys/global/add-image-or-video-question"
     },
     {
-      "destination": "/docs/xm-and-surveys/core-features/question-type/consent",
+      "destination": "/docs/xm-and-surveys/surveys/question-type/consent",
       "source": "/docs/core-features/global/question-type/consent"
     },
     {
-      "destination": "/docs/xm-and-surveys/core-features/question-type/statement-cta",
+      "destination": "/docs/xm-and-surveys/surveys/question-type/statement-cta",
       "source": "/docs/core-features/global/question-type/statement-cta"
     },
     {
@@ -576,7 +576,7 @@
       "source": "/docs/app-surveys/quickstart"
     },
     {
-      "destination": "/docs/xm-and-surveys/core-features/question-type/address",
+      "destination": "/docs/xm-and-surveys/surveys/question-type/address",
       "source": "/docs/core-features/global/question-type/address"
     },
     {
@@ -688,43 +688,43 @@
       "source": "/docs/api-docs"
     },
     {
-      "destination": "/docs/development/troubleshooting",
+      "destination": "/docs/development/support/troubleshooting",
       "source": "/docs/developer-docs/contributing/troubleshooting"
     },
     {
-      "destination": "/docs/xm-and-surveys/core-features/question-type/file-upload",
+      "destination": "/docs/xm-and-surveys/surveys/question-type/file-upload",
       "source": "/docs/core-features/global/question-type/file-upload"
     },
     {
-      "destination": "/docs/xm-and-surveys/core-features/question-type/select-picture",
+      "destination": "/docs/xm-and-surveys/surveys/question-type/select-picture",
       "source": "/docs/core-features/global/question-type/picture-selection"
     },
     {
-      "destination": "/docs/xm-and-surveys/core-features/question-type/rating",
+      "destination": "/docs/xm-and-surveys/surveys/question-type/rating",
       "source": "/docs/core-features/global/question-type/rating"
     },
     {
-      "destination": "/docs/xm-and-surveys/core-features/question-type/date",
+      "destination": "/docs/xm-and-surveys/surveys/question-type/date",
       "source": "/docs/core-features/global/question-type/date"
     },
     {
-      "destination": "/docs/xm-and-surveys/core-features/question-type/schedule-a-meeting",
+      "destination": "/docs/xm-and-surveys/surveys/question-type/schedule-a-meeting",
       "source": "/docs/core-features/global/question-type/schedule"
     },
     {
-      "destination": "/docs/xm-and-surveys/core-features/question-type/free-text",
+      "destination": "/docs/xm-and-surveys/surveys/question-type/free-text",
       "source": "/docs/core-features/global/question-type/free-text"
     },
     {
-      "destination": "/docs/xm-and-surveys/core-features/question-type/select-single",
+      "destination": "/docs/xm-and-surveys/surveys/question-type/select-single",
       "source": "/docs/core-features/global/question-type/single-select"
     },
     {
-      "destination": "/docs/xm-and-surveys/core-features/question-type/select-multiple",
+      "destination": "/docs/xm-and-surveys/surveys/question-type/select-multiple",
       "source": "/docs/core-features/global/question-type/multiple-select"
     },
     {
-      "destination": "/docs/xm-and-surveys/core-features/question-type/matrix",
+      "destination": "/docs/xm-and-surveys/surveys/question-type/matrix",
       "source": "/docs/core-features/global/question-type/matrix"
     },
     {
@@ -744,7 +744,7 @@
       "source": "/docs/app-surveys/global/limit-submissions"
     },
     {
-      "destination": "/docs/xm-and-surveys/core-features/question-type/net-promoter-score",
+      "destination": "/docs/xm-and-surveys/surveys/question-type/net-promoter-score",
       "source": "/docs/core-features/global/question-type/net-promoter-score"
     },
     {

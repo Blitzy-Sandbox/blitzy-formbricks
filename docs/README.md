@@ -2,6 +2,10 @@
 
 This documentation is built using Mintlify. Here's how to run it locally and contribute.
 
+## Prerequisites
+
+- [Node.js](https://nodejs.org/) >= 20.17.0 (LTS versions recommended)
+
 ## Local Development
 
 1. Install the [Mintlify CLI](https://www.npmjs.com/package/mintlify):
@@ -34,5 +38,5 @@ The documentation will be available at `http://localhost:3000`.
 ### Troubleshooting
 
 - If Mintlify dev isn't running, try `mintlify install` to reinstall dependencies
-- If a page loads as a 404, ensure you're in the `docs` folder with the `mint.json` file
+- If a page loads as a 404, ensure you're in the `docs` folder with the `docs.json` file
 - For other issues, please check our [Contributing Guidelines](https://github.com/formbricks/formbricks/blob/main/CONTRIBUTING.md)

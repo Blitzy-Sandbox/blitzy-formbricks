@@ -122,28 +122,21 @@ The new `payment` element type follows the established pattern in `packages/type
 ```typescript
 export const ZSurveyPaymentElement = ZSurveyElementBase.extend({
   type: z.literal("payment"),
-  currency: z.enum([
-    "USD", "EUR", "GBP", "CAD", "AUD", "JPY", "CHF",
-    "CNY", "INR", "BRL", "MXN", "SGD", "HKD", "NOK",
-    "SEK", "DKK", "NZD", "ZAR", "KRW", "PLN",
-  ]),
-  amount: z.object({
-    type: z.enum(["fixed", "variable"]),
-    value: z.number().positive().optional(),
-    min: z.number().positive().optional(),
-    max: z.number().positive().optional(),
-  }),
+  currency: z.enum(["usd", "eur", "gbp"]),
+  amount: z.number().int().positive().min(1),
   stripeIntegration: z.object({
-    priceId: z.string().optional(),
-    productId: z.string().optional(),
+    publicKey: z.string(),
+    priceId: z.string(),
   }),
-  receiptEnabled: z.boolean().default(true),
   buttonLabel: ZI18nString.optional(),
-  validation: ZValidation.optional(),
 });
 
 export type TSurveyPaymentElement = z.infer<typeof ZSurveyPaymentElement>;
 ```
+
+<Note>
+  The `currency` enum uses lowercase ISO 4217 codes (`"usd"`, `"eur"`, `"gbp"`) matching the OpenAPI specification. The `amount` field is an integer representing the smallest currency unit (e.g., cents), so `1000` represents $10.00 USD. The `stripeIntegration` object requires both `publicKey` (Stripe publishable key) and `priceId` (Stripe Price ID) as mandatory fields.
+</Note>
 
 ### Validation Rules
 
@@ -151,10 +144,9 @@ Payment elements require the following validation:
 
 | Rule | Description |
 |---|---|
-| Amount > 0 | Fixed amount must be a positive number |
-| Valid currency | Currency must be one of the supported ISO 4217 codes |
-| Stripe keys configured | Environment must have Stripe API keys configured |
-| Amount range (variable) | When `type: "variable"`, `min` and `max` must define a valid range |
+| Amount ≥ 1 | Amount must be a positive integer (smallest currency unit) |
+| Valid currency | Currency must be one of the supported codes: `usd`, `eur`, `gbp` |
+| Stripe keys configured | `stripeIntegration.publicKey` and `stripeIntegration.priceId` are required |
 
 ### Implementation Modules
 
@@ -186,8 +178,8 @@ While both Opinion Scale and NPS use numeric scales, they serve different purpos
 | Starting value | Always 0 | Always 1 |
 | Semantics | "How likely are you to recommend..." | General-purpose agreement/satisfaction/preference |
 | Labels | Lower and upper (optional) | Lower and upper (required for clarity) |
-| Color coding | Optional (`isColorCodingEnabled`) | Not applicable |
-| Visual style | Numbers only | Numbers, stars, or emoji |
+| Color coding | Optional (`isColorCodingEnabled`) | Optional (`isColorCodingEnabled`) |
+| Visual style | Numbers only | Numbers, smileys, or stars (`visualStyle`) |
 | Analytics | NPS score calculation (Promoter/Passive/Detractor) | Mean, median, distribution |
 
 Source: `packages/types/surveys/elements.ts` (lines 177–184 — `ZSurveyNPSElement`)
@@ -197,15 +189,19 @@ Source: `packages/types/surveys/elements.ts` (lines 177–184 — `ZSurveyNPSEle
 ```typescript
 export const ZSurveyOpinionScaleElement = ZSurveyElementBase.extend({
   type: z.literal("opinionScale"),
-  scale: z.enum(["1-5", "1-7", "1-10"]).default("1-5"),
+  scaleRange: z.number().int().refine((v) => [5, 7, 10].includes(v)),
   lowerLabel: ZI18nString,
   upperLabel: ZI18nString,
-  style: z.enum(["numbers", "stars", "emoji"]).default("numbers"),
-  validation: ZValidation.optional(),
+  visualStyle: z.enum(["number", "smiley", "star"]).default("number"),
+  isColorCodingEnabled: z.boolean().default(false),
 });
 
 export type TSurveyOpinionScaleElement = z.infer<typeof ZSurveyOpinionScaleElement>;
 ```
+
+<Note>
+  The `scaleRange` property accepts integer values `5`, `7`, or `10` representing the number of points on the scale (starting from 1). The `visualStyle` property controls the visual presentation: `"number"` for numeric labels, `"smiley"` for emoji faces, or `"star"` for star icons. These property names and enum values are consistent with both the v1 and v2 OpenAPI specifications.
+</Note>
 
 ### Implementation Modules
 
@@ -354,17 +350,17 @@ classDiagram
     }
     class ZSurveyPaymentElement {
         +type: "payment"
-        +currency: CurrencyEnum
-        +amount: AmountConfig
-        +stripeIntegration: StripeConfig
-        +receiptEnabled: boolean
+        +currency: "usd" | "eur" | "gbp"
+        +amount: integer
+        +stripeIntegration: PublicKey + PriceId
     }
     class ZSurveyOpinionScaleElement {
         +type: "opinionScale"
-        +scale: "1-5" | "1-7" | "1-10"
+        +scaleRange: 5 | 7 | 10
         +lowerLabel: ZI18nString
         +upperLabel: ZI18nString
-        +style: "numbers" | "stars" | "emoji"
+        +visualStyle: "number" | "smiley" | "star"
+        +isColorCodingEnabled: boolean
     }
     ZSurveyElementBase <|-- TSurveyElementTypeEnum : defines type field
     ZSurveyElementBase <|-- ZSurveyPaymentElement : extends

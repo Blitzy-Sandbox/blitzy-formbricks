@@ -6368,7 +6368,7 @@
                             "amount": {
                               "description": "Payment amount in the smallest currency unit (e.g., cents)",
                               "minimum": 1,
-                              "type": "number"
+                              "type": "integer"
                             },
                             "stripeIntegration": {
                               "description": "Stripe integration configuration for processing payments",
@@ -6391,7 +6391,7 @@
                         "opinionScale": {
                           "description": "Opinion scale question configuration. Only applicable when type is 'opinionScale'.",
                           "properties": {
-                            "range": {
+                            "scaleRange": {
                               "description": "The range of the opinion scale",
                               "enum": [5, 7, 10],
                               "type": "integer"
@@ -6404,7 +6404,7 @@
                               "description": "Label for the upper end of the scale",
                               "type": "string"
                             },
-                            "style": {
+                            "visualStyle": {
                               "description": "Visual presentation style for the scale",
                               "enum": ["number", "smiley", "star"],
                               "type": "string"

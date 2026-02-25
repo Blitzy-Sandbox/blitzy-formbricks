@@ -501,7 +501,7 @@ Source: `docs/xm-and-surveys/core-features/integrations/webhooks.mdx` (Response 
 
 ### Example 3: Proposed Formbricks Payload with Typeform Structural Parity
 
-This example shows the proposed format that maintains structural parity with Typeform while preserving Formbricks-specific fields. The payload would be sent when the `payloadVersion: "typeform-compat"` flag is enabled on the webhook configuration.
+This example shows the proposed format that maintains structural parity with Typeform while preserving Formbricks-specific fields. The payload would be sent when the `payloadFormat: "typeform"` option is enabled on the webhook configuration.
 
 ```json
 {
@@ -647,7 +647,7 @@ The recommended approach uses a **versioned payload format** controlled by a web
 
 | Strategy | Description | Recommendation |
 |---|---|---|
-| **Payload version flag** | Add a `payloadVersion` field to the `Webhook` model (`"v1"` for current, `"typeform-compat"` for parity format) | ✅ Recommended — cleanest separation, per-webhook granularity |
+| **Payload format flag** | Add a `payloadFormat` field to the `Webhook` model (`"default"` for current, `"typeform"` for parity format) | ✅ Recommended — cleanest separation, per-webhook granularity |
 | **Global feature flag** | Environment-level toggle for all webhooks | ❌ Not recommended — too coarse, breaks existing consumers |
 | **Dual delivery** | Send both formats to each endpoint | ❌ Not recommended — doubles bandwidth and processing |
 | **Header-based negotiation** | Consumer specifies preferred format via an Accept header on registration | 🟡 Alternative — requires webhook model extension |
@@ -656,21 +656,21 @@ The recommended approach uses a **versioned payload format** controlled by a web
 
 <Steps>
   <Step title="Extend Webhook Model">
-    Add an optional `payloadVersion` field to the `Webhook` Prisma model and `ZWebhook` Zod schema. Default to `"v1"` (current format) for backward compatibility.
+    Add an optional `payloadFormat` field to the `Webhook` Prisma model and `ZWebhook` Zod schema. Default to `"default"` (current format) for backward compatibility.
 
     ```typescript
     // Proposed extension to ZWebhook
-    payloadVersion: z.enum(["v1", "typeform-compat"]).default("v1")
+    payloadFormat: z.enum(["default", "typeform"]).default("default")
     ```
   </Step>
   <Step title="Branch Payload Construction">
-    In the pipeline route (`apps/web/app/api/(internal)/pipeline/route.ts`), check `webhook.payloadVersion` before constructing the payload body. For `"v1"`, use the current format; for `"typeform-compat"`, apply the transformations from the [Payload Transformation Requirements](#payload-transformation-requirements) section.
+    In the pipeline route (`apps/web/app/api/(internal)/pipeline/route.ts`), check `webhook.payloadFormat` before constructing the payload body. For `"default"`, use the current format; for `"typeform"`, apply the transformations from the [Payload Transformation Requirements](#payload-transformation-requirements) section.
   </Step>
   <Step title="Leverage Webhook Source for Defaults">
     Use the existing `WebhookSource` enum to apply intelligent defaults:
-    - `user` webhooks: Default to `v1`, allow user to switch to `typeform-compat`
-    - `zapier`, `make`, `n8n`, `activepieces` webhooks: Default to `v1`, preserving current integration behavior
-    - Future migration tools could set `typeform-compat` by default for Typeform imports
+    - `user` webhooks: Default to `"default"`, allow user to switch to `"typeform"`
+    - `zapier`, `make`, `n8n`, `activepieces` webhooks: Default to `"default"`, preserving current integration behavior
+    - Future migration tools could set `"typeform"` by default for Typeform imports
   </Step>
   <Step title="Maintain Signature Compatibility">
     The Standard Webhooks signature scheme (HMAC-SHA256 with `v1,<base64>` format) must remain unchanged regardless of payload version. The signature is computed over the full body, so the only change is the body content — the signing mechanism stays the same.
@@ -678,14 +678,14 @@ The recommended approach uses a **versioned payload format** controlled by a web
 </Steps>
 
 <Note>
-  The `payloadVersion` approach ensures zero disruption to existing consumers. New webhooks created for Typeform migration can opt into the `typeform-compat` format, while all existing webhooks continue to receive the current `v1` format unchanged.
+  The `payloadFormat` approach ensures zero disruption to existing consumers. New webhooks created for Typeform migration can opt into the `"typeform"` format, while all existing webhooks continue to receive the current `"default"` format unchanged.
 </Note>
 
 ### Migration Path for Existing Consumers
 
 For consumers that want to adopt the Typeform-compatible format:
 
-1. Update webhook configuration via the API or UI to set `payloadVersion: "typeform-compat"`
+1. Update webhook configuration via the API or UI to set `payloadFormat: "typeform"`
 2. Update consumer code to handle the new `answers` array structure instead of the flat `data.data` object
 3. Update any code that reads `data.contactAttributes` to also check the new `hidden` field
 4. Test with the webhook test endpoint before enabling in production

@@ -98,3 +98,181 @@ Action is of the following types:
 This logic is executed when the user answers the question. Logic can be as simple as showing a follow-up question based on the answer or as complex as calculating a score based on multiple answers.
 
 ![Question Logic](/images/xm-and-surveys/surveys/general-features/conditional-logic/question-logic.webp)
+
+## Complete Operator Reference
+
+Formbricks provides 32 condition operators for building precise branching logic. The table below enumerates every operator available in the logic editor, along with a description and the element types each operator applies to.
+
+*Source: `packages/types/surveys/logic.ts:L8-41`*
+
+### String and Equality Operators
+
+| Operator | Description | Applicable Types |
+|---|---|---|
+| `equals` | Exact match comparison | Text, Number, Choice, Date |
+| `doesNotEqual` | Negated exact match | Text, Number, Choice, Date |
+| `contains` | Substring or member containment | Text, Multi-select |
+| `doesNotContain` | Negated containment | Text, Multi-select |
+| `startsWith` | Prefix match | Text |
+| `doesNotStartWith` | Negated prefix match | Text |
+| `endsWith` | Suffix match | Text |
+| `doesNotEndWith` | Negated suffix match | Text |
+
+### Numeric Comparison Operators
+
+| Operator | Description | Applicable Types |
+|---|---|---|
+| `isGreaterThan` | Numeric greater than | Number, Rating, NPS |
+| `isLessThan` | Numeric less than | Number, Rating, NPS |
+| `isGreaterThanOrEqual` | Numeric greater than or equal (≥) | Number, Rating, NPS |
+| `isLessThanOrEqual` | Numeric less than or equal (≤) | Number, Rating, NPS |
+
+### Set Membership Operators
+
+| Operator | Description | Applicable Types |
+|---|---|---|
+| `equalsOneOf` | Matches any value in a set | Choice, Multi-select |
+| `includesAllOf` | Contains all specified values | Multi-select |
+| `includesOneOf` | Contains at least one specified value | Multi-select |
+| `doesNotIncludeOneOf` | Does not contain any of the specified values | Multi-select |
+| `doesNotIncludeAllOf` | Does not contain all of the specified values | Multi-select |
+| `isAnyOf` | Set membership comparison | Choice |
+
+### Submission State Operators
+
+| Operator | Description | Applicable Types |
+|---|---|---|
+| `isSubmitted` | Element has been answered | All element types |
+| `isSkipped` | Element was skipped | All element types |
+| `isPartiallySubmitted` | Partially filled (at least one row incomplete) | Matrix |
+| `isCompletelySubmitted` | Fully completed (all rows answered) | Matrix |
+
+### Element-specific State Operators
+
+| Operator | Description | Applicable Types |
+|---|---|---|
+| `isClicked` | CTA button was clicked | CTA |
+| `isNotClicked` | CTA button was not clicked | CTA |
+| `isAccepted` | Consent was accepted | Consent |
+| `isBefore` | Date is before the comparison value | Date |
+| `isAfter` | Date is after the comparison value | Date |
+| `isBooked` | Calendar booking was confirmed | Cal |
+
+### Presence and Emptiness Operators
+
+| Operator | Description | Applicable Types |
+|---|---|---|
+| `isSet` | Field has a value assigned | Hidden Fields, Variables |
+| `isNotSet` | Field lacks a value | Hidden Fields, Variables |
+| `isEmpty` | Value is empty (empty string, null, or empty array) | All |
+| `isNotEmpty` | Value is not empty | All |
+
+### Condition Source Types
+
+Conditions can evaluate data from three source types:
+
+- **Element** — conditions based on answers to survey questions (elements). The left operand references an element ID.
+- **Variable** — conditions based on calculated variable values. The left operand references a variable CUID.
+- **Hidden Field** — conditions based on hidden field values passed via URL parameters or API. The left operand references a hidden field ID.
+
+*Source: `packages/types/surveys/logic.ts:L63-L80`*
+
+### Condition Connectors
+
+Multiple conditions within a logic row are combined using connectors:
+
+- **`and`** — all conditions in the group must be true for the actions to execute.
+- **`or`** — at least one condition in the group must be true for the actions to execute.
+
+Condition groups can be nested to create complex expressions such as *(A AND B) OR (C AND D)*.
+
+*Source: `packages/types/surveys/logic.ts:L59` (`ZConnector`)*
+
+## Typeform Logic Jump Mapping
+
+Formbricks' conditional logic system provides full parity with Typeform's logic jump feature. Every Typeform logic condition type maps directly to a Formbricks operator, and Formbricks extends the available operator set with additional capabilities not present in Typeform.
+
+The following table maps common Typeform logic jump operators to their Formbricks equivalents:
+
+| Typeform Operator | Formbricks Operator | Notes |
+|---|---|---|
+| is equal to | `equals` | Direct mapping |
+| is not equal to | `doesNotEqual` | Direct mapping |
+| contains | `contains` | Direct mapping |
+| does not contain | `doesNotContain` | Direct mapping |
+| begins with | `startsWith` | Direct mapping |
+| ends with | `endsWith` | Direct mapping |
+| greater than | `isGreaterThan` | Direct mapping |
+| lower than | `isLessThan` | Direct mapping |
+| greater than or equal to | `isGreaterThanOrEqual` | Direct mapping |
+| lower than or equal to | `isLessThanOrEqual` | Direct mapping |
+| is answered | `isSubmitted` | Direct mapping |
+| is not answered | `isSkipped` | Direct mapping |
+| is | `equalsOneOf` | Set membership for choice fields |
+| is not | `doesNotEqual` | Negated equality |
+| on or before | `isBefore` | Date comparison |
+| on or after | `isAfter` | Date comparison |
+
+<Note>
+  Formbricks offers additional operators beyond Typeform's logic jump system. These include `doesNotStartWith`, `doesNotEndWith`, `isClicked`, `isNotClicked`, `isAccepted`, `isBooked`, `isPartiallySubmitted`, `isCompletelySubmitted`, `isSet`, `isNotSet`, `includesAllOf`, `includesOneOf`, `doesNotIncludeOneOf`, `doesNotIncludeAllOf`, and `isAnyOf`. These operators provide finer-grained control over branching logic, especially for CTA, Consent, Calendar, Matrix, Hidden Field, and Variable element types.
+</Note>
+
+For a complete operator-to-operator mapping, see the [Logic Parity Analysis](/development/typeform-parity/logic-parity).
+
+## Advanced Branching Examples
+
+The following examples demonstrate common branching patterns using the Formbricks conditional logic system. Each example describes the condition setup, the action triggered, and the expected respondent experience.
+
+*Source: `packages/types/surveys/blocks.ts`, `packages/surveys/src/lib/logic.ts`*
+
+### Example 1: Simple Jump Based on Answer
+
+This pattern creates a skip-logic flow where respondents who give a top rating are sent directly to a thank-you block, bypassing follow-up questions.
+
+<Steps>
+  <Step title="Set the condition">
+    In the logic editor, set the left operand to the **Rating** element. Choose the `equals` operator and enter `5` as the static right operand value.
+  </Step>
+  <Step title="Add the action">
+    Add a **Jump to Question** action and select the "Thank You" block as the target.
+  </Step>
+  <Step title="Expected behavior">
+    When a respondent selects a rating of 5, the survey immediately navigates to the "Thank You" block, skipping any intermediate questions. Respondents who select any other rating proceed through the survey in its default order (or according to the `logicFallback` setting).
+  </Step>
+</Steps>
+
+### Example 2: Multi-condition Logic with AND/OR
+
+This pattern combines multiple conditions using connectors to create nuanced branching. A variable calculation is triggered only when both conditions are satisfied.
+
+<Steps>
+  <Step title="Create the condition group">
+    Add two conditions within the same logic row. Set the first condition's left operand to the **Rating** element with the `isGreaterThan` operator and a static value of `3`. Set the second condition's left operand to the **country** hidden field with the `equals` operator and a static value of `"US"`. Set the connector between conditions to **`and`**.
+  </Step>
+  <Step title="Add the calculate action">
+    Add a **Calculate** action. Select the `score` variable, choose the `add` operator, and enter `10` as the static value. This increments the score variable by 10.
+  </Step>
+  <Step title="Expected behavior">
+    When a respondent rates higher than 3 **and** their country hidden field value is "US", the `score` variable is increased by 10. If either condition is not met, the logic row is skipped and subsequent logic rows (or the `logicFallback`) determine the next block. Nested condition groups support more complex expressions such as *(rating > 3 AND country = "US") OR (rating = 5)*.
+  </Step>
+</Steps>
+
+### Example 3: Require Answer Based on Previous Response
+
+This pattern dynamically makes a question required based on whether the respondent answered a prior question. This is useful for conditional follow-ups that should be mandatory only when relevant.
+
+<Steps>
+  <Step title="Set the condition">
+    Set the left operand to the **Email** element. Choose the `isSubmitted` operator. This is a unary operator — no right operand value is needed.
+  </Step>
+  <Step title="Add the require answer action">
+    Add a **Require Answer** action and select the **Phone Number** element as the target. This makes the phone number question required for this respondent.
+  </Step>
+  <Step title="Expected behavior">
+    If the respondent provides an email address (the element is submitted), the phone number element becomes required — the respondent must answer it before proceeding. If the email element was skipped, the phone number element remains optional, allowing the respondent to skip it as well. This creates a dynamic form where required fields adapt to each respondent's answers.
+  </Step>
+</Steps>
+
+<Note>
+  Each logic row can contain multiple actions. For example, you can combine a **Calculate** action (to update a score variable), a **Require Answer** action (to make a follow-up element mandatory), and a **Jump to Question** action (to navigate to a specific block) — all within the same logic row. Actions are executed in the order they are defined.
+</Note>

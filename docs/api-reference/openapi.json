@@ -4664,6 +4664,15 @@
               "minimum": 0,
               "type": "integer"
             }
+          },
+          {
+            "description": "Response export format. When specified, returns responses in the requested format instead of JSON API response. Supported formats: csv, xlsx, json.",
+            "in": "query",
+            "name": "format",
+            "schema": {
+              "enum": ["json", "csv", "xlsx"],
+              "type": "string"
+            }
           }
         ],
         "responses": {
@@ -6348,6 +6357,61 @@
                           },
                           "type": "object"
                         },
+                        "payment": {
+                          "description": "Payment question configuration. Only applicable when type is 'payment'.",
+                          "properties": {
+                            "currency": {
+                              "description": "ISO 4217 currency code for the payment",
+                              "enum": ["usd", "eur", "gbp"],
+                              "type": "string"
+                            },
+                            "amount": {
+                              "description": "Payment amount in the smallest currency unit (e.g., cents)",
+                              "minimum": 1,
+                              "type": "integer"
+                            },
+                            "stripeIntegration": {
+                              "description": "Stripe integration configuration for processing payments",
+                              "properties": {
+                                "publicKey": {
+                                  "description": "Stripe publishable key for client-side integration",
+                                  "type": "string"
+                                },
+                                "priceId": {
+                                  "description": "Stripe Price ID for the payment product",
+                                  "type": "string"
+                                }
+                              },
+                              "required": ["publicKey", "priceId"],
+                              "type": "object"
+                            }
+                          },
+                          "type": "object"
+                        },
+                        "opinionScale": {
+                          "description": "Opinion scale question configuration. Only applicable when type is 'opinionScale'.",
+                          "properties": {
+                            "scaleRange": {
+                              "description": "The range of the opinion scale",
+                              "enum": [5, 7, 10],
+                              "type": "integer"
+                            },
+                            "lowerLabel": {
+                              "description": "Label for the lower end of the scale",
+                              "type": "string"
+                            },
+                            "upperLabel": {
+                              "description": "Label for the upper end of the scale",
+                              "type": "string"
+                            },
+                            "visualStyle": {
+                              "description": "Visual presentation style for the scale",
+                              "enum": ["number", "smiley", "star"],
+                              "type": "string"
+                            }
+                          },
+                          "type": "object"
+                        },
                         "shuffleOption": { "enum": ["none", "all", "exceptLast"], "type": "string" },
                         "type": {
                           "enum": [
@@ -6360,7 +6424,9 @@
                             "multipleChoiceMulti",
                             "multipleChoiceSingle",
                             "nps",
+                            "opinionScale",
                             "openText",
+                            "payment",
                             "pictureSelection",
                             "rating",
                             "cal",
@@ -7536,6 +7602,7 @@
                       "environmentId": "clurwouax000azffxt7n5unn3",
                       "id": "clvcdd8oe000nxz1zhz6q9z3l",
                       "name": null,
+                      "payloadFormat": "default",
                       "source": "user",
                       "surveyIds": [],
                       "triggers": ["responseCreated", "responseUpdated", "responseFinished"],
@@ -7547,6 +7614,7 @@
                       "environmentId": "clurwouax000azffxt7n5unn3",
                       "id": "clvcddph9000oxz1zsnjhvllw",
                       "name": null,
+                      "payloadFormat": "default",
                       "source": "user",
                       "surveyIds": [],
                       "triggers": ["responseCreated", "responseUpdated", "responseFinished"],
@@ -7558,6 +7626,7 @@
                       "environmentId": "clurwouax000azffxt7n5unn3",
                       "id": "clvcderln000pxz1z95jqj0qw",
                       "name": null,
+                      "payloadFormat": "default",
                       "source": "user",
                       "surveyIds": [],
                       "triggers": ["responseCreated", "responseUpdated", "responseFinished"],
@@ -7652,6 +7721,12 @@
                     },
                     "type": "array"
                   },
+                  "payloadFormat": {
+                    "description": "The format of the webhook payload. Use 'typeform' for Typeform-compatible payload structure, or 'default' for the standard Formbricks format.",
+                    "enum": ["default", "typeform"],
+                    "type": "string",
+                    "default": "default"
+                  },
                   "triggers": {
                     "description": "List of events that trigger this webhook",
                     "items": {
@@ -7681,6 +7756,7 @@
                     "environmentId": "clurwouax000azffxt7n5unn3",
                     "id": "clvcdd8oe000nxz1zhz6q9z3l",
                     "name": null,
+                    "payloadFormat": "default",
                     "source": "user",
                     "surveyIds": [],
                     "triggers": ["responseCreated", "responseUpdated", "responseFinished"],
@@ -7776,6 +7852,7 @@
                     "environmentId": "clurwouax000azffxt7n5unn3",
                     "id": "clvcdd8oe000nxz1zhz6q9z3l",
                     "name": null,
+                    "payloadFormat": "default",
                     "source": "user",
                     "surveyIds": [],
                     "triggers": ["responseCreated", "responseUpdated", "responseFinished"],
@@ -7931,6 +8008,7 @@
                     "environmentId": "clurwouax000azffxt7n5unn3",
                     "id": "clvcdd8oe000nxz1zhz6q9z3l",
                     "name": null,
+                    "payloadFormat": "default",
                     "source": "user",
                     "surveyIds": [],
                     "triggers": ["responseCreated", "responseUpdated", "responseFinished"],

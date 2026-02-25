@@ -585,6 +585,16 @@ paths:
           name: contactId
           schema:
             type: string
+        - in: query
+          name: format
+          description: Response export format. When specified, returns responses in the requested format instead of JSON API response.
+          schema:
+            type: string
+            enum:
+              - json
+              - csv
+              - xlsx
+            description: Export format for response data
       responses:
         "200":
           description: Responses retrieved successfully.
@@ -2240,6 +2250,13 @@ paths:
                           items:
                             type: string
                           description: "The IDs of the surveys "
+                        payloadFormat:
+                          type: string
+                          description: The format of the webhook payload. Use 'typeform' for Typeform-compatible payload structure.
+                          enum:
+                            - default
+                            - typeform
+                          default: default
                   meta:
                     type: object
                     properties:
@@ -2291,6 +2308,13 @@ paths:
                   items:
                     type: string
                   description: "The IDs of the surveys "
+                payloadFormat:
+                  type: string
+                  description: The format of the webhook payload. Use 'typeform' for Typeform-compatible payload structure.
+                  enum:
+                    - default
+                    - typeform
+                  default: default
               required:
                 - name
                 - url
@@ -2345,6 +2369,13 @@ paths:
                     items:
                       type: string
                     description: "The IDs of the surveys "
+                  payloadFormat:
+                    type: string
+                    description: The format of the webhook payload. Use 'typeform' for Typeform-compatible payload structure.
+                    enum:
+                      - default
+                      - typeform
+                    default: default
   /management/webhooks/{id}:
     get:
       operationId: getWebhook
@@ -2406,6 +2437,13 @@ paths:
                     items:
                       type: string
                     description: "The IDs of the surveys "
+                  payloadFormat:
+                    type: string
+                    description: The format of the webhook payload. Use 'typeform' for Typeform-compatible payload structure.
+                    enum:
+                      - default
+                      - typeform
+                    default: default
     put:
       operationId: updateWebhook
       summary: Update a webhook
@@ -2455,6 +2493,13 @@ paths:
                   items:
                     type: string
                   description: "The IDs of the surveys "
+                payloadFormat:
+                  type: string
+                  description: The format of the webhook payload. Use 'typeform' for Typeform-compatible payload structure.
+                  enum:
+                    - default
+                    - typeform
+                  default: default
               required:
                 - name
                 - url
@@ -2509,6 +2554,13 @@ paths:
                     items:
                       type: string
                     description: "The IDs of the surveys "
+                  payloadFormat:
+                    type: string
+                    description: The format of the webhook payload. Use 'typeform' for Typeform-compatible payload structure.
+                    enum:
+                      - default
+                      - typeform
+                    default: default
     delete:
       operationId: deleteWebhook
       summary: Delete a webhook
@@ -5019,6 +5071,126 @@ components:
                         - email
                         - phone
                         - company
+                    - type: object
+                      properties:
+                        id:
+                          type: string
+                        type:
+                          type: string
+                          const: payment
+                        headline:
+                          type: object
+                          additionalProperties:
+                            type: string
+                        subheader:
+                          type: object
+                          additionalProperties:
+                            type: string
+                        imageUrl:
+                          type: string
+                          format: uri
+                        videoUrl:
+                          type: string
+                          format: uri
+                        required:
+                          type: boolean
+                        isDraft:
+                          type: boolean
+                        currency:
+                          type: string
+                          description: ISO 4217 currency code for the payment
+                          example: usd
+                          enum:
+                            - usd
+                            - eur
+                            - gbp
+                        amount:
+                          type: integer
+                          description: Payment amount in the smallest currency unit (e.g., cents)
+                          minimum: 1
+                          example: 1000
+                        stripeIntegration:
+                          type: object
+                          description: Stripe integration configuration for processing payments
+                          properties:
+                            publicKey:
+                              type: string
+                              description: Stripe publishable key for client-side integration
+                            priceId:
+                              type: string
+                              description: Stripe Price ID for the payment product
+                          required:
+                            - publicKey
+                            - priceId
+                      required:
+                        - id
+                        - type
+                        - headline
+                        - required
+                        - currency
+                        - amount
+                        - stripeIntegration
+                    - type: object
+                      properties:
+                        id:
+                          type: string
+                        type:
+                          type: string
+                          const: opinionScale
+                        headline:
+                          type: object
+                          additionalProperties:
+                            type: string
+                        subheader:
+                          type: object
+                          additionalProperties:
+                            type: string
+                        imageUrl:
+                          type: string
+                          format: uri
+                        videoUrl:
+                          type: string
+                          format: uri
+                        required:
+                          type: boolean
+                        isDraft:
+                          type: boolean
+                        scaleRange:
+                          type: integer
+                          description: The range of the opinion scale
+                          enum:
+                            - 5
+                            - 7
+                            - 10
+                        lowerLabel:
+                          type: object
+                          additionalProperties:
+                            type: string
+                          description: Label for the lower end of the scale (supports i18n)
+                        upperLabel:
+                          type: object
+                          additionalProperties:
+                            type: string
+                          description: Label for the upper end of the scale (supports i18n)
+                        visualStyle:
+                          type: string
+                          description: Visual presentation style for the scale
+                          enum:
+                            - number
+                            - smiley
+                            - star
+                        isColorCodingEnabled:
+                          type: boolean
+                          default: false
+                          description: Whether color coding is enabled for the scale
+                      required:
+                        - id
+                        - type
+                        - headline
+                        - required
+                        - scaleRange
+                        - lowerLabel
+                        - upperLabel
                 minItems: 1
               logic:
                 type: array
@@ -5744,6 +5916,15 @@ components:
           items:
             type: string
           description: "The IDs of the surveys "
+        payloadFormat:
+          type:
+            - string
+            - "null"
+          description: The format of the webhook payload. Use 'typeform' for Typeform-compatible payload structure, or 'default' for the standard Formbricks format.
+          enum:
+            - default
+            - typeform
+          default: default
       required:
         - id
         - name

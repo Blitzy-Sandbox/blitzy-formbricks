@@ -81,7 +81,8 @@
                   "xm-and-surveys/surveys/general-features/quota-management",
                   "xm-and-surveys/surveys/general-features/spam-protection",
                   "xm-and-surveys/surveys/general-features/tags",
-                  "xm-and-surveys/surveys/general-features/validation-rules"
+                  "xm-and-surveys/surveys/general-features/validation-rules",
+                  "xm-and-surveys/surveys/general-features/response-export"
                 ]
               },
               {
@@ -140,6 +141,8 @@
                   "xm-and-surveys/surveys/question-type/free-text",
                   "xm-and-surveys/surveys/question-type/matrix",
                   "xm-and-surveys/surveys/question-type/net-promoter-score",
+                  "xm-and-surveys/surveys/question-type/opinion-scale",
+                  "xm-and-surveys/surveys/question-type/payment",
                   "xm-and-surveys/surveys/question-type/ranking",
                   "xm-and-surveys/surveys/question-type/rating",
                   "xm-and-surveys/surveys/question-type/schedule-a-meeting",
@@ -308,6 +311,21 @@
               "development/technical-handbook/overview",
               "development/technical-handbook/database-model",
               "development/technical-handbook/tenant-separation"
+            ]
+          },
+          {
+            "group": "Typeform Parity",
+            "icon": "scale-balanced",
+            "pages": [
+              "development/typeform-parity/gap-report",
+              "development/typeform-parity/sprint-roadmap",
+              "development/typeform-parity/question-type-parity",
+              "development/typeform-parity/logic-parity",
+              "development/typeform-parity/webhook-parity",
+              "development/typeform-parity/export-parity",
+              "development/typeform-parity/embed-share-parity",
+              "development/typeform-parity/workspace-parity",
+              "development/typeform-parity/migration-safety"
             ]
           },
           {

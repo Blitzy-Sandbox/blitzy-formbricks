@@ -41,3 +41,68 @@ Formbricks uses a flexible permission system with multiple layers:
   </Card>
 
 </CardGroup>
+
+## Workspace Governance
+
+Formbricks implements a multi-layered governance model that enforces clear organizational boundaries, environment separation, and granular access control. The hierarchy follows an **Organization → Project → Team → Role** structure, where each layer provides progressively finer control over resources and permissions.
+
+### Organization
+
+The **Organization** is the top-level entity in Formbricks. It contains all memberships, projects, teams, invites, billing configuration, and API keys. Self-hosting instances typically have a single organization, while Formbricks Cloud supports multi-tenancy with multiple organizations.
+
+Source: `packages/database/schema.prisma`, `apps/web/modules/organization/`
+
+### Project
+
+A **Project** lives within an Organization and serves as the primary grouping mechanism for surveys and related resources. Each project contains exactly two **Environments** — `production` and `development` — enforcing strict separation between testing and live operations.
+
+Source: `apps/web/modules/projects/`
+
+### Team
+
+**Teams** enable group-based access control for subsets of organization members. Teams are linked to projects through project team assignments, each with a specific permission level (`read`, `readWrite`, or `manage`).
+
+<Note>
+  Teams and team-based access control are part of the [Enterprise Edition](/self-hosting/advanced/license).
+</Note>
+
+Source: `apps/web/modules/ee/teams/`
+
+### Organization Roles
+
+The **OrganizationRole** enum defines four distinct roles with increasing levels of access. These roles are assigned through memberships and control what actions a user can perform across the organization.
+
+Source: `packages/database/schema.prisma`
+
+| Role | Access Level | Description |
+|---|---|---|
+| `owner` | Full administrative | Complete control over the organization including billing, member management, project creation, and all settings |
+| `manager` | Management-level | Manage projects, teams, surveys, and organization settings; cannot modify billing or transfer ownership |
+| `member` | Standard access | Access assigned projects and surveys; cannot manage teams or organization settings |
+| `billing` | Billing-only | View and manage billing configuration; cannot access projects, surveys, or organization settings |
+
+### API Key Management
+
+Formbricks provides per-environment API keys managed through organization settings. Each key is scoped to specific environments with granular permission levels (`read`, `write`, or `manage`), enabling fine-grained programmatic access control.
+
+Source: `apps/web/modules/organization/settings/api-keys/`
+
+## Typeform Workspace Comparison
+
+Formbricks and Typeform take different structural approaches to workspace governance. Formbricks uses an **Organization → Project → Team** model with enforced environment separation, while Typeform uses a **Workspace → Team → Folder** model with flexible content hierarchy. Despite these structural differences, Formbricks achieves full governance parity — and exceeds Typeform in role granularity and environment isolation.
+
+| Feature | Typeform | Formbricks | Status |
+|---|---|---|---|
+| Top-level entity | Workspace | Organization | ✅ Full |
+| Sub-organization grouping | Team | Team (Enterprise) | ✅ Full (EE) |
+| Content organization | Folder hierarchy | Project → Environment | 🟡 Different model |
+| Role types | Owner, Admin, Member (3) | owner, manager, member, billing (4) | ✅ Full+ |
+| API key management | ✅ | ✅ (per-environment) | ✅ Full |
+| Environment separation | — | Production and Development per project | ✅ Formbricks-only |
+| Billing governance | Per-workspace limits | Per-organization limits | ✅ Full |
+
+For a comprehensive workspace governance comparison, see the [Workspace Parity](/development/typeform-parity/workspace-parity) documentation.
+
+<Note>
+  Team-based access control features referenced above are part of the [Enterprise Edition](/self-hosting/advanced/license). The Community Edition and Free/Startup Cloud plans support unlimited organization members with Owner permissions.
+</Note>

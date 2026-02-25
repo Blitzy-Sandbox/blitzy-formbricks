@@ -1,0 +1,141 @@
+---
+title: "Opinion Scale"
+description: "Opinion scale questions allow respondents to rate on a customizable scale (1-5, 1-7, or 1-10) with configurable labels."
+icon: "slider"
+---
+
+Opinion Scale questions allow respondents to express their level of agreement, satisfaction, or preference on a customizable numeric scale. Unlike the [Net Promoter Score (NPS)](/xm-and-surveys/surveys/question-type/net-promoter-score) question type — which uses a fixed 0–10 scale — the Opinion Scale supports configurable ranges: 1–5, 1–7, or 1–10. This makes it ideal for Likert-scale questions, customer satisfaction ratings, and attitudinal measurements where you need flexibility in the number of scale points.
+
+<Note>The Opinion Scale question type is a planned feature for Typeform parity. This documentation describes the planned specification and will be updated upon implementation.</Note>
+
+## How Opinion Scale Differs from NPS
+
+While both the Opinion Scale and [NPS](/xm-and-surveys/surveys/question-type/net-promoter-score) collect numeric ratings, they serve different purposes and have distinct characteristics:
+
+| Feature | Net Promoter Score (NPS) | Opinion Scale |
+|---------|--------------------------|---------------|
+| Scale range | Fixed 0–10 | Configurable: 1–5, 1–7, or 1–10 |
+| Starting value | Always 0 | Always 1 |
+| Use case | Loyalty measurement (promoters/passives/detractors) | General sentiment, Likert scales, satisfaction |
+| Scoring model | Standard NPS formula (% Promoters − % Detractors) | Raw value or average aggregation |
+| Color coding | Optional (0–6 red, 7–8 yellow, 9–10 green) | Optional (configurable per label) |
+| Labels | Lower/upper labels (e.g., "Not at all likely" / "Extremely likely") | Lower/upper labels (fully customizable) |
+
+NPS is specifically designed for the "How likely are you to recommend..." question pattern with an industry-standard scoring formula that categorizes respondents into promoters, passives, and detractors.
+
+Opinion Scale is a general-purpose rating that supports broader use cases such as:
+
+- **Agreement scales** — "Strongly disagree" to "Strongly agree"
+- **Frequency scales** — "Never" to "Always"
+- **Importance scales** — "Not important" to "Extremely important"
+- **Satisfaction scales** — "Very unsatisfied" to "Very satisfied"
+
+## Elements
+
+### Title
+
+Add a clear title to inform the respondent what opinion or preference is being measured. The title should frame the question so the respondent understands what the scale represents.
+
+### Description
+
+Provide an optional description with further context or instructions. Use this to clarify the scale meaning or provide additional guidance on how to respond.
+
+### Scale Range
+
+Configure the numeric scale range. Available options:
+
+- **1–5** — Best for simple preference or satisfaction questions. Offers a quick and intuitive response experience with a clear midpoint at 3.
+- **1–7** — Common for academic and research Likert scales. Provides additional granularity while maintaining a neutral midpoint at 4.
+- **1–10** — Provides finer granularity for detailed opinion capture. Useful when you need to distinguish between subtle differences in sentiment.
+
+### Lower and Upper Labels
+
+Configure text labels for the endpoints of the scale:
+
+- **Lower label** — Describes the minimum value (e.g., "Strongly disagree", "Very unsatisfied", "Not important")
+- **Upper label** — Describes the maximum value (e.g., "Strongly agree", "Very satisfied", "Extremely important")
+
+Labels help respondents understand the meaning of each end of the scale. Both labels are optional but recommended for clarity.
+
+### Visual Style
+
+Choose the visual presentation of the scale:
+
+- **Numbers** — Display numeric values in buttons. Suitable for all scale ranges and provides the most neutral visual representation.
+- **Stars** — Display star icons. Best suited for 1–5 scales and commonly associated with product or service ratings.
+- **Sliders** — Display a slider control for continuous selection. Provides an interactive experience and works well for all scale ranges.
+
+## Configuration
+
+The Opinion Scale question type supports the following configuration options:
+
+- **Scale range selection** — Choose between 1–5, 1–7, or 1–10 to match your research needs.
+- **Label customization** — Set custom text for the lower and upper bounds of the scale to provide context for respondents.
+- **Visual style selection** — Choose between numbers, stars, or slider display modes.
+- **Required/optional toggle** — Mark the question as required to ensure respondents provide a rating before proceeding, or leave it optional to allow skipping.
+- **Multi-language support** — Labels and text fields support multiple languages for international surveys, using the same internationalization system as other Formbricks question types.
+
+## Response Format
+
+The response value is stored as an integer within the configured scale range. For example, on a 1–5 scale, valid response values are 1, 2, 3, 4, or 5.
+
+```json
+{
+  "opinionScale_q1": 4
+}
+```
+
+The value represents the respondent's selection on the configured scale. In this example, a value of `4` on a 1–5 scale indicates a rating toward the upper end of the range (close to the upper label value).
+
+When aggregating responses, you can calculate:
+
+- **Average score** — The mean of all responses for a central tendency measure.
+- **Distribution** — The count or percentage of responses at each scale point.
+- **Top/bottom box scores** — The percentage of respondents selecting the highest or lowest values.
+
+## Planned Schema Specification
+
+The Opinion Scale element type will extend the existing survey element schema system. The proposed Zod schema follows the same patterns used by `ZSurveyRatingElement` and `ZSurveyNPSElement` in `packages/types/surveys/elements.ts`:
+
+```typescript
+// Planned extension to packages/types/surveys/elements.ts
+export const ZSurveyOpinionScaleElement = ZSurveyElementBase.extend({
+  type: z.literal("opinionScale"),
+  scale: z.enum(["number", "star", "slider"]).default("number"),
+  range: z.union([z.literal(5), z.literal(7), z.literal(10)]).default(5),
+  lowerLabel: ZI18nString.optional(),
+  upperLabel: ZI18nString.optional(),
+  validation: ZValidation.optional(),
+});
+
+export type TSurveyOpinionScaleElement = z.infer<typeof ZSurveyOpinionScaleElement>;
+```
+
+<Note>This schema is a planned specification. The actual implementation may differ. The Opinion Scale type will be added to `TSurveyElementTypeEnum` in `packages/types/surveys/constants.ts`. Source reference: `packages/types/surveys/elements.ts`</Note>
+
+This schema design draws from two existing element types:
+
+- **`ZSurveyRatingElement`** uses `scale: z.enum(["number", "smiley", "star"])` and `range: z.union([z.literal(5), z.literal(3), z.literal(4), z.literal(6), z.literal(7), z.literal(10)])` for visual style and range configuration.
+- **`ZSurveyNPSElement`** uses `lowerLabel`, `upperLabel`, and `isColorCodingEnabled` for endpoint label configuration.
+
+The Opinion Scale combines aspects of both — offering a configurable range with customizable labels and flexible visual styles. The `slider` option in the `scale` enum is new and specific to the Opinion Scale type.
+
+## API Request Example
+
+The following JSON shows how an Opinion Scale question appears in a survey creation API payload:
+
+```json
+{
+  "id": "opinion_scale_q1",
+  "type": "opinionScale",
+  "headline": { "default": "How satisfied are you with our service?" },
+  "subheader": { "default": "Please rate your overall experience" },
+  "required": true,
+  "scale": "number",
+  "range": 5,
+  "lowerLabel": { "default": "Very unsatisfied" },
+  "upperLabel": { "default": "Very satisfied" }
+}
+```
+
+This payload creates an Opinion Scale question with a 1–5 numeric scale, labeled from "Very unsatisfied" to "Very satisfied". The `headline` and `subheader` fields use the internationalization object format (`{ "default": "..." }`) consistent with all other Formbricks element types.

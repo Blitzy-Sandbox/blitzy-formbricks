@@ -58,3 +58,114 @@ These hidden fields will now be visible in the responses tab just like other fie
 - **User Metadata**: You can add hidden fields to capture user metadata such as user ID, email, or any other user-specific information.
 
 - **Survey Metadata**: You can add hidden fields to capture other metadata, e.g. the screen from which the survey was filled, or any other app specific information.
+
+## Answer Piping with Recall
+
+Answer piping lets you dynamically insert data from previous answers, hidden fields, or variables into subsequent question headlines and descriptions. This creates personalized, adaptive survey experiences where each question can reference information the respondent has already provided.
+
+Formbricks implements answer piping through its **recall mechanism**, which uses a token-based syntax embedded directly in question text.
+
+### Recall Token Syntax
+
+The recall token format is:
+
+```
+#recall:<id>/fallback:<value>#
+```
+
+- **`<id>`** — The ID of the source element (question, hidden field, or variable) whose value you want to insert.
+- **`<value>`** — The fallback text displayed if the referenced data is unavailable or empty.
+
+**Example token:**
+
+```
+#recall:questionId123/fallback:valued customer#
+```
+
+This token inserts the answer to the element with ID `questionId123`. If the respondent has not answered that question, the text `valued customer` is displayed instead.
+
+The token pattern follows the regex: `#recall:([A-Za-z0-9_-]+)/fallback:([^#]*)#`
+
+`Source: apps/web/lib/utils/recall.ts:L16-41` (extractId, extractIds), `Source: apps/web/lib/utils/recall.ts:L43-48` (extractRecallInfo)
+
+### Recall Sources
+
+Data can be recalled from three sources, as defined by `ZDynamicLogicFieldValue` in `packages/types/surveys/logic.ts`:
+
+- **Previous question answers** — Referenced by the question or element ID. Any element type that captures a response (open text, multiple choice, rating, date, etc.) can serve as a recall source.
+- **Hidden fields** — Referenced by the hidden field ID. This is especially useful for piping URL parameters or SDK-provided metadata into question text.
+- **Variables** — Referenced by a variable ID (CUID2 format). Variables can hold calculated or pre-set values that are updated dynamically during the survey flow.
+
+For a detailed step-by-step guide on using recall in the survey editor, see the [Recall Data](/xm-and-surveys/surveys/general-features/recall) page.
+
+## How Recall Works
+
+At runtime, the recall engine processes all `#recall:...#` tokens in survey text and replaces them with actual data values. The two primary functions that drive this mechanism are `parseRecallInfo` and `replaceHeadlineRecall`.
+
+### The `parseRecallInfo` Function
+
+The `parseRecallInfo` function (`apps/web/lib/utils/recall.ts`, line 223) is the core recall engine. It processes text containing recall tokens and performs the following operations:
+
+1. Scans the text for `#recall:...#` patterns using an iterative loop.
+2. For each token found, extracts the source ID and fallback value.
+3. Checks **variables first** — if the ID matches a variable, its current value is used.
+4. Then checks **response data** — if the ID matches a question or hidden field, the response value is used.
+5. Applies **special formatting** for certain value types:
+   - Dates are formatted using `formatDateWithOrdinal` for human-readable output (e.g., "January 15th, 2025").
+   - Arrays are joined with commas, with empty entries filtered out.
+6. If no matching value is found, the **fallback text** is used as the replacement.
+7. Handles **multiple recall tokens** in a single string by iterating until no more tokens remain.
+
+`Source: apps/web/lib/utils/recall.ts:L223-280`
+
+### The `replaceHeadlineRecall` Function
+
+The `replaceHeadlineRecall` function (`apps/web/lib/utils/recall.ts`, line 148) operates at the survey level. It iterates through all survey elements and replaces recall tokens in their headlines with resolved values. This function is used in analysis views (response pages, summary pages) and during response export to ensure that displayed text reflects actual respondent data rather than raw tokens.
+
+`Source: apps/web/lib/utils/recall.ts:L148-155`
+
+### Processing Flow
+
+When a survey is rendered, the recall engine follows this sequence: survey text containing `#recall:<id>/fallback:<value>#` tokens is parsed at render time. The engine extracts the source IDs from all tokens in the text. It then looks up the response data or variable value matching each ID, and also checks hidden fields for matching IDs. If a matching value is found, the token is replaced with the actual value. If no match exists, the fallback text is used instead. Special formatting is applied automatically for dates (ordinal formatting) and arrays (comma-separated with empty filtering).
+
+<Note>
+  Formbricks supports **nested recalls** — a recall token can reference a field whose value itself contains recall tokens. These are resolved recursively, enabling powerful dynamic content chains that go beyond simple single-level piping.
+</Note>
+
+### TSurveyHiddenFields Schema
+
+The hidden fields schema is defined in `packages/types/surveys/types.ts` (lines 157–188) using Zod validation:
+
+```typescript
+ZSurveyHiddenFields = z.object({
+  enabled: z.boolean(),
+  fieldIds: z.optional(z.array(z.string()))
+})
+```
+
+- **`enabled`** — Boolean toggle to activate or deactivate hidden fields for a survey.
+- **`fieldIds`** — Optional array of string IDs identifying each hidden field. Field IDs must be alphanumeric characters, hyphens, or underscores only (no spaces allowed). Forbidden IDs are validated at the schema level to prevent collisions with system-reserved fields.
+
+`Source: packages/types/surveys/types.ts:L157-188` (ZSurveyHiddenFields), `Source: apps/web/modules/survey/editor/components/hidden-fields-card.tsx` (hidden fields management UI)
+
+## Typeform Answer Piping Comparison
+
+The following table compares Formbricks' recall mechanism with Typeform's answer piping feature across key capabilities:
+
+| Feature | Typeform | Formbricks | Status |
+|---|---|---|---|
+| Insert previous answers | `{{field:ref}}` syntax | `#recall:<id>/fallback:<value>#` syntax | ✅ Full |
+| Fallback values | ✅ Supported | ✅ Built-in fallback mechanism | ✅ Full |
+| Hidden field piping | `{{hidden:<key>}}` syntax | Recall from hidden field IDs | ✅ Full |
+| Variable piping | ✅ Calculated fields | ✅ Variable recall support | ✅ Full |
+| Nested piping | ❌ Not supported | ✅ Recursive recall resolution | ✅ Formbricks-only |
+| Date formatting | Basic format | `formatDateWithOrdinal` auto-formatting | ✅ Full+ |
+| Array formatting | Comma-separated | Comma-separated with empty filtering | ✅ Full |
+
+### Key Differences
+
+Formbricks supports **nested recalls** — a recall token that references another field containing recall tokens is resolved recursively. This capability is not available in Typeform and provides more flexible dynamic content composition. For example, a hidden field value could itself contain a recall reference to a variable, and the engine will resolve both levels automatically.
+
+Additionally, Formbricks provides **built-in fallback values** as a first-class part of the token syntax, ensuring that surveys always display coherent text even when referenced data is unavailable.
+
+For the complete Typeform parity analysis, see the [Gap Report](/development/typeform-parity/gap-report).

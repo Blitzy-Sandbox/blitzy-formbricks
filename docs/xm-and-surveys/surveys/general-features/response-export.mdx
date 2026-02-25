@@ -1,0 +1,190 @@
+---
+title: "Response Export"
+description: "Export survey responses in CSV, XLSX, and JSON formats with filtering, date range selection, batch processing, and lossless data guarantees."
+icon: "file-export"
+---
+
+Formbricks allows you to export all survey response data for external analysis, reporting, or archival purposes. Exports currently support **CSV** and **XLSX** formats, with **JSON export** planned as an upcoming feature. Every export includes all response data, metadata, hidden fields, variables, and tags — and supports filtering by date range and response criteria so you can narrow down exactly the data you need.
+
+## How to Export
+
+Follow these steps to export your survey responses:
+
+<Steps>
+  <Step title="Open the Responses Tab">
+    Navigate to the survey whose responses you want to export and open the **Responses** tab.
+  </Step>
+  <Step title="Click the Export Button">
+    In the response table toolbar, click the **download icon** to initiate an export.
+  </Step>
+  <Step title="Select Your Format">
+    Choose the desired format: **CSV** or **XLSX**.
+  </Step>
+  <Step title="Apply Filters (Optional)">
+    Optionally apply filters in the Responses tab to narrow the export scope. Any active filters (date range, completion status, answer criteria) carry through to the export.
+  </Step>
+  <Step title="Download">
+    The export file is generated server-side and downloaded directly to your browser. File names follow the pattern `export-{survey-name}-{timestamp}.{format}`.
+  </Step>
+</Steps>
+
+The export is triggered via the `getResponsesDownloadUrlAction` server action from the analysis and responses components.
+
+## CSV Export
+
+CSV (comma-separated values) is a lightweight, universally compatible tabular format ideal for importing into spreadsheets, databases, and data analysis tools.
+
+**Format Details:**
+
+| Property | Value |
+|---|---|
+| Format | Standard CSV (comma-separated values) |
+| Encoding | UTF-8 |
+| Conversion Library | `@json2csv/node` AsyncParser |
+| Structure | One row per response, one column per field |
+
+**Standard Columns** (included in every CSV export, in order):
+
+| # | Column Name | Description |
+|---|---|---|
+| 1 | `No.` | Sequential response number |
+| 2 | `Response ID` | Unique response identifier (CUID2) |
+| 3 | `Timestamp` | Response creation date and time |
+| 4 | `Finished` | Whether the response is complete (`true` / `false`) |
+| 5 | `Quotas` | Quota names (conditional — only if billing plan supports quotas) |
+| 6 | `Survey ID` | Parent survey identifier |
+| 7 | `Formbricks ID (internal)` | Internal contact identifier |
+| 8 | `User ID` | External user identifier from contact attributes |
+| 9 | `Notes` | Response notes |
+| 10 | `Tags` | Comma-separated tag names |
+
+**Dynamic Columns** (appended after standard columns, based on survey structure):
+
+| Column Category | Source | Description |
+|---|---|---|
+| Metadata fields | `response.meta` object | Browser, OS, device, URL, and other metadata. Nested values are flattened with `key - subKey` notation. |
+| Element answers | Survey blocks → elements | One column per survey element, prefixed with element index and headline (e.g., `1. How satisfied are you?`). |
+| Variables | `survey.variables` | Calculated variable values, with the variable name as the column header. |
+| Hidden fields | `survey.hiddenFields.fieldIds` | Hidden field values passed via URL parameters, with the field ID as the column header. |
+| User attributes | `response.contactAttributes` | Contact attribute values (app surveys only), with the attribute key as the column header. |
+| Verified Email | `survey.isVerifyEmailEnabled` | Included only when email verification is enabled on the survey. |
+
+**Example CSV Output:**
+
+```csv
+No.,Response ID,Timestamp,Finished,Survey ID,Formbricks ID (internal),User ID,Notes,Tags,How satisfied are you?,What could we improve?
+1,resp_abc123,2025-01-15T10:30:00Z,true,surv_xyz789,usr_001,,,,5,Faster load times
+2,resp_def456,2025-01-15T11:00:00Z,false,surv_xyz789,usr_002,,,,3,
+```
+
+Source: `apps/web/lib/response/service.ts:L391-411` (header generation), `apps/web/lib/utils/file-conversion.ts:L5-20` (convertToCsv)
+
+## XLSX Export
+
+XLSX (Microsoft Excel Open XML Spreadsheet) provides a richer format that preserves data types and handles special characters, multi-line text, and large datasets more reliably than CSV.
+
+**Format Details:**
+
+| Property | Value |
+|---|---|
+| Format | Microsoft Excel Open XML Spreadsheet (.xlsx) |
+| Conversion Library | `xlsx` Node.js library |
+| Structure | Single worksheet ("Sheet1") with header row followed by data rows |
+| Columns | Same column structure as CSV (standard + dynamic columns) |
+| Data Types | String and number types are preserved during conversion |
+| Delivery | Base64-encoded buffer returned to client for browser download |
+
+The XLSX format shares the same column structure and data content as the CSV export. The key advantage of XLSX is better handling of special characters, multi-line text fields, and numeric data types — making it the preferred choice when working directly in Excel or similar spreadsheet applications.
+
+Source: `apps/web/lib/utils/file-conversion.ts:L22-30` (convertToXlsxBuffer)
+
+## JSON Export
+
+<Note>
+  JSON export is a planned feature and is not yet available as a direct file download. Currently, response data can be accessed in JSON format via the REST API. See the [API Reference](/api-reference) for details.
+</Note>
+
+**Planned Format:** JSON array of response objects with full response data, metadata, variables, and hidden fields.
+
+**Planned Structure:**
+
+```json
+[
+  {
+    "responseId": "resp_abc123",
+    "timestamp": "2025-01-15T10:30:00.000Z",
+    "finished": true,
+    "surveyId": "surv_xyz789",
+    "data": {
+      "questionId1": "5",
+      "questionId2": "Faster load times"
+    },
+    "variables": {},
+    "hiddenFields": {},
+    "meta": {
+      "userAgent": "Mozilla/5.0...",
+      "browser": "Chrome",
+      "os": "macOS"
+    }
+  }
+]
+```
+
+**API Alternative:** Until the JSON export file download is available, you can access response data in JSON format using the Formbricks API's response endpoints. The API returns paginated response objects with full typing and metadata.
+
+For the technical gap analysis on JSON export implementation, see the [Export Parity Analysis](/development/typeform-parity/export-parity).
+
+## Filtering and Date Ranges
+
+Exports support the full `TResponseFilterCriteria` schema, enabling precise control over which responses are included in the export file.
+
+**Available Filter Criteria:**
+
+| Filter | Type | Description |
+|---|---|---|
+| Date range | `createdAt.min` / `createdAt.max` | Filter responses by creation date window (start date, end date) |
+| Completion status | `finished` boolean | Include only completed or only partial responses |
+| Response data | Per-element operators | Filter by specific answer values with 20+ operators (equals, contains, greaterThan, lessThan, isEmpty, and more) |
+| Tags | `applied` / `notApplied` arrays | Filter by tag presence or absence |
+| Contact attributes | `equals` / `notEquals` operators | Filter by contact attribute values |
+| Metadata | Per-field operators | Filter by response metadata (browser, OS, device, etc.) |
+
+**How to Filter:** Apply filters in the survey Responses tab before exporting. All active filters carry through to the export, so the downloaded file contains only the filtered subset of responses.
+
+## Batch Processing
+
+For surveys with large numbers of responses, the export system uses an efficient batch streaming mechanism to ensure reliable performance.
+
+| Property | Value |
+|---|---|
+| Batch size | 3,000 responses per batch |
+| Pagination method | Cursor-based pagination using the last response ID as cursor |
+| Sort order | Responses sorted by `createdAt` descending with secondary sort by `id` descending |
+
+**How It Works:** The export pipeline automatically fetches responses in batches of 3,000, accumulating all matching responses before generating the final export file. Cursor-based pagination avoids expensive `COUNT + OFFSET` database queries, providing consistent performance regardless of dataset size.
+
+This means that whether your survey has 100 responses or 100,000 responses, the export will complete reliably without timeouts or excessive memory usage.
+
+Source: `apps/web/lib/response/service.ts:L355-372` (batch streaming with cursor-based pagination)
+
+## Lossless Export Guarantee
+
+<Warning>
+  All response exports are designed to be lossless. Every response field present in the database appears in the export file, and exported values exactly match stored values with no truncation, rounding, or encoding loss.
+</Warning>
+
+Formbricks enforces data fidelity across all export formats through the following guarantees:
+
+- **Field Completeness:** Every field in the response record is included in the export — no data is omitted or summarized.
+- **Value Accuracy:** Exported values exactly match the values stored in the database. There is no truncation, rounding, or encoding loss during the export process.
+- **Metadata Preservation:** All metadata fields (timestamp, user agent, language, country, variables) are included as dedicated columns in the export.
+- **Hidden Fields:** Hidden field values are exported as their own dedicated columns, preserving all URL-parameter data passed into the survey.
+- **File References:** FileUpload responses include fully resolved storage URLs in exports, ensuring that file references are accessible download links rather than internal storage keys. This resolution is performed via `resolveStorageUrlsInObject` before format conversion.
+- **Partial Responses:** Responses with `Finished: false` (partial submissions) are included in exports alongside completed responses, ensuring no data loss from incomplete survey sessions.
+
+Source: `apps/web/lib/response/service.ts:L412` (resolveStorageUrlsInObject for file URL resolution)
+
+## Related Resources
+
+- For the technical export parity analysis comparing Formbricks and Typeform export capabilities, see the [Export Parity Analysis](/development/typeform-parity/export-parity).
+- For API-based response access in JSON format, see the [API Reference](/api-reference).

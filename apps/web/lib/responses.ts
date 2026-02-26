@@ -28,6 +28,8 @@ export const convertResponseValue = (
           .filter((url): url is string => url !== undefined);
       } else return [];
 
+    case "typeA":
+    case "typeB":
     default:
       return processResponseData(answer);
   }

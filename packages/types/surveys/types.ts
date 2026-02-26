@@ -706,6 +706,7 @@ export type TSurveyRankingQuestion = z.infer<typeof ZSurveyRankingQuestion>;
  */
 export const ZSurveyTypeAQuestion = ZSurveyQuestionBase.extend({
   type: z.literal(TSurveyQuestionTypeEnum.TypeA),
+  placeholder: ZI18nString.optional(),
 });
 
 /**
@@ -718,6 +719,7 @@ export type TSurveyTypeAQuestion = z.infer<typeof ZSurveyTypeAQuestion>;
  */
 export const ZSurveyTypeBQuestion = ZSurveyQuestionBase.extend({
   type: z.literal(TSurveyQuestionTypeEnum.TypeB),
+  placeholder: ZI18nString.optional(),
 });
 
 /**

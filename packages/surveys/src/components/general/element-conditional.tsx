@@ -20,6 +20,8 @@ import { OpenTextElement } from "@/components/elements/open-text-element";
 import { PictureSelectionElement } from "@/components/elements/picture-selection-element";
 import { RankingElement } from "@/components/elements/ranking-element";
 import { RatingElement } from "@/components/elements/rating-element";
+import { TypeAElement } from "@/components/elements/type-a-element";
+import { TypeBElement } from "@/components/elements/type-b-element";
 import { getLocalizedValue } from "@/lib/i18n";
 
 interface ElementConditionalProps {
@@ -342,6 +344,38 @@ export function ElementConditional({
             setTtc={wrappedSetTtc}
             currentElementId={currentElementId}
             autoFocusEnabled={autoFocusEnabled}
+            dir={dir}
+            errorMessage={errorMessage}
+          />
+        );
+      case TSurveyElementTypeEnum.TypeA:
+        return (
+          <TypeAElement
+            key={element.id}
+            element={element}
+            value={typeof value === "string" ? value : ""}
+            onChange={onChange}
+            languageCode={languageCode}
+            ttc={ttc}
+            setTtc={wrappedSetTtc}
+            autoFocusEnabled={autoFocusEnabled}
+            currentElementId={currentElementId}
+            dir={dir}
+            errorMessage={errorMessage}
+          />
+        );
+      case TSurveyElementTypeEnum.TypeB:
+        return (
+          <TypeBElement
+            key={element.id}
+            element={element}
+            value={typeof value === "string" ? value : ""}
+            onChange={onChange}
+            languageCode={languageCode}
+            ttc={ttc}
+            setTtc={wrappedSetTtc}
+            autoFocusEnabled={autoFocusEnabled}
+            currentElementId={currentElementId}
             dir={dir}
             errorMessage={errorMessage}
           />

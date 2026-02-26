@@ -994,7 +994,7 @@ export const getElementSummary = async (
         let values: TSurveyElementSummaryTypeA["samples"] = [];
         responses.forEach((response) => {
           const answer = response.data[element.id];
-          if (Array.isArray(answer) && answer.length > 0) {
+          if (answer && typeof answer === "string") {
             values.push({
               id: response.id,
               updatedAt: response.updatedAt,
@@ -1019,7 +1019,7 @@ export const getElementSummary = async (
         let values: TSurveyElementSummaryTypeB["samples"] = [];
         responses.forEach((response) => {
           const answer = response.data[element.id];
-          if (Array.isArray(answer) && answer.length > 0) {
+          if (answer && typeof answer === "string") {
             values.push({
               id: response.id,
               updatedAt: response.updatedAt,

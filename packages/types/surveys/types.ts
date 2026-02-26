@@ -4255,7 +4255,7 @@ export const ZSurveyElementSummaryTypeA = z.object({
     z.object({
       id: z.string(),
       updatedAt: z.date(),
-      value: z.array(z.string()),
+      value: z.string(),
       contact: z
         .object({
           id: ZId,
@@ -4276,7 +4276,7 @@ export const ZSurveyElementSummaryTypeB = z.object({
     z.object({
       id: z.string(),
       updatedAt: z.date(),
-      value: z.array(z.string()),
+      value: z.string(),
       contact: z
         .object({
           id: ZId,

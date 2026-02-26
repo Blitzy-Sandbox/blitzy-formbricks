@@ -6,7 +6,7 @@ import { TSurvey, TSurveyElementSummaryTypeA } from "@formbricks/types/surveys/t
 import { TUserLocale } from "@formbricks/types/user";
 import { timeSince } from "@/lib/time";
 import { getContactIdentifier } from "@/lib/utils/contact";
-import { ArrayResponse } from "@/modules/ui/components/array-response";
+import { renderHyperlinkedContent } from "@/modules/analysis/utils";
 import { PersonAvatar } from "@/modules/ui/components/avatars";
 import { EmptyState } from "@/modules/ui/components/empty-state";
 import { ElementSummaryHeader } from "./ElementSummaryHeader";
@@ -61,8 +61,10 @@ export const TypeASummary = ({ elementSummary, environmentId, survey, locale }: 
                       </div>
                     )}
                   </div>
-                  <div className="ph-no-capture col-span-2 pl-6 font-semibold">
-                    <ArrayResponse value={response.value} />
+                  <div className="ph-no-capture col-span-2 whitespace-pre-wrap pl-6 font-semibold">
+                    {typeof response.value === "string"
+                      ? renderHyperlinkedContent(response.value)
+                      : response.value}
                   </div>
 
                   <div className="px-4 text-slate-500 md:px-6">

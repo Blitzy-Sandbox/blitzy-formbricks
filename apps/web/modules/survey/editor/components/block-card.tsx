@@ -6,7 +6,7 @@ import { useAutoAnimate } from "@formkit/auto-animate/react";
 import { Project } from "@prisma/client";
 import * as Collapsible from "@radix-ui/react-collapsible";
 import { ChevronDownIcon, ChevronRightIcon, GripIcon } from "lucide-react";
-import { useState } from "react";
+import { type ComponentType, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { TI18nString } from "@formbricks/types/i18n";
 import { TSurveyBlock, TSurveyBlockLogic } from "@formbricks/types/surveys/blocks";
@@ -35,6 +35,8 @@ import { OpenElementForm } from "@/modules/survey/editor/components/open-element
 import { PictureSelectionForm } from "@/modules/survey/editor/components/picture-selection-form";
 import { RankingElementForm } from "@/modules/survey/editor/components/ranking-element-form";
 import { RatingElementForm } from "@/modules/survey/editor/components/rating-element-form";
+import { TypeAElementForm } from "@/modules/survey/editor/components/type-a-element-form";
+import { TypeBElementForm } from "@/modules/survey/editor/components/type-b-element-form";
 import { formatTextWithSlashes } from "@/modules/survey/editor/lib/utils";
 import { getElementIconMap, getTSurveyElementTypeEnumName } from "@/modules/survey/lib/elements";
 import { Alert, AlertButton, AlertTitle } from "@/modules/ui/components/alert";
@@ -193,6 +195,8 @@ export const BlockCard = ({
     [TSurveyElementTypeEnum.Address]: AddressElementForm,
     [TSurveyElementTypeEnum.Ranking]: RankingElementForm,
     [TSurveyElementTypeEnum.ContactInfo]: ContactInfoElementForm,
+    [TSurveyElementTypeEnum.TypeA]: TypeAElementForm,
+    [TSurveyElementTypeEnum.TypeB]: TypeBElementForm,
   };
 
   // Elements that need lastElement prop
@@ -205,7 +209,9 @@ export const BlockCard = ({
   ]);
 
   const renderElementForm = (element: TSurveyElement, elementIdx: number) => {
-    const FormComponent = elementFormMap[element.type];
+    // Cast to broad ComponentType — props are built dynamically and conditionally per element type
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const FormComponent = elementFormMap[element.type] as ComponentType<any> | undefined;
     if (!FormComponent) return null;
 
     const commonProps = getCommonFormProps(element, elementIdx);

@@ -157,6 +157,9 @@ const checkRequiredField = (
   return null;
 };
 
+// Note: TypeA and TypeB elements use the default isEmpty check above.
+// No type-specific required field handling is needed for these simple element types.
+
 /**
  * Add implicit validation rules for OpenText elements based on inputType
  */

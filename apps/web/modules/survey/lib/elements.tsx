@@ -243,6 +243,24 @@ export const getElementTypes = (t: TFunction): TElement[] => [
       company: { show: true, required: true, placeholder: { default: "Company" } },
     },
   },
+  {
+    id: TSurveyElementTypeEnum.TypeA,
+    label: t("templates.type_a"),
+    description: t("templates.type_a_description"),
+    icon: FileType2Icon,
+    preset: {
+      headline: createI18nString("", []),
+    },
+  },
+  {
+    id: TSurveyElementTypeEnum.TypeB,
+    label: t("templates.type_b"),
+    description: t("templates.type_b_description"),
+    icon: FileDigitIcon,
+    preset: {
+      headline: createI18nString("", []),
+    },
+  },
 ];
 
 export const getCXElementTypes = (t: TFunction) =>

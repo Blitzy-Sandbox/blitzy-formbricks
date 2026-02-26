@@ -120,6 +120,18 @@ describe("Survey Logic", () => {
             ],
             shuffleOption: "none",
           },
+          {
+            id: "qTypeA",
+            type: TSurveyElementTypeEnum.TypeA,
+            headline: { default: "TypeA Question" },
+            required: false,
+          },
+          {
+            id: "qTypeB",
+            type: TSurveyElementTypeEnum.TypeB,
+            headline: { default: "TypeB Question" },
+            required: false,
+          },
         ],
       },
     ],
@@ -918,6 +930,79 @@ describe("Survey Logic", () => {
         ],
       };
       expect(evaluateLogic(mockSurvey, mockData, mockVariablesData, isBookedCondition, "default")).toBe(true);
+    });
+
+    test("evaluates isSubmitted for TypeA element", () => {
+      const typeASubmittedCondition: TConditionGroup = {
+        id: "groupTypeA1",
+        connector: "and",
+        conditions: [
+          {
+            id: "condTypeA1",
+            operator: "isSubmitted",
+            leftOperand: { type: "element", value: "qTypeA" },
+          },
+        ],
+      };
+      // qTypeA has data in mockData so isSubmitted should be true
+      const dataWithTypeA = { ...mockData, qTypeA: "some TypeA response" };
+      expect(
+        evaluateLogic(mockSurvey, dataWithTypeA, mockVariablesData, typeASubmittedCondition, "default")
+      ).toBe(true);
+    });
+
+    test("evaluates isSkipped for TypeA element", () => {
+      const typeASkippedCondition: TConditionGroup = {
+        id: "groupTypeA2",
+        connector: "and",
+        conditions: [
+          {
+            id: "condTypeA2",
+            operator: "isSkipped",
+            leftOperand: { type: "element", value: "qTypeA" },
+          },
+        ],
+      };
+      // qTypeA is NOT in mockData so isSkipped should be true
+      expect(evaluateLogic(mockSurvey, mockData, mockVariablesData, typeASkippedCondition, "default")).toBe(
+        true
+      );
+    });
+
+    test("evaluates isSubmitted for TypeB element", () => {
+      const typeBSubmittedCondition: TConditionGroup = {
+        id: "groupTypeB1",
+        connector: "and",
+        conditions: [
+          {
+            id: "condTypeB1",
+            operator: "isSubmitted",
+            leftOperand: { type: "element", value: "qTypeB" },
+          },
+        ],
+      };
+      const dataWithTypeB = { ...mockData, qTypeB: "some TypeB response" };
+      expect(
+        evaluateLogic(mockSurvey, dataWithTypeB, mockVariablesData, typeBSubmittedCondition, "default")
+      ).toBe(true);
+    });
+
+    test("evaluates isSkipped for TypeB element", () => {
+      const typeBSkippedCondition: TConditionGroup = {
+        id: "groupTypeB2",
+        connector: "and",
+        conditions: [
+          {
+            id: "condTypeB2",
+            operator: "isSkipped",
+            leftOperand: { type: "element", value: "qTypeB" },
+          },
+        ],
+      };
+      // qTypeB is NOT in mockData so isSkipped should be true
+      expect(evaluateLogic(mockSurvey, mockData, mockVariablesData, typeBSkippedCondition, "default")).toBe(
+        true
+      );
     });
 
     test("evaluates isClicked and isNotClicked operators for CTA elements", () => {

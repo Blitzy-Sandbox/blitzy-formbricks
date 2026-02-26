@@ -31,6 +31,8 @@ import {
   TSurveyElementSummaryPictureSelection,
   TSurveyElementSummaryRanking,
   TSurveyElementSummaryRating,
+  TSurveyElementSummaryTypeA,
+  TSurveyElementSummaryTypeB,
   TSurveyLanguage,
   TSurveySummary,
 } from "@formbricks/types/surveys/types";
@@ -986,6 +988,56 @@ export const getElementSummary = async (
           choices: values,
         });
 
+        break;
+      }
+      case TSurveyElementTypeEnum.TypeA: {
+        let values: TSurveyElementSummaryTypeA["samples"] = [];
+        responses.forEach((response) => {
+          const answer = response.data[element.id];
+          if (Array.isArray(answer) && answer.length > 0) {
+            values.push({
+              id: response.id,
+              updatedAt: response.updatedAt,
+              value: answer,
+              contact: response.contact,
+              contactAttributes: response.contactAttributes,
+            });
+          }
+        });
+
+        summary.push({
+          type: TSurveyElementTypeEnum.TypeA,
+          element,
+          responseCount: values.length,
+          samples: values.slice(0, VALUES_LIMIT),
+        });
+
+        values = [];
+        break;
+      }
+      case TSurveyElementTypeEnum.TypeB: {
+        let values: TSurveyElementSummaryTypeB["samples"] = [];
+        responses.forEach((response) => {
+          const answer = response.data[element.id];
+          if (Array.isArray(answer) && answer.length > 0) {
+            values.push({
+              id: response.id,
+              updatedAt: response.updatedAt,
+              value: answer,
+              contact: response.contact,
+              contactAttributes: response.contactAttributes,
+            });
+          }
+        });
+
+        summary.push({
+          type: TSurveyElementTypeEnum.TypeB,
+          element,
+          responseCount: values.length,
+          samples: values.slice(0, VALUES_LIMIT),
+        });
+
+        values = [];
         break;
       }
     }

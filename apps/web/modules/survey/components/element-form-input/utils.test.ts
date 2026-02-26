@@ -2,7 +2,7 @@ import "@testing-library/jest-dom/vitest";
 import { TFunction } from "i18next";
 import { beforeEach, describe, expect, test, vi } from "vitest";
 import { type TI18nString } from "@formbricks/types/i18n";
-import { TSurveyElement } from "@formbricks/types/surveys/elements";
+import { TSurveyElement, TSurveyElementTypeEnum } from "@formbricks/types/surveys/elements";
 import { TSurvey, TSurveyQuestionTypeEnum } from "@formbricks/types/surveys/types";
 import { createI18nString } from "@/lib/i18n/utils";
 import * as i18nUtils from "@/lib/i18n/utils";
@@ -439,6 +439,74 @@ describe("utils", () => {
       const value: TI18nString = { default: "Test" };
       const result = isValueIncomplete("nonLabelId", true, ["en"], value);
       expect(result).toBe(false);
+    });
+  });
+
+  describe("TypeA and TypeB element compatibility", () => {
+    test("determineImageUploaderVisibility returns true when TypeA element has an image URL", () => {
+      const surveyLanguageCodes = ["en"];
+      const elements = [
+        {
+          id: "q1",
+          type: TSurveyElementTypeEnum.TypeA,
+          headline: createI18nString("TypeA Question?", surveyLanguageCodes),
+          required: true,
+          imageUrl: "https://example.com/image.jpg",
+        },
+      ] as unknown as TSurveyElement[];
+      const result = determineImageUploaderVisibility(0, elements);
+      expect(result).toBe(true);
+    });
+
+    test("determineImageUploaderVisibility returns false when TypeB element has no media", () => {
+      const surveyLanguageCodes = ["en"];
+      const elements = [
+        {
+          id: "q1",
+          type: TSurveyElementTypeEnum.TypeB,
+          headline: createI18nString("TypeB Question?", surveyLanguageCodes),
+          required: true,
+        },
+      ] as unknown as TSurveyElement[];
+      const result = determineImageUploaderVisibility(0, elements);
+      expect(result).toBe(false);
+    });
+
+    test("determineImageUploaderVisibility returns true when TypeA element has a video URL", () => {
+      const surveyLanguageCodes = ["en"];
+      const elements = [
+        {
+          id: "q1",
+          type: TSurveyElementTypeEnum.TypeA,
+          headline: createI18nString("TypeA Video Question?", surveyLanguageCodes),
+          required: true,
+          videoUrl: "https://example.com/video.mp4",
+        },
+      ] as unknown as TSurveyElement[];
+      const result = determineImageUploaderVisibility(0, elements);
+      expect(result).toBe(true);
+    });
+
+    test("isValueIncomplete handles TypeA element headline correctly", () => {
+      vi.mocked(i18nUtils.isLabelValidForAllLanguages).mockReturnValue(false);
+      const value: TI18nString = { default: "Test TypeA" };
+      const result = isValueIncomplete("headline", true, ["en"], value);
+      expect(result).toBe(true);
+    });
+
+    test("isValueIncomplete handles TypeB element headline correctly", () => {
+      vi.mocked(i18nUtils.isLabelValidForAllLanguages).mockReturnValue(false);
+      const value: TI18nString = { default: "Test TypeB" };
+      const result = isValueIncomplete("headline", true, ["en"], value);
+      expect(result).toBe(true);
+    });
+
+    test("getIndex returns null for TypeA non-choice elements", () => {
+      expect(getIndex("typeA-field", false)).toBeNull();
+    });
+
+    test("getIndex returns null for TypeB non-choice elements", () => {
+      expect(getIndex("typeB-field", false)).toBeNull();
     });
   });
 });

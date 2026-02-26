@@ -298,6 +298,10 @@ export const APPLICABLE_RULES: Record<string, TValidationRuleType[]> = {
   contactInfo: [...CONTACT_INFO_RULES],
 };
 
+// Note: TypeA ("typeA") and TypeB ("typeB") are simple element types
+// that do not require field-level validation rules and are intentionally
+// not included in APPLICABLE_RULES.
+
 // Type helper to filter validation rules by allowed types
 export type TValidationRuleForElementType<T extends TValidationRuleType> = Extract<
   TValidationRule,

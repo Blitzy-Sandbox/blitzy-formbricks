@@ -350,6 +350,32 @@ export const ZSurveyContactInfoElement = ZSurveyElementBase.extend({
 
 export type TSurveyContactInfoElement = z.infer<typeof ZSurveyContactInfoElement>;
 
+// TypeA Element
+/**
+ * TypeA survey element — a generic new element type added as part of Sprint 1 Foundation.
+ * Follows the simple element pattern (no toggle fields or choices).
+ */
+export const ZSurveyTypeAElement = ZSurveyElementBase.extend({
+  type: z.literal(TSurveyElementTypeEnum.TypeA),
+  placeholder: ZI18nString.optional(),
+  validation: ZValidation.optional(),
+});
+
+export type TSurveyTypeAElement = z.infer<typeof ZSurveyTypeAElement>;
+
+// TypeB Element
+/**
+ * TypeB survey element — a generic new element type added as part of Sprint 1 Foundation.
+ * Follows the simple element pattern (no toggle fields or choices).
+ */
+export const ZSurveyTypeBElement = ZSurveyElementBase.extend({
+  type: z.literal(TSurveyElementTypeEnum.TypeB),
+  placeholder: ZI18nString.optional(),
+  validation: ZValidation.optional(),
+});
+
+export type TSurveyTypeBElement = z.infer<typeof ZSurveyTypeBElement>;
+
 // Union of all element types
 export const ZSurveyElement = z.union([
   ZSurveyOpenTextElement,
@@ -367,6 +393,8 @@ export const ZSurveyElement = z.union([
   ZSurveyAddressElement,
   ZSurveyRankingElement,
   ZSurveyContactInfoElement,
+  ZSurveyTypeAElement,
+  ZSurveyTypeBElement,
 ]);
 
 export type TSurveyElement = z.infer<typeof ZSurveyElement>;

@@ -60,7 +60,19 @@ export const ZJsEnvironmentStateProject = ZProject.pick({
 
 export type TJsEnvironmentStateProject = z.infer<typeof ZJsEnvironmentStateProject>;
 
-export const ZJsEnvironmentState = z.object({
+// Explicit type to prevent TS7056 serialization limit caused by deeply nested survey element union types.
+export type TJsEnvironmentState = {
+  expiresAt: Date;
+  data: {
+    surveys: TJsEnvironmentStateSurvey[];
+    actionClasses: TJsEnvironmentStateActionClass[];
+    project: TJsEnvironmentStateProject;
+    recaptchaSiteKey?: string;
+  };
+};
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export const ZJsEnvironmentState: z.ZodType<TJsEnvironmentState, any, any> = z.object({
   expiresAt: z.date(),
   data: z.object({
     surveys: z.array(ZJsEnvironmentStateSurvey),
@@ -69,8 +81,6 @@ export const ZJsEnvironmentState = z.object({
     recaptchaSiteKey: z.string().optional(),
   }),
 });
-
-export type TJsEnvironmentState = z.infer<typeof ZJsEnvironmentState>;
 
 export const ZJsSyncInput = z.object({
   environmentId: z.string().cuid(),

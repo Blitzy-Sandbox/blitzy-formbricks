@@ -222,7 +222,6 @@ export const BlockCard = ({
       additionalProps.isFormbricksCloud = isFormbricksCloud;
     }
 
-    // @ts-expect-error - These props should cover everything
     return <FormComponent {...commonProps} {...additionalProps} />;
   };
 
@@ -265,7 +264,7 @@ export const BlockCard = ({
         </div>
 
         <button
-          className="opacity-0 group-hover:opacity-100 hover:cursor-move"
+          className="opacity-0 hover:cursor-move group-hover:opacity-100"
           aria-label="Drag to reorder block">
           <GripIcon className="h-4 w-4" />
         </button>

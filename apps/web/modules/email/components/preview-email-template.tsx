@@ -424,6 +424,17 @@ export async function PreviewEmailTemplate({
           <EmailFooter />
         </EmailTemplateWrapper>
       );
+
+    // TypeA and TypeB: generic text-input style preview (Sprint 1 Foundation)
+    case TSurveyElementTypeEnum.TypeA:
+    case TSurveyElementTypeEnum.TypeB:
+      return (
+        <EmailTemplateWrapper styling={styling} surveyUrl={url}>
+          <ElementHeader headline={headline} subheader={subheader} className="mr-8" />
+          <Section className="border-input-border-color rounded-custom mt-4 block h-12 w-full border border-solid bg-slate-50" />
+          <EmailFooter />
+        </EmailTemplateWrapper>
+      );
   }
 }
 

@@ -9,6 +9,8 @@ import type {
   TSurveyMatrixElement,
   TSurveyOpenTextElement,
   TSurveyRankingElement,
+  TSurveyTypeAElement,
+  TSurveyTypeBElement,
 } from "@formbricks/types/surveys/elements";
 import { getFirstErrorMessage, validateBlockResponses, validateElementResponse } from "./evaluator";
 
@@ -167,6 +169,86 @@ describe("validateElementResponse", () => {
       const result = validateElementResponse(element, {}, "en");
       expect(result.valid).toBe(false);
       expect(result.errors).toHaveLength(1);
+    });
+  });
+
+  describe("TypeA required field validation", () => {
+    test("should return error when required TypeA field is empty", () => {
+      const element: TSurveyElement = {
+        id: "typeA1",
+        type: TSurveyElementTypeEnum.TypeA,
+        headline: { default: "TypeA Question" },
+        required: true,
+      } as unknown as TSurveyTypeAElement;
+
+      const result = validateElementResponse(element, "", "en");
+      expect(result.valid).toBe(false);
+      expect(result.errors).toHaveLength(1);
+      expect(result.errors[0].ruleId).toBe("required");
+    });
+
+    test("should return valid when required TypeA field has value", () => {
+      const element: TSurveyElement = {
+        id: "typeA1",
+        type: TSurveyElementTypeEnum.TypeA,
+        headline: { default: "TypeA Question" },
+        required: true,
+      } as unknown as TSurveyTypeAElement;
+
+      const result = validateElementResponse(element, "some value", "en");
+      expect(result.valid).toBe(true);
+    });
+
+    test("should return valid when TypeA field is not required and empty", () => {
+      const element: TSurveyElement = {
+        id: "typeA1",
+        type: TSurveyElementTypeEnum.TypeA,
+        headline: { default: "TypeA Question" },
+        required: false,
+      } as unknown as TSurveyTypeAElement;
+
+      const result = validateElementResponse(element, "", "en");
+      expect(result.valid).toBe(true);
+    });
+  });
+
+  describe("TypeB required field validation", () => {
+    test("should return error when required TypeB field is empty", () => {
+      const element: TSurveyElement = {
+        id: "typeB1",
+        type: TSurveyElementTypeEnum.TypeB,
+        headline: { default: "TypeB Question" },
+        required: true,
+      } as unknown as TSurveyTypeBElement;
+
+      const result = validateElementResponse(element, "", "en");
+      expect(result.valid).toBe(false);
+      expect(result.errors).toHaveLength(1);
+      expect(result.errors[0].ruleId).toBe("required");
+    });
+
+    test("should return valid when required TypeB field has value", () => {
+      const element: TSurveyElement = {
+        id: "typeB1",
+        type: TSurveyElementTypeEnum.TypeB,
+        headline: { default: "TypeB Question" },
+        required: true,
+      } as unknown as TSurveyTypeBElement;
+
+      const result = validateElementResponse(element, "some value", "en");
+      expect(result.valid).toBe(true);
+    });
+
+    test("should return valid when TypeB field is not required and empty", () => {
+      const element: TSurveyElement = {
+        id: "typeB1",
+        type: TSurveyElementTypeEnum.TypeB,
+        headline: { default: "TypeB Question" },
+        required: false,
+      } as unknown as TSurveyTypeBElement;
+
+      const result = validateElementResponse(element, "", "en");
+      expect(result.valid).toBe(true);
     });
   });
 

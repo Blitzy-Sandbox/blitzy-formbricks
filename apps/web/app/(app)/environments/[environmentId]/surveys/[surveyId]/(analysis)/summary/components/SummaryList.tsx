@@ -28,6 +28,8 @@ import { OpenTextSummary } from "@/app/(app)/environments/[environmentId]/survey
 import { PictureChoiceSummary } from "@/app/(app)/environments/[environmentId]/surveys/[surveyId]/(analysis)/summary/components/PictureChoiceSummary";
 import { RankingSummary } from "@/app/(app)/environments/[environmentId]/surveys/[surveyId]/(analysis)/summary/components/RankingSummary";
 import { RatingSummary } from "@/app/(app)/environments/[environmentId]/surveys/[surveyId]/(analysis)/summary/components/RatingSummary";
+import { TypeASummary } from "@/app/(app)/environments/[environmentId]/surveys/[surveyId]/(analysis)/summary/components/TypeASummary";
+import { TypeBSummary } from "@/app/(app)/environments/[environmentId]/surveys/[surveyId]/(analysis)/summary/components/TypeBSummary";
 import { constructToastMessage } from "@/app/(app)/environments/[environmentId]/surveys/[surveyId]/(analysis)/summary/lib/utils";
 import { OptionsType } from "@/app/(app)/environments/[environmentId]/surveys/[surveyId]/components/ElementsComboBox";
 import { getLocalizedValue } from "@/lib/i18n/utils";
@@ -254,6 +256,28 @@ export const SummaryList = ({ summary, environment, responseCount, survey, local
           if (elementSummary.type === TSurveyElementTypeEnum.ContactInfo) {
             return (
               <ContactInfoSummary
+                key={elementSummary.element.id}
+                elementSummary={elementSummary}
+                environmentId={environment.id}
+                survey={survey}
+                locale={locale}
+              />
+            );
+          }
+          if (elementSummary.type === TSurveyElementTypeEnum.TypeA) {
+            return (
+              <TypeASummary
+                key={elementSummary.element.id}
+                elementSummary={elementSummary}
+                environmentId={environment.id}
+                survey={survey}
+                locale={locale}
+              />
+            );
+          }
+          if (elementSummary.type === TSurveyElementTypeEnum.TypeB) {
+            return (
+              <TypeBSummary
                 key={elementSummary.element.id}
                 elementSummary={elementSummary}
                 environmentId={environment.id}

@@ -183,6 +183,20 @@ const mockQuestion = {
   },
 };
 
+export const mockTypeAElement = {
+  id: mockId,
+  type: TSurveyElementTypeEnum.TypeA as typeof TSurveyElementTypeEnum.TypeA,
+  headline: { default: "TypeA Question Text", de: "TypeA Fragetext" },
+  required: false,
+};
+
+export const mockTypeBElement = {
+  id: mockId,
+  type: TSurveyElementTypeEnum.TypeB as typeof TSurveyElementTypeEnum.TypeB,
+  headline: { default: "TypeB Question Text", de: "TypeB Fragetext" },
+  required: false,
+};
+
 const mockWelcomeCard: TSurveyWelcomeCard = {
   enabled: false,
   headline: { default: "My welcome card", de: "Meine Willkommenskarte" },
@@ -418,6 +432,18 @@ export const mockSurveyWithLogic: TSurvey = {
             { id: "sojc5wwxc5gxrnuib30w7t6s", label: { default: "hehe" } },
           ],
           shuffleOption: "none" as const,
+        },
+        {
+          id: "q7",
+          type: TSurveyElementTypeEnum.TypeA,
+          headline: { default: "TypeA question in logic survey" },
+          required: false,
+        },
+        {
+          id: "q8",
+          type: TSurveyElementTypeEnum.TypeB,
+          headline: { default: "TypeB question in logic survey" },
+          required: false,
         },
       ],
       logic: [

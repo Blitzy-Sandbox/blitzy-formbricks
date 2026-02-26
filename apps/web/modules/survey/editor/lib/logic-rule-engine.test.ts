@@ -430,6 +430,36 @@ describe("getLogicRules", () => {
         },
       ]);
     });
+
+    test("TypeA", () => {
+      const rules = logicRules.element[TSurveyQuestionTypeEnum.TypeA];
+      expect(rules).toBeDefined();
+      expect(rules.options).toEqual([
+        {
+          label: "mockTranslate(environments.surveys.edit.is_submitted)",
+          value: ZSurveyLogicConditionsOperator.Enum.isSubmitted,
+        },
+        {
+          label: "mockTranslate(environments.surveys.edit.is_skipped)",
+          value: ZSurveyLogicConditionsOperator.Enum.isSkipped,
+        },
+      ]);
+    });
+
+    test("TypeB", () => {
+      const rules = logicRules.element[TSurveyQuestionTypeEnum.TypeB];
+      expect(rules).toBeDefined();
+      expect(rules.options).toEqual([
+        {
+          label: "mockTranslate(environments.surveys.edit.is_submitted)",
+          value: ZSurveyLogicConditionsOperator.Enum.isSubmitted,
+        },
+        {
+          label: "mockTranslate(environments.surveys.edit.is_skipped)",
+          value: ZSurveyLogicConditionsOperator.Enum.isSkipped,
+        },
+      ]);
+    });
   });
 
   describe("Variable Specific Rules", () => {

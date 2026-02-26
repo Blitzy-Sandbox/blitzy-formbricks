@@ -104,6 +104,8 @@ export enum TSurveyQuestionTypeEnum {
   Address = "address",
   Ranking = "ranking",
   ContactInfo = "contactInfo",
+  TypeA = "typeA",
+  TypeB = "typeB",
 }
 
 /**

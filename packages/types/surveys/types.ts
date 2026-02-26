@@ -27,6 +27,8 @@ import {
   ZSurveyPictureSelectionElement,
   ZSurveyRankingElement,
   ZSurveyRatingElement,
+  ZSurveyTypeAElement,
+  ZSurveyTypeBElement,
 } from "./elements";
 import { validateElementLabels } from "./elements-validation";
 import {
@@ -700,6 +702,30 @@ export const ZSurveyRankingQuestion = ZSurveyQuestionBase.extend({
 export type TSurveyRankingQuestion = z.infer<typeof ZSurveyRankingQuestion>;
 
 /**
+ * @deprecated Use ZSurveyTypeAElement instead. Kept for v1 API backward compatibility only.
+ */
+export const ZSurveyTypeAQuestion = ZSurveyQuestionBase.extend({
+  type: z.literal(TSurveyQuestionTypeEnum.TypeA),
+});
+
+/**
+ * @deprecated Use TSurveyTypeAElement instead. Kept for v1 API backward compatibility only.
+ */
+export type TSurveyTypeAQuestion = z.infer<typeof ZSurveyTypeAQuestion>;
+
+/**
+ * @deprecated Use ZSurveyTypeBElement instead. Kept for v1 API backward compatibility only.
+ */
+export const ZSurveyTypeBQuestion = ZSurveyQuestionBase.extend({
+  type: z.literal(TSurveyQuestionTypeEnum.TypeB),
+});
+
+/**
+ * @deprecated Use TSurveyTypeBElement instead. Kept for v1 API backward compatibility only.
+ */
+export type TSurveyTypeBQuestion = z.infer<typeof ZSurveyTypeBQuestion>;
+
+/**
  * @deprecated Use TSurveyElement instead. Kept for v1 API backward compatibility only.
  */
 export const ZSurveyQuestion = z.union([
@@ -717,6 +743,8 @@ export const ZSurveyQuestion = z.union([
   ZSurveyAddressQuestion,
   ZSurveyRankingQuestion,
   ZSurveyContactInfoQuestion,
+  ZSurveyTypeAQuestion,
+  ZSurveyTypeBQuestion,
 ]);
 
 /**
@@ -753,6 +781,8 @@ export const ZSurveyQuestionType = z.enum([
   TSurveyQuestionTypeEnum.Cal,
   TSurveyQuestionTypeEnum.Ranking,
   TSurveyQuestionTypeEnum.ContactInfo,
+  TSurveyQuestionTypeEnum.TypeA,
+  TSurveyQuestionTypeEnum.TypeB,
 ]);
 
 /**
@@ -2017,6 +2047,12 @@ const isInvalidOperatorsForQuestionType = (
         isInvalidOperator = true;
       }
       break;
+    case TSurveyQuestionTypeEnum.TypeA:
+    case TSurveyQuestionTypeEnum.TypeB:
+      if (!["isSubmitted", "isSkipped"].includes(operator)) {
+        isInvalidOperator = true;
+      }
+      break;
     default:
       isInvalidOperator = true;
   }
@@ -3041,6 +3077,12 @@ const isInvalidOperatorsForElementType = (
       break;
     case TSurveyElementTypeEnum.Address:
     case TSurveyElementTypeEnum.ContactInfo:
+      if (!["isSubmitted", "isSkipped"].includes(operator)) {
+        isInvalidOperator = true;
+      }
+      break;
+    case TSurveyElementTypeEnum.TypeA:
+    case TSurveyElementTypeEnum.TypeB:
       if (!["isSubmitted", "isSkipped"].includes(operator)) {
         isInvalidOperator = true;
       }
@@ -4203,6 +4245,48 @@ export const ZSurveyElementSummaryRanking = z.object({
 });
 export type TSurveyElementSummaryRanking = z.infer<typeof ZSurveyElementSummaryRanking>;
 
+export const ZSurveyElementSummaryTypeA = z.object({
+  type: z.literal(TSurveyElementTypeEnum.TypeA),
+  element: ZSurveyTypeAElement,
+  responseCount: z.number(),
+  samples: z.array(
+    z.object({
+      id: z.string(),
+      updatedAt: z.date(),
+      value: z.array(z.string()),
+      contact: z
+        .object({
+          id: ZId,
+          userId: z.string().optional(),
+        })
+        .nullable(),
+      contactAttributes: ZContactAttributes.nullable(),
+    })
+  ),
+});
+export type TSurveyElementSummaryTypeA = z.infer<typeof ZSurveyElementSummaryTypeA>;
+
+export const ZSurveyElementSummaryTypeB = z.object({
+  type: z.literal(TSurveyElementTypeEnum.TypeB),
+  element: ZSurveyTypeBElement,
+  responseCount: z.number(),
+  samples: z.array(
+    z.object({
+      id: z.string(),
+      updatedAt: z.date(),
+      value: z.array(z.string()),
+      contact: z
+        .object({
+          id: ZId,
+          userId: z.string().optional(),
+        })
+        .nullable(),
+      contactAttributes: ZContactAttributes.nullable(),
+    })
+  ),
+});
+export type TSurveyElementSummaryTypeB = z.infer<typeof ZSurveyElementSummaryTypeB>;
+
 export const ZSurveyElementSummary = z.union([
   ZSurveyElementSummaryOpenText,
   ZSurveyElementSummaryMultipleChoice,
@@ -4218,6 +4302,8 @@ export const ZSurveyElementSummary = z.union([
   ZSurveyElementSummaryAddress,
   ZSurveyElementSummaryRanking,
   ZSurveyElementSummaryContactInfo,
+  ZSurveyElementSummaryTypeA,
+  ZSurveyElementSummaryTypeB,
 ]);
 
 export type TSurveyElementSummary = z.infer<typeof ZSurveyElementSummary>;

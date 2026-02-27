@@ -34,6 +34,14 @@ Integrate the **Formbricks App Survey SDK** into your app using multiple options
   Learn how to use Formbricks' Vue.js SDK to integrate your surveys into Vue.js applications.
 </Card>
 
+<Card title="Angular" icon="angular" color="red" href="#angular">
+  Integrate Formbricks into your Angular applications using a service-based approach.
+</Card>
+
+<Card title="Svelte" icon="code" href="#svelte">
+  Easily integrate Formbricks with Svelte and SvelteKit using onMount.
+</Card>
+
 <Card title="React Native" icon="react" color="lightblue" href="#react-native">
   Easily integrate our SDK with your React Native app for seamless survey
   support.
@@ -247,15 +255,15 @@ Next, go to the [**Validate Your Setup**](#validate-your-setup) section to verif
 Integrating the Formbricks SDK with Vue.js is easy. We'll ensure the SDK is only loaded and used on the client side, as it's not meant for server-side use.
 
 ```bash npm
-npm install @formbricks/js
+npm install @formbricks/js zod
 ```
 
 ```bash pnpm
-pnpm add @formbricks/js
+pnpm add @formbricks/js zod
 ```
 
 ```bash yarn
-yarn add @formbricks/js
+yarn add @formbricks/js zod
 ```
 
 ```javascript src/formbricks.js
@@ -287,6 +295,159 @@ router.afterEach((to, from) => {
   }
 });
 ```
+
+### Required Customizations
+
+| Name           | Type   | Description                            |
+| -------------- | ------ | -------------------------------------- |
+| environment-id | string | Formbricks Environment ID.             |
+| app-url        | string | URL of the hosted Formbricks instance. |
+
+Now, visit the [Validate Your Setup](#validate-your-setup) section to verify your setup!
+
+## Angular
+
+Integrate the Formbricks SDK into your Angular application using a dedicated service. The SDK runs on the client side only, so we guard initialization with a `typeof window` check.
+
+```bash npm
+npm install @formbricks/js zod
+```
+
+```bash pnpm
+pnpm add @formbricks/js zod
+```
+
+```bash yarn
+yarn add @formbricks/js zod
+```
+
+First, create a reusable `FormbricksService` that handles SDK initialization:
+
+```typescript src/app/formbricks.service.ts
+import { Injectable } from "@angular/core";
+import formbricks from "@formbricks/js";
+
+@Injectable({
+  providedIn: "root",
+})
+export class FormbricksService {
+  init() {
+    if (typeof window !== "undefined") {
+      formbricks.setup({
+        environmentId: "<environment-id>",
+        appUrl: "<app-url>", // use PUBLIC_URL if you are using multi-domain setup, otherwise use WEBAPP_URL
+      });
+    }
+  }
+}
+```
+
+Next, inject the service in your root `AppComponent` and subscribe to Angular Router events to register route changes:
+
+```typescript src/app/app.component.ts
+import { Component, OnInit } from "@angular/core";
+import { Router, NavigationEnd } from "@angular/router";
+import { filter } from "rxjs/operators";
+import formbricks from "@formbricks/js";
+import { FormbricksService } from "./formbricks.service";
+
+@Component({
+  selector: "app-root",
+  templateUrl: "./app.component.html",
+})
+export class AppComponent implements OnInit {
+  constructor(
+    private formbricksService: FormbricksService,
+    private router: Router
+  ) {}
+
+  ngOnInit() {
+    this.formbricksService.init();
+    this.router.events
+      .pipe(filter((event) => event instanceof NavigationEnd))
+      .subscribe(() => {
+        formbricks.registerRouteChange();
+      });
+  }
+}
+```
+
+### Required Customizations
+
+| Name           | Type   | Description                            |
+| -------------- | ------ | -------------------------------------- |
+| environment-id | string | Formbricks Environment ID.             |
+| app-url        | string | URL of the hosted Formbricks instance. |
+
+Now, visit the [Validate Your Setup](#validate-your-setup) section to verify your setup!
+
+## Svelte
+
+Integrate the Formbricks SDK with Svelte or SvelteKit. The SDK initializes on the client side using Svelte's `onMount` lifecycle hook.
+
+```bash npm
+npm install @formbricks/js zod
+```
+
+```bash pnpm
+pnpm add @formbricks/js zod
+```
+
+```bash yarn
+yarn add @formbricks/js zod
+```
+
+### SvelteKit
+
+For SvelteKit projects, add the Formbricks initialization to your root layout so it loads on every page. Use `afterNavigate` to register route changes for SPA-style navigation:
+
+```svelte src/routes/+layout.svelte
+<script>
+  import { onMount } from "svelte";
+  import { afterNavigate } from "$app/navigation";
+  import formbricks from "@formbricks/js";
+
+  onMount(() => {
+    formbricks.setup({
+      environmentId: "<environment-id>",
+      appUrl: "<app-url>", // use PUBLIC_URL if you are using multi-domain setup, otherwise use WEBAPP_URL
+    });
+  });
+
+  afterNavigate(() => {
+    formbricks.registerRouteChange();
+  });
+</script>
+
+<slot />
+```
+
+### Vanilla Svelte
+
+For standalone Svelte projects (without SvelteKit), initialize the SDK in your root `App.svelte` component:
+
+```svelte src/App.svelte
+<script>
+  import { onMount } from "svelte";
+  import formbricks from "@formbricks/js";
+
+  onMount(() => {
+    if (typeof window !== "undefined") {
+      formbricks.setup({
+        environmentId: "<environment-id>",
+        appUrl: "<app-url>", // use PUBLIC_URL if you are using multi-domain setup, otherwise use WEBAPP_URL
+      });
+    }
+  });
+</script>
+
+<!-- Your app content -->
+```
+
+<Note>
+  For vanilla Svelte projects that use a client-side router, call `formbricks.registerRouteChange()` after
+  each navigation event to ensure Formbricks tracks page transitions correctly.
+</Note>
 
 ### Required Customizations
 
@@ -555,6 +716,6 @@ Logs provide insights into:
 
 If you're stuck, visit [**GitHub Discussions**](https://github.com/formbricks/formbricks/discussions) for assistance.
 
-```
+---
 
-```
+Source: `packages/js-core/src/index.ts` (SDK API — `setup()`, `registerRouteChange()`, `setUserId()`, `setAttribute()`, `track()`, `logout()`), `packages/surveys/src/index.ts` (survey renderer).

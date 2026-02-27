@@ -10,27 +10,53 @@ icon: "image"
   uploads](/self-hosting/configuration/file-uploads) before using this feature.
 </Note>
 
-## How to Add Images
+Every question type in Formbricks supports an optional image or video attachment. When added, the media is displayed prominently above the question headline in the rendered survey, providing visual context before the respondent reads the question text.
 
-Click the icon on the right side of the question to add an image or video:
+## How To Add Images
 
-![Access Question settings](/images/xm-and-surveys/surveys/general-features/add-image-or-video-question/add-image-or-video-to-question.webp)
+Click the media icon on the right side of the question card to reveal the image and video upload area:
 
-Upload an image by clicking the upload icon or dragging the file. Images must be 5 MB or less:
+![Click the media icon to open the image and video upload area](/images/xm-and-surveys/surveys/general-features/add-image-or-video-question/add-image-or-video-to-question.webp)
 
-![Overview of adding image to question](/images/xm-and-surveys/surveys/general-features/add-image-or-video-question/add-image-or-video-to-question-image.webp)
+Upload an image by clicking the upload area or by dragging and dropping a file. Images must be **5 MB or less** on Formbricks Cloud.
 
-## How to Add Videos
+**Supported image formats:** PNG, JPEG, WebP, and HEIC.
 
-Toggle to add a video via link:
+![Upload an image by clicking or dragging a file into the upload area](/images/xm-and-surveys/surveys/general-features/add-image-or-video-question/add-image-or-video-to-question-image.webp)
 
-![Add a video to question](/images/xm-and-surveys/surveys/general-features/add-image-or-video-question/add-image-or-video-to-question-video.webp)
+<Note>
+  **Self-Hosted File Size Limits**: On self-hosted instances, the maximum upload size depends on your storage
+  configuration. The default limit is **10 MB** for standard uploads and up to **1 GB** for large file
+  uploads. See [file uploads configuration](/self-hosting/configuration/file-uploads) for details on adjusting
+  these limits.
+</Note>
+
+## How To Add Videos
+
+Toggle from the image tab to the video tab to add a video via URL:
+
+![Toggle to the video tab and paste a video URL](/images/xm-and-surveys/surveys/general-features/add-image-or-video-question/add-image-or-video-to-question-video.webp)
 
 ### Supported Video Platforms
 
-We support YouTube, Vimeo, and Loom URLs.
+Formbricks supports embedding videos from the following platforms:
+
+- **YouTube** — Paste any standard YouTube video URL
+- **Vimeo** — Paste a Vimeo video URL
+- **Loom** — Paste a Loom recording URL
+
+The video is embedded directly into the survey and plays inline for respondents.
 
 <Note>
-  **YouTube Privacy Mode**: This option reduces tracking by converting YouTube URLs to no-cookie URLs. It only
-  works with YouTube.
+  **YouTube Privacy Mode**: Enable this option to reduce tracking by converting YouTube URLs to their
+  no-cookie equivalents (`youtube-nocookie.com`). This setting only applies to YouTube videos.
 </Note>
+
+## How Media Appears In The Rendered Survey
+
+When you add an image or video to a question, it is rendered **above the question headline** in the live survey. This layout ensures respondents see the visual context first before reading the question text and providing their answer.
+
+- **Images** are displayed at full width within the survey card, maintaining their original aspect ratio.
+- **Videos** are embedded as an inline player that respondents can play directly within the survey without leaving the page.
+
+Both images and videos are supported across all question types, including free text, single select, multi select, rating, NPS, consent, ranking, matrix, and all other question types available in Formbricks.

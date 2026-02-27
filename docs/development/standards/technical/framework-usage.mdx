@@ -4,36 +4,214 @@ description: Guidelines on how Formbricks utilizes Next.js, Tailwind CSS, and Pr
 icon: book
 ---
 
-## Introduction
+## Framework And Tool Versions
 
-This document outlines the framework usage guidelines for Formbricks, which is built primarily on Next.js (with heavy use of Server-Side Rendering through the App Router), Tailwind CSS, and Prisma ORM. 
+The Formbricks monorepo relies on the following core frameworks and tools. Always reference the canonical source files for the most up-to-date versions.
+
+| Framework / Tool | Version | Source |
+|-----------------|---------|--------|
+| Next.js | 16.1.6 | `package.json` |
+| React | 19.2.3 | `package.json` |
+| TypeScript | 5.8.3 | `packages/config-typescript/package.json` |
+| Prisma ORM | 6.14.0 | `packages/database/package.json` |
+| Tailwind CSS | 3.4.17 | `apps/web/package.json` |
+| Turborepo | 2.5.3 | `package.json` devDependencies |
+| Node.js | ≥20.0.0 | `package.json` engines |
+| pnpm | 10.28.2 | `package.json` packageManager |
+
+<Note>
+  Always verify versions against the root `package.json` and relevant workspace `package.json` files. These versions are current as of Formbricks v3.7.0.
+</Note>
 
 ## Next.js
 
-### App Router and Server Components
+Formbricks is built on Next.js 16.x using the App Router. The following subsections describe the conventions and patterns used throughout the codebase.
 
-- Use the Next.js App Router with the /app directory for building the application.
-- Leverage React Server Components, which are the default in the App Router.
-- Perform server-side data fetching directly within page.tsx files using async function components.
+### App Router And Server Components
 
-### Data Fetching in page.tsx
+The App Router lives in `apps/web/app` with route groups such as `(app)` for authenticated application routes and `(auth)` for authentication routes (source: `AGENTS.md`). Feature modules are organized under `apps/web/modules/`, and shared services live in `apps/web/lib/`.
 
-- Implement data fetching logic directly in your page.tsx components. This allows for server-side rendering without needing separate data fetching methods like getServerSideProps.
-- Utilize React Suspense and streaming features if using advanced asynchronous patterns.
+Server Components are the **default** in the Next.js App Router — no directive is needed. Use the `"use client"` directive **only** when you need client-side interactivity such as React hooks (`useState`, `useEffect`), event handlers, or browser APIs. Prefer Server Components for data fetching and rendering to reduce client bundle size.
 
-### Server Actions for Mutations
+```typescript
+// Server Component (default) — no directive needed
+// Source: apps/web/app/(app)/environments/[environmentId]/surveys/page.tsx
+export default async function SurveysPage({ params }: { params: { environmentId: string } }) {
+  const surveys = await getSurveys(params.environmentId);
+  return <SurveyList surveys={surveys} />;
+}
+```
 
-- Define Server Actions in dedicated action.ts files.
-- Server actions serve as entry points for mutations and delegate to service layers that perform Prisma operations and other business logic.
-- This approach promotes separation of concerns and maintainability by keeping form actions and mutations decoupled from UI components.
+```typescript
+// Client Component — requires "use client" directive
+"use client";
 
-### Error Handling and Performance
+import { useState } from "react";
 
-- Integrate error boundaries and loading states appropriately within your App Router structure.
-- Optimize performance with Next.js built-in features such as dynamic imports, the Image component, and code splitting.
+export function SurveyFilter() {
+  const [filter, setFilter] = useState("all");
+  // Client-side interactivity...
+}
+```
+
+### Data Fetching
+
+Implement data fetching directly in `page.tsx` components using async function components. The App Router supports native async components, so there is no need for legacy patterns such as `getServerSideProps` or `getStaticProps`.
+
+- Fetch data at the page level and pass it down as props to child components.
+- Use React Suspense and streaming for advanced asynchronous patterns where gradual content loading improves the user experience.
+- Keep data-fetching logic co-located with the route it serves to improve readability and maintainability.
+
+### Server Actions
+
+Server Actions are defined with the `"use server"` directive and serve as the primary entry point for mutations. They wrap service calls and consistently return `{ data }` or `{ error }` objects (source: `AGENTS.md`).
+
+- Place Server Actions in dedicated `actions.ts` files or `actions/` directories within feature modules.
+- Delegate business logic to service layers — actions should not contain Prisma queries directly.
+- Return structured responses for predictable client-side handling.
+
+```typescript
+// Source: apps/web/modules/survey/actions.ts
+"use server";
+
+import { getSurvey } from "@formbricks/database";
+
+export async function getSurveyAction(surveyId: string) {
+  try {
+    const survey = await getSurvey(surveyId);
+    return { data: survey };
+  } catch (error) {
+    return { error: "Failed to fetch survey" };
+  }
+}
+```
+
+### App Router Patterns
+
+The project follows a consistent directory structure that separates routing from feature logic:
+
+- **Route groups:** `(app)` for authenticated application routes, `(auth)` for authentication routes.
+- **Feature module pattern:** `apps/web/modules/<feature>/` containing components, actions, and lib subdirectories.
+- **Services pattern:** `apps/web/lib/` for shared business logic consumed by multiple modules.
+
+```
+apps/web/
+├── app/
+│   ├── (app)/          # Authenticated application routes
+│   └── (auth)/         # Authentication routes
+├── modules/            # Feature modules
+│   ├── survey/
+│   ├── auth/
+│   └── integrations/
+└── lib/                # Shared services
+```
+
+### Error Handling And Performance
+
+- Integrate `error.tsx` error boundaries and `loading.tsx` loading states at appropriate route segment levels within the App Router structure.
+- Optimize performance with Next.js built-in features such as dynamic imports (`next/dynamic`), the `Image` component (`next/image`) for optimized images, and automatic code splitting per route.
+- Context providers should guard against missing provider usage and use cleanup patterns that snapshot refs inside `useEffect` to avoid React hooks warnings (source: `AGENTS.md`).
 
 ## Tailwind CSS
-We follow the Tailwind framework as intended. Please have a look at the [Tailwind CSS Guidelines](https://tailwindcss.com/docs/styling-with-utility-classes) for more information.
+
+Formbricks uses Tailwind CSS v3.4.17 as its utility-first CSS framework for all styling across the application.
+
+- **Utility-first approach:** Prefer Tailwind utility classes over custom CSS. Compose utilities to build components rather than writing bespoke stylesheets.
+- **Two-space indentation** is the standard across all files (source: `AGENTS.md`).
+- **Class sorting** is enforced automatically by `prettier-plugin-tailwindcss` v0.6.11, configured in `packages/config-prettier/`. This ensures a consistent class ordering across the codebase.
+- **Avoid custom CSS** unless absolutely necessary. When custom styles are required, prefer extending the Tailwind configuration over writing raw CSS.
+
+Refer to the [Tailwind CSS Guidelines](https://tailwindcss.com/docs/styling-with-utility-classes) for the full utility class reference.
+
+```tsx
+// Utility-first styling example
+<div className="flex items-center gap-4 rounded-lg border border-slate-200 bg-white p-6 shadow-sm">
+  <h2 className="text-lg font-semibold text-slate-900">Survey Title</h2>
+</div>
+```
 
 ## Prisma ORM
-We're working with Prisma as our ORM. Please have a look at the [Prisma ORM Documentation](https://www.prisma.io/docs/orm) for more information.
+
+### Overview
+
+Formbricks uses Prisma ORM v6.14.0 with PostgreSQL 17 as the primary database. The schema is defined in `packages/database/schema.prisma` and contains 32 models and 22 enums representing surveys, responses, contacts, organizations, integrations, and more.
+
+Refer to the [Prisma ORM Documentation](https://www.prisma.io/docs/orm) for the full reference. For a detailed breakdown of the database schema, see the [Database Model](/development/technical-handbook/database-model) page.
+
+### Multi-Tenancy
+
+All data in Formbricks must be scoped by Organization or Environment (source: `AGENTS.md`). Every Prisma query must include appropriate tenant filtering to ensure strict data isolation between tenants.
+
+- Always include `organizationId` or `environmentId` in query `where` clauses.
+- Never allow cross-tenant data access — validate tenant scope at the service layer before executing queries.
+
+### Performance Guidelines
+
+Prisma performance is critical for handling large response datasets. Follow these rules strictly (source: `AGENTS.md`):
+
+<Warning>
+  **Never** use `skip`/`offset` with `prisma.response.count()` — only use `where` to filter results. Unscoped counts and offset-based pagination cause severe performance degradation on large tables.
+</Warning>
+
+- **Separate count and data queries** and run them in parallel using `Promise.all` to avoid sequential round-trips.
+- **Prefer cursor pagination** for large datasets instead of offset-based pagination.
+- **Include indexed fields in filters:** When filtering by `createdAt`, always include an indexed field such as `surveyId` alongside it (e.g., `surveyId` + `createdAt`) to leverage composite indexes.
+- **Soft deletion:** Check for `isActive` or `deletedAt` fields and always apply proper filtering to exclude soft-deleted records.
+
+```typescript
+// ✅ Correct: Separate count and data queries in parallel
+const [totalCount, responses] = await Promise.all([
+  prisma.response.count({ where: { surveyId } }),
+  prisma.response.findMany({
+    where: { surveyId },
+    take: 10,
+    cursor: lastResponseId ? { id: lastResponseId } : undefined,
+    orderBy: { createdAt: "desc" },
+  }),
+]);
+```
+
+```typescript
+// ❌ Incorrect: Using skip/offset with count
+const count = await prisma.response.count(); // Never do this without where
+const data = await prisma.response.findMany({ skip: 10 }); // Avoid skip/offset
+```
+
+## Caching
+
+Formbricks uses a layered caching strategy combining React request-level deduplication with Redis-backed caching for expensive operations (source: `AGENTS.md`).
+
+- **React `cache()`:** Use for request-level deduplication. Wrapping a data-fetching function with `cache()` ensures it is called only once per server request, even if multiple components invoke it.
+- **Redis caching:** Use `cache.withCache()` from `@formbricks/cache` or explicit Redis calls for expensive data operations that should persist across requests.
+- **Cache key utilities:** Always use `createCacheKey.*` utilities to generate consistent, namespaced cache keys. Never construct cache key strings manually.
+
+<Warning>
+  **Do not** use Next.js `unstable_cache()`. This API is unstable and not supported in the Formbricks codebase. Use React `cache()` for request-level deduplication and `@formbricks/cache` for persistent caching instead.
+</Warning>
+
+```typescript
+import { cache } from "react";
+import { cache as redisCache } from "@formbricks/cache";
+
+// Request-level deduplication with React cache()
+const getSurvey = cache(async (surveyId: string) => {
+  return await prisma.survey.findUnique({ where: { id: surveyId } });
+});
+
+// Redis caching for expensive operations
+const getAnalytics = async (surveyId: string) => {
+  return await redisCache.withCache(
+    createCacheKey.analytics(surveyId),
+    async () => computeAnalytics(surveyId)
+  );
+};
+```
+
+## Turborepo
+
+Formbricks uses Turborepo v2.5.3 to orchestrate builds, development servers, linting, and test pipelines across the monorepo (source: `package.json` devDependencies).
+
+- **Task definitions** are configured in `turbo.json` at the repository root, specifying dependency relationships between workspace tasks (e.g., `build` depends on upstream package builds).
+- **Aggressive caching** of build outputs ensures that unchanged packages are not rebuilt, significantly reducing CI/CD times. The cache can be bypassed with the `--force` flag when iterating on specific packages.
+- **Parallel execution** of independent tasks maximizes build throughput across the monorepo.
+- **Pipeline commands:** Use `pnpm build` for production builds, `pnpm dev` for development servers, `pnpm lint` for linting, and `pnpm test` for running the test suite — all orchestrated by Turborepo.

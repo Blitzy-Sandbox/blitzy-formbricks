@@ -8,7 +8,7 @@ icon: "bullseye"
   Advanced Targeting is part of the [Enterprise Edition](/self-hosting/advanced/license). 
 </Note>
 
-### When to use Advanced Targeting?
+## When To Use Advanced Targeting?
 
 Advanced Targeting helps you achieve a number of goals:
 
@@ -18,7 +18,7 @@ Advanced Targeting helps you achieve a number of goals:
 
 3. **Statistical Relevance:** When surveying a smaller subset of users, statistical relevance is reached with a lot less responses.
 
-## How does Advanced Targeting work?
+## How Does Advanced Targeting Work?
 
 <Steps>
   <Step title="Create Segment">
@@ -46,7 +46,7 @@ Advanced Targeting helps you achieve a number of goals:
   <Step title="Publish your survey" icon="party-horn" iconType="solid" />
 </Steps>
 
-### Segment Configuration
+## Segment Configuration
 
 There are three means to move Contacts in or out of Segments: **Attributes**, other **Segments** and **Devices**:
 
@@ -54,14 +54,116 @@ There are three means to move Contacts in or out of Segments: **Attributes**, ot
 
   ![Attribute filter](/images/xm-and-surveys/surveys/website-app-surveys/targeting/attribute-filter.webp "Attribute filter")
 
+### Attribute Operators
 
-2. **Segments**: You can nest Segments meaning that if a user is or is not part of another Segment, they can be included or excluded
+When configuring an attribute filter, you select an operator to define how the attribute value is evaluated. The available operators depend on the attribute data type.
+
+**String Attribute Operators**
+
+| Operator | Description | Example |
+|----------|-------------|---------|
+| `equals` | Matches when the attribute value is exactly equal to the specified value | Plan equals "Pro" |
+| `not equals` | Matches when the attribute value is not equal to the specified value | Plan not equals "Free" |
+| `contains` | Matches when the attribute value contains the specified substring | Email contains "@company.com" |
+| `does not contain` | Matches when the attribute value does not contain the specified substring | Email does not contain "@competitor.com" |
+| `starts with` | Matches when the attribute value begins with the specified prefix | Name starts with "John" |
+| `ends with` | Matches when the attribute value ends with the specified suffix | Email ends with ".edu" |
+| `is set` | Matches when the attribute has any value assigned (is not empty or null) | Company is set |
+| `is not set` | Matches when the attribute has no value assigned (is empty or null) | Phone is not set |
+
+**Number Attribute Operators**
+
+| Operator | Description | Example |
+|----------|-------------|---------|
+| `equals` | Matches when the numeric value is exactly equal | Age equals 30 |
+| `not equals` | Matches when the numeric value is not equal | Age not equals 0 |
+| `less than` | Matches when the numeric value is less than the specified value | Usage less than 100 |
+| `less or equal` | Matches when the numeric value is less than or equal to the specified value | Score less or equal 50 |
+| `greater than` | Matches when the numeric value is greater than the specified value | Purchases greater than 5 |
+| `greater or equal` | Matches when the numeric value is greater than or equal to the specified value | Revenue greater or equal 1000 |
+| `is set` | Matches when the numeric attribute has any value assigned | Revenue is set |
+| `is not set` | Matches when the numeric attribute has no value assigned | Revenue is not set |
+
+**Date Attribute Operators**
+
+| Operator | Description | Example |
+|----------|-------------|---------|
+| `is older than` | Matches when the date is older than the specified relative time | Signup is older than 30 days |
+| `is newer than` | Matches when the date is newer than the specified relative time | Last login is newer than 7 days |
+| `is before` | Matches when the date is before the specified absolute date | Created is before 2025-01-01 |
+| `is after` | Matches when the date is after the specified absolute date | Upgraded is after 2025-06-01 |
+| `is between` | Matches when the date falls between two specified dates | Signup is between 2025-01-01 and 2025-06-30 |
+| `is same day` | Matches when the date is on the same day as the specified date | Birthday is same day 2025-03-15 |
+| `is set` | Matches when the date attribute has any value assigned | Last active is set |
+| `is not set` | Matches when the date attribute has no value assigned | Churn date is not set |
+
+<Note>
+  The `is set` and `is not set` operators do not require a value input — they simply check whether the attribute exists on the contact.
+</Note>
+
+2. **Segments**: You can nest Segments meaning that if a user is or is not part of another Segment, they can be included or excluded.
 
    ![Segments filter](/images/xm-and-surveys/surveys/website-app-surveys/targeting/segments-filter.webp "Segments filter")
 
-
-3. **Devices**: If a user uses a Phone or Desktop, you can include or exclude them
+3. **Devices**: If a user uses a Phone or Desktop, you can include or exclude them.
 
    ![Devices filter](/images/xm-and-surveys/surveys/website-app-surveys/targeting/device-filter.webp "Devices filter")
 
-4. **Filter Groups:** You can group any of the above conditions in group and connect them logically with `AND` or `OR`. This allows for maximum granularity.
+4. **Filter Groups:** You can group any of the above conditions in a group and connect them logically with `AND` or `OR`. This allows for maximum granularity.
+
+## Managing Segments
+
+Beyond creating segments through the workflow above, you can also edit and delete existing segments from the Contacts tab.
+
+### Editing A Segment
+
+To edit an existing segment:
+
+<Steps>
+  <Step title="Navigate to the Contacts tab">
+    Go to the **Contacts** tab in your project and select the **Segments** sub-tab to view all existing segments.
+  </Step>
+
+  <Step title="Open the segment">
+    Click on the segment you want to edit to open its settings. Alternatively, click the edit icon next to the segment name in the segment table.
+  </Step>
+
+  <Step title="Update filters or rename">
+    In the segment editor, you can:
+    - **Rename** the segment by updating the segment title.
+    - **Add new filters** using the filter button to add attribute, segment, or device conditions.
+    - **Modify existing filters** by changing the operator, value, or attribute for any existing condition.
+    - **Remove filters** by clicking the remove icon on individual filter rows.
+    - **Reorganize filter groups** by adjusting the `AND` / `OR` connectors between conditions.
+  </Step>
+
+  <Step title="Save changes">
+    Click **Save changes** to apply the updated segment configuration. All surveys targeting this segment will automatically use the updated criteria.
+  </Step>
+</Steps>
+
+### Deleting A Segment
+
+To delete a segment you no longer need:
+
+<Steps>
+  <Step title="Navigate to segment settings">
+    Open the segment from the **Contacts** → **Segments** tab and go to the segment settings.
+  </Step>
+
+  <Step title="Delete the segment">
+    Click the **Delete** button in the segment settings. A confirmation dialog will appear to prevent accidental deletion.
+  </Step>
+
+  <Step title="Confirm deletion">
+    Confirm the deletion. Any surveys that were targeting this segment will revert to showing to all users.
+  </Step>
+</Steps>
+
+<Warning>
+  Deleting a segment is permanent and cannot be undone. Surveys using the deleted segment will fall back to their default targeting behavior.
+</Warning>
+
+---
+
+*Source: `apps/web/modules/ee/contacts/segments/`*

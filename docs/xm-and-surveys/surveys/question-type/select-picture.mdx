@@ -32,18 +32,47 @@ Picture selection questions allow respondents to select one or more images from 
 
 ### Title
 
-Add a clear title to inform the respondent what information you are asking for.
+Add a clear title to inform the respondent what information you are asking for. This maps to the `headline` field in the survey element schema and supports internationalized (I18n) strings for multi-language surveys.
 
 ### Description
 
-Provide an optional description with further instructions.
+Provide an optional description with further instructions. This maps to the `subheader` field, which is an optional I18n string that can be used to give respondents additional context about the image selection.
 
 ### Images
 
-Images can be uploaded via click or drag and drop. At least two images are required. Each image must be 5 MB or less.
+Images can be uploaded via click or drag and drop. At least two image choices are required. Each image must be 5 MB or less.
+
+Internally, each image is stored as an entry in the `choices` array. Every choice object contains:
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `id` | string | Unique identifier for the image choice |
+| `imageUrl` | string (URL) | URL of the uploaded image stored in configured file storage |
+
+Images are displayed in a responsive grid layout that adapts to screen size — typically showing 2–3 images per row on desktop and 1–2 images per row on mobile devices. Respondents select an image by clicking on it, at which point it becomes visually highlighted.
 
 ### Allow Multi Select
 
-This option allows user to select more than one image.import { img } from "@/components/mdx-image";
+This option controls whether respondents can select more than one image. It maps to the `allowMulti` field, which is an optional boolean that defaults to `false`.
 
-// import PictureSelection from "./images/picture-selection.webp";
+- **Enabled** (`allowMulti: true`): Respondents can select multiple images. The UI displays checkboxes on each image to indicate that multiple selections are permitted.
+- **Disabled** (`allowMulti: false` or not set): Respondents can select only one image. Clicking a new image deselects the previously selected one.
+
+### Validation Rules
+
+When multi-select is enabled, you can configure validation rules to control the number of images a respondent must select. The following rules are available for picture selection elements:
+
+| Rule | Parameter | Description |
+|------|-----------|-------------|
+| `minSelections` | `{ min: number }` (min ≥ 1) | Sets the minimum number of images that must be selected before the response is accepted |
+| `maxSelections` | `{ max: number }` (max ≥ 1) | Sets the maximum number of images that can be selected |
+
+<Note>
+  Validation rules for picture selection only apply when **Allow Multi Select** is enabled. When multi-select is disabled, only a single image can be selected, so minimum and maximum selection rules do not apply.
+</Note>
+
+You can combine both rules to define an exact range. For example, setting `minSelections` to 2 and `maxSelections` to 4 requires the respondent to select between two and four images. When multiple validation rules are configured, they are combined using the logical operator specified in the validation settings (defaulting to `and`).
+
+---
+
+*Source: `packages/types/surveys/elements.ts` (ZSurveyPictureSelectionElement), `packages/types/surveys/validation-rules.ts` (PICTURE_SELECTION_RULES)*

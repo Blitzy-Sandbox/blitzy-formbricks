@@ -1,6 +1,7 @@
 ---
 title: "Google Sheets"
 description: "The Google Sheets integration allows you to automatically send responses to a Google Sheet of your choice."
+icon: "table"
 ---
 
 <Note>
@@ -44,7 +45,33 @@ description: "The Google Sheets integration allows you to automatically send res
 
 Congratulations! You have successfully linked a Google Sheet with Formbricks. Now whenever a response is submitted for the linked survey, it will be automatically added to the linked Google Sheet.
 
-## Remove Integration with Google Account
+## Cell Character Limit
+
+Each cell in the linked Google Sheet is limited to **49,995 characters**. This is slightly under the native Google Sheets limit of 50,000 characters per cell to provide a safety buffer.
+
+When a survey response value exceeds 49,995 characters, it is automatically truncated to fit within the cell. This truncation happens transparently during the data sync — no action is required on your part.
+
+<Note>
+  If you notice truncated values in your Google Sheet, this is expected behavior for responses that exceed the
+  49,995 character limit. Consider using shorter response formats or splitting long-form questions if full
+  content preservation is critical.
+</Note>
+
+Source: `apps/web/lib/constants.ts` (`GOOGLE_SHEET_MESSAGE_LIMIT = 49995`), `apps/web/lib/googleSheet/service.ts`
+
+## Column Mapping
+
+Formbricks maps survey data to your Google Sheet using the following structure:
+
+- **Column Headers:** The survey question labels you selected during the linking step become the column headers in the first row (row 1) of the sheet. These headers are written using the Google Sheets API `values.update` method with `valueInputOption: "RAW"`, ensuring exact text is preserved without interpretation.
+
+- **Row Values:** Each new survey response creates a new row appended below the headers (starting at row 2). Response values are mapped to columns in the same order as the selected questions. The Sheets API `values.append` method is used with `valueInputOption: "RAW"` to write the raw response data.
+
+- **Mapping Order:** The `elements` array (question labels) defines the column structure, and the `responses` array provides the corresponding values in the same order. This means the first selected question maps to column A, the second to column B, and so on.
+
+Source: `apps/web/lib/googleSheet/service.ts`
+
+## Remove Integration With Google Account
 
 To remove the integration with Google Account,
 
@@ -73,5 +100,48 @@ For the above, we ask for:
 2. **Google Spreadsheet API**: To write to the spreadsheet you select (that's it, nothing else, we're opensource, see this method in our codebase [here](https://github.com/formbricks/formbricks/blob/main/packages/lib/googleSheet/service.ts#L70))
 
 <Note>We store as little personal information as possible.</Note>
+
+## Token Storage And Refresh
+
+Formbricks securely manages your Google OAuth credentials to maintain the integration connection:
+
+- **Encrypted Token Storage:** Your Google OAuth credentials (access tokens and refresh tokens) are stored encrypted in the Formbricks database. This ensures that sensitive authentication data is protected at rest.
+
+- **Automatic Token Refresh:** When an access token expires or is near expiration (within a 5-minute buffer), Formbricks automatically refreshes it using the stored refresh token. The refreshed credentials are then saved back to the database, so subsequent API calls use the updated token seamlessly.
+
+- **Token Validation:** Before using a stored access token, Formbricks verifies it is still valid by checking against the Google token info endpoint. If the token has been revoked (for example, if the user removed app access from their Google account), the system falls back to the refresh token flow.
+
+- **OAuth Client Configuration:** The integration uses the Google OAuth2 library (`googleapis`) with the configured `GOOGLE_SHEETS_CLIENT_ID`, `GOOGLE_SHEETS_CLIENT_SECRET`, and `GOOGLE_SHEETS_REDIRECT_URL` environment variables to create the OAuth2 client.
+
+Source: `apps/web/lib/googleSheet/service.ts`
+
+## Self-Hosted Configuration
+
+If you are running a self-hosted Formbricks instance, the following environment variables must be configured for the Google Sheets integration to work:
+
+| Environment Variable | Description |
+|---------------------|-------------|
+| `GOOGLE_SHEETS_CLIENT_ID` | Google OAuth Client ID for the integration |
+| `GOOGLE_SHEETS_CLIENT_SECRET` | Google OAuth Client Secret |
+| `GOOGLE_SHEETS_REDIRECT_URL` | OAuth redirect URL (e.g., `https://your-domain.com/api/v1/integrations/google-sheets/callback`) |
+
+<Note>
+  For detailed self-hosted Google Sheets integration setup including Google Cloud Console configuration, OAuth
+  consent screen setup, and scope registration, see the
+  [self-hosted integrations guide](/self-hosting/configuration/integrations/google-sheets).
+</Note>
+
+## Troubleshooting
+
+Below are common issues encountered with the Google Sheets integration and their solutions:
+
+| Issue | Cause | Solution |
+|-------|-------|----------|
+| "Insufficient permissions" error | The Google account lacks write access to the selected spreadsheet | Ensure the Google account used for authentication has Editor access to the spreadsheet |
+| "Invalid grant" error | OAuth token has been revoked or expired without a valid refresh token | Remove and re-create the Google Sheets integration to re-authenticate |
+| Data not appearing in sheet | Wrong spreadsheet selected or sheet name changed | Verify the spreadsheet URL and ensure the sheet has not been renamed or deleted |
+| Truncated cell values | Response exceeds 49,995 characters | This is expected behavior; long responses are automatically truncated to fit within the cell limit |
+
+Source: `apps/web/lib/googleSheet/service.ts`, `apps/web/lib/googleSheet/constants.ts`, `apps/web/lib/constants.ts`
 
 Still struggling or something not working as expected? [Join our Github Discussions](https://github.com/formbricks/formbricks/discussions) and we'd be glad to assist you!

@@ -1,8 +1,73 @@
 ---
 title: "Link Settings"
-description: "Customize link titles, descriptions, and preview images to make your survey links more engaging when shared on social media and other platforms."
+description: "Configure link survey URLs, preview metadata, expiration dates, redirect behavior, and response limits to control how your survey links behave and appear when distributed."
 icon: "gear"
 ---
+
+Link Settings give you full control over how your survey links are distributed, displayed, and managed. From customizing the URL slug and social preview metadata to setting expiration dates and response limits, these options let you fine-tune every aspect of your link survey distribution.
+
+This page covers the following link-level configuration options:
+
+- **Custom URL Slugs** — Create memorable, branded survey URLs
+- **Link Preview Metadata** — Control how links appear when shared on social media and messaging platforms
+- **Survey Expiration** — Automatically close surveys after a specific date
+- **Redirect On Completion** — Send respondents to a custom URL after they finish
+- **Response Limits** — Cap the number of submissions a survey can collect
+
+## Custom URL Slugs
+
+By default, Formbricks generates survey links using a unique identifier (for example, `https://your-domain.com/s/cm5abc123def456`). Custom URL slugs let you replace this identifier with a human-readable, branded path using the **Pretty URL** feature.
+
+A custom slug transforms your survey URL into a cleaner format:
+
+```
+https://your-domain.com/p/product-feedback
+```
+
+<Note>
+  Custom URL slugs (Pretty URLs) are available for **self-hosted** Formbricks instances only. You must configure a custom domain in your organization settings before using this feature. The slug path uses the `/p/` prefix to distinguish it from standard survey links.
+</Note>
+
+### Slug Format Requirements
+
+Custom slugs must follow these rules:
+
+| Rule | Detail |
+|------|--------|
+| **Allowed characters** | Lowercase letters (`a-z`), numbers (`0-9`), and hyphens (`-`) |
+| **Case** | Lowercase only — uppercase characters are automatically converted |
+| **Uniqueness** | Each slug must be unique across your Formbricks instance |
+
+### Configuring A Custom URL Slug
+
+<Steps>
+  <Step title="Open The Share Modal">
+    Navigate to your survey's Summary page and click the **Share survey** button in the top toolbar.
+  </Step>
+  <Step title="Select The Pretty URL Tab">
+    In the Share Modal sidebar, click on the **Pretty URL** tab under the Share Settings section.
+  </Step>
+  <Step title="Enter Your Custom Slug">
+    Type your desired slug in the input field. The full URL preview updates in real time so you can see the final link. Only lowercase letters, numbers, and hyphens are accepted.
+  </Step>
+  <Step title="Save The Slug">
+    Click **Save** to register your custom slug. The pretty URL is active immediately and can be shared with respondents.
+  </Step>
+</Steps>
+
+To remove a custom slug, open the Pretty URL tab and click the delete icon next to the current slug. The survey remains accessible via its original `/s/` link.
+
+Source: `apps/web/app/(app)/environments/[environmentId]/surveys/[surveyId]/(analysis)/summary/components/shareEmbedModal/pretty-url-tab.tsx`
+
+## Link Preview Metadata
+
+Link preview metadata controls the Open Graph tags embedded in your survey link. These tags determine how your survey link appears when shared on social media platforms, messaging apps, and other services that render link previews.
+
+You can customize three metadata fields:
+
+- **Link Title** — The headline that appears in the link preview card
+- **Link Description** — A brief summary displayed below the title
+- **Preview Image** — A custom image shown alongside the link preview
 
 <Note>
   **Self-Hosting Requirements**: Adding a preview image requires file upload storage to be configured. If
@@ -10,41 +75,116 @@ icon: "gear"
   uploads](/self-hosting/configuration/file-uploads) before using this feature.
 </Note>
 
-## What are Link Settings?
-
-Link Settings allow you to configure the metadata (Open Graph tags) for your survey links, controlling how they appear when shared:
-
-- **Link Title**: The headline that appears when your link is shared
-- **Link Description**: A brief description of your survey
-- **Preview Image**: A custom image that displays alongside your link preview
-
 ![Link Settings](/images/xm-and-surveys/surveys/link-surveys/link-settings/link-settings.webp)
 
-## Configuring Link Metadata
+### Configuring Link Metadata
 
 <Steps>
   <Step title="Access Link Settings">
     Navigate to your survey's Summary page and click the **Share survey** button in the top toolbar.
   </Step>
-
-<Step title="Open Link Settings tab">
-  In the Share Modal, click on the **Link Settings** tab to access the customization options.
-</Step>
-
-<Step title="Customize your link title">
-  Enter a title for your survey link. This will appear as the main headline when your link is shared.
-</Step>
-
-<Step title="Add a link description">
-  Write a brief description for your survey. This will appear as the description of your Survey Link.
-</Step>
-
-<Step title="Upload a preview image">
-  Add a custom image that will display when your link is shared. This makes your survey more visually
-  appealing and can increase engagement.
-</Step>
-
-  <Step title="Save your settings">
-    Click **Save** to apply your link settings. These changes will take effect immediately for all future link shares.
+  <Step title="Open The Link Settings Tab">
+    In the Share Modal, click on the **Link Settings** tab to access the metadata customization options.
+  </Step>
+  <Step title="Customize Your Link Title">
+    Enter a title for your survey link. This will appear as the main headline when your link is shared.
+  </Step>
+  <Step title="Add A Link Description">
+    Write a brief description for your survey. This will appear as the description text in the link preview card.
+  </Step>
+  <Step title="Upload A Preview Image">
+    Add a custom image that will display when your link is shared. This makes your survey more visually
+    appealing and can increase click-through rates.
+  </Step>
+  <Step title="Save Your Settings">
+    Click **Save** to apply your link settings. These changes take effect immediately for all future link shares.
   </Step>
 </Steps>
+
+If your survey has multiple languages enabled, you can set different metadata for each language using the language selector in the Link Settings tab. This ensures that link previews display in the correct language for each audience.
+
+Source: `apps/web/app/(app)/environments/[environmentId]/surveys/[surveyId]/(analysis)/summary/components/shareEmbedModal/link-settings-tab.tsx`
+
+## Survey Expiration
+
+Survey expiration allows you to automatically close a link survey after a specific date and time. Once the expiration date passes, new respondents can no longer access the survey, and they see a configurable closed-survey message instead.
+
+This is useful for time-limited campaigns, event feedback collection, promotional surveys, or any scenario where responses should only be collected within a defined window.
+
+### Configuring Survey Expiration
+
+<Steps>
+  <Step title="Open The Survey Editor">
+    Navigate to the survey you want to configure and open it in the Survey Editor.
+  </Step>
+  <Step title="Switch To The Settings Tab">
+    Click on the **Settings** tab at the top of the editor to access survey-level configuration options.
+  </Step>
+  <Step title="Locate Response Options">
+    Scroll down to the **Response Options** section within the settings panel.
+  </Step>
+  <Step title="Enable Close Survey On Date">
+    Toggle on the **"Close survey on date"** option and select your desired expiration date and time. The survey will automatically transition to a closed state when this date is reached.
+  </Step>
+  <Step title="Save The Survey">
+    Click **Save** (or publish) to apply the expiration setting.
+  </Step>
+</Steps>
+
+<Note>
+  When a respondent tries to access an expired survey link, they see a **"Survey Closed"** message. You can customize the heading and subheading of this message in the Response Options section of the survey editor by enabling the **"Show a closed message"** toggle.
+</Note>
+
+### Closed Survey Message
+
+By default, expired or closed surveys display a generic closed message. To provide a better experience, you can customize the message:
+
+1. In the Survey Editor **Settings** tab, scroll to the **Response Options** section.
+2. Enable the **"Show a closed message"** toggle.
+3. Set a custom **heading** (for example, "This Survey Has Ended") and **subheading** (for example, "Thank you for your interest. This survey is no longer accepting responses.").
+
+Source: `packages/types/surveys/types.ts` — `ZSurveyClosedMessage` schema
+
+## Redirect On Completion
+
+Formbricks lets you redirect respondents to a custom URL after they complete the survey. Instead of showing a default thank-you ending card, respondents are automatically forwarded to a URL of your choice — such as a product page, signup form, or external resource.
+
+### Configuring A Redirect URL
+
+<Steps>
+  <Step title="Open The Survey Editor">
+    Navigate to your survey and open the Survey Editor.
+  </Step>
+  <Step title="Select An Ending Card">
+    In the editor sidebar, click on an **Ending Card** (or add a new one). Survey endings control what happens after the respondent submits their final answer.
+  </Step>
+  <Step title="Choose Redirect To URL">
+    In the ending card type dropdown, select **"Redirect to URL"** instead of the default thank-you card.
+  </Step>
+  <Step title="Enter The Destination URL">
+    Type or paste the full URL where respondents should be redirected (for example, `https://example.com/thank-you`). The URL field supports recall functionality, allowing you to dynamically insert response values into the redirect URL.
+  </Step>
+  <Step title="Save The Survey">
+    Click **Save** to apply the redirect. All respondents who reach this ending card will be forwarded to the specified URL.
+  </Step>
+</Steps>
+
+<Note>
+  You can create multiple ending cards in a single survey with different redirect destinations. Combined with [conditional logic](/xm-and-surveys/surveys/general-features/conditional-logic), this lets you route respondents to different URLs based on their answers.
+</Note>
+
+Source: `apps/web/modules/survey/editor/components/redirect-url-form.tsx`, `apps/web/modules/survey/editor/components/edit-ending-card.tsx`
+
+## Response Limits
+
+Response limits let you automatically close a link survey once it reaches a specified number of completed submissions. When the limit is hit, the survey stops accepting new responses and displays the closed survey message.
+
+To configure response limits, navigate to the Survey Editor **Settings** tab and enable the **"Close survey on response limit"** toggle under Response Options. Enter the maximum number of responses you want to collect, and the survey will close automatically when that threshold is reached.
+
+For detailed setup instructions and advanced quota management options, see the [Limit Submissions](/xm-and-surveys/surveys/general-features/limit-submissions) guide.
+
+<Note>
+  Response limits and survey expiration dates work independently. A survey closes when **either** condition is met — whichever comes first. For example, a survey set to expire on March 1st with a 500-response limit will close on March 1st even if only 200 responses have been collected.
+</Note>
+
+Source: `packages/types/surveys/types.ts` — `autoComplete` field in `ZSurvey` schema

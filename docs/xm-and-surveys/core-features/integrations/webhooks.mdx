@@ -1,9 +1,10 @@
 ---
 title: "Webhooks"
 description: "With webhooks, you can receive real-time HTTP notifications when specific objects change in your Formbricks environment. This allows you to stay updated and trigger automated actions based on these events."
+icon: "webhook"
 ---
 
-### **Webhook Triggers**
+## Webhook Triggers
 
 Webhooks are configured to send notifications based on trigger events. The available triggers include:
 
@@ -15,18 +16,41 @@ Webhooks are configured to send notifications based on trigger events. The avail
 
 ---
 
-## **Creating Webhooks**
+## Webhook Configuration
+
+The following options are available when creating a webhook:
+
+| Configuration | Description | Required |
+|--------------|-------------|----------|
+| **URL** | The HTTPS endpoint that will receive webhook payloads | Yes |
+| **Triggers** | Which events fire the webhook: `responseCreated`, `responseUpdated`, `responseFinished` | Yes (at least one) |
+| **Survey Filter** | Optionally restrict the webhook to fire only for specific surveys | No (defaults to all surveys) |
+| **Name** | Optional descriptive name for the webhook | No |
+
+**Trigger Events Detail:**
+
+| Event | Description | When Fired |
+|-------|-------------|------------|
+| `responseCreated` | A new response has been submitted | When the first question of a survey is answered |
+| `responseUpdated` | An existing response has been updated | When additional questions are answered in a multi-step survey |
+| `responseFinished` | A response has been completed | When all required questions are answered and the survey is submitted |
+
+Source: `apps/web/modules/integrations/webhooks/components/trigger-checkbox-group.tsx` lines 27-35
+
+---
+
+## Creating Webhooks
 
 You can create webhooks either through the **Formbricks App UI** or programmatically via the **Webhook API**.
 
-## **Creating Webhooks via UI**
+## Creating Webhooks Via UI
 
 - **Log in to Formbricks**
   and click on the `Configuration` tab in the left sidebar and then click on the `Integrations` tab.
 
 ![Step one](/images/xm-and-surveys/core-features/integrations/webhooks/integrations-tab.webp)
 
-- Click on **Manage Webhooks** & then **Add Webhook** button:
+- Click on **Manage Webhooks** & then **Add Webhook** button:
 
 ![Step two](https://res.cloudinary.com/dwdb9tvii/image/upload/v1738094259/j4a92z2q43twgamogpny.webp)
 
@@ -36,11 +60,11 @@ You can create webhooks either through the **Formbricks App UI** or programmatic
 
 - Now add the triggers you want to listen to and the surveys!
 
-- That’s it! Your webhooks will not start receiving data as soon as it arrives!
+- That's it! Your webhooks will not start receiving data as soon as it arrives!
 
 ![Step five](https://res.cloudinary.com/dwdb9tvii/image/upload/v1738094816/image_xvrel1.jpg)
 
-## **Creating Webhooks via API**
+## Creating Webhooks Via API
 
 Use our documented methods on the **Creation**, **List**, and **Deletion** endpoints of the Webhook API mentioned in our [API v2 playground](https://formbricks.com/docs/api-v2-reference/management-api-%3E-webhooks/get-webhooks).
 
@@ -48,9 +72,63 @@ If you encounter any issues or need help setting up webhooks, feel free to reach
 
 ---
 
-## Webhook Security with Standard Webhooks
+## Discord URL Blocking
 
-Formbricks implements the [Standard Webhooks](https://github.com/standard-webhooks/standard-webhooks) specification to ensure webhook requests can be verified as genuinely originating from Formbricks.
+Formbricks blocks Discord webhook URLs to prevent misuse of the webhook system. Attempting to register a Discord webhook URL will result in an error.
+
+**Blocked URL pattern:** `https://discord.com/api/webhooks/{id}/{token}`
+
+<Warning>
+  Discord webhook URLs (`https://discord.com/api/webhooks/...`) are not supported and will be rejected.
+  Use an automation platform to route data to Discord instead.
+</Warning>
+
+If you need to send Formbricks data to Discord, use an automation platform like n8n or Zapier as an intermediary. See the [n8n integration guide](/xm-and-surveys/core-features/integrations/n8n) for an example using Discord as a destination.
+
+Source: `isDiscordWebhook()` function in `apps/web/modules/integrations/webhooks/lib/utils.ts`
+
+---
+
+## URL Validation Rules
+
+When registering a webhook endpoint, the URL must pass all of the following validation checks:
+
+1. **HTTPS Required** — URL must start with `https://`
+2. **Valid Domain** — Must have a valid domain with a TLD of 2+ characters (e.g., `.com`, `.io`, `.dev`)
+3. **No Multiple Consecutive Slashes** — URL path cannot contain `//` (except in the protocol `https://`)
+4. **Complete URL** — Must be a fully-formed URL that can be parsed by the URL constructor
+5. **No Discord URLs** — Discord webhook URLs are blocked (see [Discord URL Blocking](#discord-url-blocking) above)
+
+**Error Messages Returned For Invalid URLs:**
+
+| Validation Failure | Error Message |
+|-------------------|---------------|
+| Empty URL | "Please enter a URL" |
+| Not HTTPS | "URL must start with https://" |
+| Invalid domain or multiple slashes | "Please enter a complete URL with a valid domain (e.g., https://formbricks.com)" |
+| Malformed URL | "Invalid URL format. Please enter a complete URL including https://" |
+
+Source: `validWebHookURL()` in `apps/web/modules/integrations/webhooks/lib/utils.ts`
+
+---
+
+## Webhook Security With Standard Webhooks
+
+Formbricks implements the [Standard Webhooks](https://github.com/standard-webhooks/standard-webhooks) specification to ensure webhook requests can be verified as genuinely originating from Formbricks. For complete specification details, see the [Standard Webhooks specification](https://github.com/standard-webhooks/standard-webhooks/blob/main/spec/standard-webhooks.md).
+
+The following sequence diagram illustrates the webhook delivery and verification flow:
+
+```mermaid
+sequenceDiagram
+    participant F as Formbricks
+    participant S as Sign Payload
+    participant E as Webhook Endpoint
+    participant V as Verify Signature
+    F->>S: Generate HMAC-SHA256 signature
+    S->>E: POST with webhook-id, webhook-timestamp, webhook-signature headers
+    E->>V: Verify signature using shared secret
+    V->>E: Process payload
+```
 
 ### Webhook Headers
 
@@ -66,11 +144,15 @@ Every webhook request includes the following headers:
 
 When you create a webhook (via the UI or API), Formbricks automatically generates a unique signing secret for that webhook. The secret follows the Standard Webhooks format: `whsec_` followed by a base64-encoded random value.
 
+Source: `generateWebhookSecret()` in `apps/web/lib/crypto.ts` line 155
+
 **Via UI:** After creating a webhook, the signing secret is displayed immediately. Copy and store it securely—you can also view it later in the webhook settings.
 
 **Via API:** The signing secret is returned in the webhook creation response.
 
 This secret is used to generate the HMAC signature included in each webhook request, allowing you to verify the authenticity of incoming webhooks.
+
+Source: `generateStandardWebhookSignature()` in `apps/web/lib/crypto.ts` line 184
 
 ### Signature Verification
 
@@ -81,6 +163,10 @@ signed_content = "{webhook-id}.{webhook-timestamp}.{body}"
 signature = base64(HMAC-SHA256(secret, signed_content))
 header_value = "v1,{signature}"
 ```
+
+The signature output format is `v1,{base64_signature}` where `v1` denotes the signature version.
+
+Source: `apps/web/lib/crypto.ts` line 193
 
 ### Validating Webhooks
 

@@ -2,7 +2,7 @@
 title: "Multi Select"
 description:
   "Multi select questions allow respondents to select several answers from a list"
-icon: "list"
+icon: "check-double"
 ---
 
 Multi select questions allow respondents to select several answers from a list. Displays a title and a list of checkboxes for the respondent to choose from.
@@ -27,14 +27,78 @@ Multi select questions allow respondents to select several answers from a list. 
 
 ### Title
 
-Add a clear title to inform the respondent what information you are asking for.
+Add a clear title to inform the respondent what information you are asking for. This maps to the `headline` field in the survey schema and supports multi-language translations via the I18n string format.
 
 ### Description
 
-Provide an optional description with further instructions.
+Provide an optional description with further instructions. This maps to the `subheader` field in the survey schema and is optional. It also supports multi-language translations.
 
 ### Options
 
-Define the options shown in the list. These represent the items for which users will select.
+Define the choices shown in the list. Each choice is an object with:
 
-Other than the fact that respondents can select multiple options, multi select questions are similar to [single select](/xm-and-surveys/surveys/question-type/select-single) questions.
+- **`id`** (string) — A unique identifier for the choice
+- **`label`** (I18n string) — The display text shown to the respondent, with support for multi-language translations
+
+A minimum of **2 choices** is required for every multi-select question. Each choice supports localized labels for multi-language surveys.
+
+### "Other" Option
+
+You can add an **"Other"** option to allow respondents to enter a custom answer that is not covered by the predefined choices. When enabled:
+
+- An additional text input appears beneath the predefined choices
+- Respondents can type a free-text response in the input field
+- The "Other" choice uses a special `id` value of `"other"` in the schema
+- You can customize the placeholder text displayed in the free-text input via the `otherOptionPlaceholder` field
+
+<Note>
+  The "Other" option is useful when you want to capture answers you may not have anticipated. Combine it with the **Randomize all except last** shuffle option to keep the "Other" choice anchored at the bottom of the list.
+</Note>
+
+### Display Type
+
+The `displayType` field controls how the multi-select choices are rendered to the respondent. Two display modes are available:
+
+| Display Type | Description |
+|---|---|
+| `list` | Standard checkbox list layout where all choices are visible at once. This is the **default** display type. |
+| `dropdown` | Dropdown multi-select layout where choices appear in a collapsible dropdown menu. Useful when you have a large number of choices. |
+
+<Note>
+  If no `displayType` is specified, the question defaults to the `list` (checkbox) layout.
+</Note>
+
+### Choice Randomization
+
+Use the shuffle option to control the order in which choices are presented to respondents. Randomizing choice order helps reduce ordering bias in survey results.
+
+| Shuffle Option | Description |
+|---|---|
+| **Keep current order** (`none`) | Choices appear in the order they were added in the editor. |
+| **Randomize all** (`all`) | All choices are randomized for each respondent. |
+| **Randomize all except last** (`exceptLast`) | All choices are randomized except the last one. This is useful when you want to keep the "Other" option anchored at the bottom. |
+
+### Validation Rules
+
+Multi-select questions support validation rules that constrain how many choices a respondent must or can select. The following rules are available:
+
+| Rule | Parameter | Description |
+|---|---|---|
+| `minSelections` | `{ min: number }` (min ≥ 1) | The minimum number of choices that must be selected. The survey will not allow the respondent to proceed until at least this many choices are checked. |
+| `maxSelections` | `{ max: number }` (max ≥ 1) | The maximum number of choices that can be selected. The survey prevents the respondent from checking more than this many choices. |
+
+You can combine both rules to define a valid selection range. For example, setting `minSelections` to `2` and `maxSelections` to `5` requires the respondent to select between 2 and 5 options.
+
+<Note>
+  When multiple validation rules are applied, they are combined using the `and` logic operator by default, meaning **all** rules must be satisfied for the response to be valid.
+</Note>
+
+## Additional Actions
+
+- **Convert to Single Select**: Converts the question to a [single select](/xm-and-surveys/surveys/question-type/select-single) question. This replaces checkboxes with radio buttons and limits the respondent to a single selection.
+
+Other than the ability for respondents to select multiple options and the availability of min/max selection validation rules, multi-select questions share the same configuration model as [single select](/xm-and-surveys/surveys/question-type/select-single) questions.
+
+---
+
+*Source: `packages/types/surveys/elements.ts` (ZSurveyMultipleChoiceMultiElement), `packages/types/surveys/validation-rules.ts` (MULTIPLE_CHOICE_MULTI_RULES)*

@@ -4,6 +4,45 @@ description: "Add you own logo to emails sent to respondents"
 icon: "envelope"
 ---
 
-With the Enterprise Edition, you can customize the [Follow-up Emails](/xm-and-surveys/core-features/email-customization) sent to respondents.
+<Note>
+  This feature requires an active Formbricks Enterprise License. [Learn more about licensing](/self-hosting/advanced/license).
+</Note>
+
+With the Enterprise Edition, you can customize the [Follow-up Emails](/xm-and-surveys/core-features/email-customization) sent to respondents. White-label email follow-ups allow you to fully customize the branding of transactional emails sent to survey respondents, creating a seamless branded experience for your users. Instead of seeing default Formbricks branding, respondents see your organization's identity in every email they receive.
+
+## Customization Options
+
+The white-label email customization settings are managed at the organization level. Only users with the **Owner** or **Manager** role can modify these settings.
+
+<!-- Source: apps/web/modules/ee/whitelabel/email-customization/ -->
+
+The following branding options are available:
+
+- **Custom Logo** — Upload your organization's logo to appear in follow-up emails. Supported file formats include JPEG, PNG, and WebP. Logos must be 5 MB or less. Navigate to **Organization Settings → Email Customization** to upload your logo.
+- **Send Test Email** — After uploading your logo, use the **Send test email** button to preview how the branded email appears to respondents before sending live follow-ups.
+- **Remove Logo** — Reset the email logo back to the default Formbricks branding at any time.
+
+For details on the overall email customization capabilities including template structure and the logo upload process, see the [Email Customization Guide](/xm-and-surveys/core-features/email-customization).
+
+## Branding Scope
+
+White-label email customization applies selectively based on the type of email being sent.
+
+**Customized (White-Labeled):**
+
+- Follow-up emails sent to survey respondents
+- Email notifications triggered by survey responses
+- Transactional emails related to survey activity
+
+**Not Customized (Remains Formbricks-Branded):**
+
+- Internal team emails (e.g., invitations to join a Formbricks team)
+- Organization management emails (e.g., membership invitations)
+- System notification emails to organization members
 
 <Note>Emails sent to the coworkers of your organisation (e.g. invitations to join a Formbricks team) remain Formbricks branded.</Note>
+
+## Related Features
+
+- To also remove the "Powered by Formbricks" branding from surveys themselves, see [Hide Branding](/self-hosting/advanced/enterprise-features/hide-powered-by-formbricks).
+- For information on enterprise licensing and available plans, see the [License](/self-hosting/advanced/license) page.

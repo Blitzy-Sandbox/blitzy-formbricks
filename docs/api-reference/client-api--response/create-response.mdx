@@ -1,3 +1,63 @@
 ---
 openapi: post /api/v1/client/{environmentId}/responses
 ---
+
+## Additional Information
+
+### Request Body Fields
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `surveyId` | `string` | **Yes** | The CUID2 identifier of the survey to respond to |
+| `data` | `object` | **Yes** | Response answers keyed by question ID (e.g., `{"clx1234abc": "answer value"}`) |
+| `finished` | `boolean` | **Yes** | Set to `false` for partial submissions, `true` when the survey is completed |
+| `meta` | `object` | No | Metadata about the response context (see fields below) |
+| `meta.source` | `string` | No | Source identifier (e.g., `"website"`, `"email"`) |
+| `meta.url` | `string` | No | URL where the survey was displayed |
+| `meta.action` | `string` | No | Action that triggered the survey display |
+| `language` | `string` | No | Language/locale code for multi-language surveys (e.g., `"en"`, `"de"`, `"pt"`). The survey must have this language enabled. |
+| `userId` | `string` | No | User identifier for contact-based targeting (enterprise feature) |
+| `endingId` | `string` | No | The ID of the ending card shown upon completion |
+| `singleUseId` | `string` | No | Single-use link token (invalidated after submission) |
+| `variables` | `object` | No | Survey variable values as key-value pairs |
+| `displayId` | `string` | No | The display identifier linking this response to a survey display event |
+| `ttc` | `object` | No | Time-to-completion data per question (question ID → milliseconds) |
+
+<Note>
+  The `userId` field is only available for enterprise users with the Contacts feature enabled. Attempting to use it without an enterprise license will return a `403 Forbidden` error.
+</Note>
+
+### Data Format
+
+Response `data` is an object where keys are question IDs (CUID2 format) and values are the respondent's answers:
+
+```json
+{
+  "surveyId": "clx1234abcdef567890",
+  "data": {
+    "clxq1abc123def456": "Very satisfied",
+    "clxq2ghi789jkl012": ["Feature A", "Feature C"],
+    "clxq3mno345pqr678": 9
+  },
+  "finished": false,
+  "language": "en",
+  "meta": {
+    "source": "website",
+    "url": "https://example.com/pricing"
+  }
+}
+```
+
+### Partial Submissions
+
+Set `finished: false` to capture partial responses as the respondent progresses through the survey. This allows incremental data collection — the response can be updated later with additional answers using the [Update Response](/api-reference/client-api--response/update-response) endpoint.
+
+When the respondent completes the survey, send a final update with `finished: true` to mark the response as complete.
+
+### Server-Derived Metadata
+
+The server automatically captures additional metadata that cannot be set by the client:
+
+- **User Agent**: Browser, device type, and OS are parsed from the request headers
+- **Country**: Derived from Cloudflare, Vercel, or CloudFront geo-IP headers
+- **IP Address**: Captured only if the survey has IP capture enabled (`isCaptureIpEnabled: true`)

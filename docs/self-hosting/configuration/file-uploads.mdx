@@ -48,6 +48,23 @@ MinIO provides a self-hosted S3-compatible storage solution that runs alongside 
 - Provides full S3 API compatibility
 - Requires minimal additional configuration
 
+## File Size Limits
+
+Formbricks enforces maximum file upload size limits based on your license tier. The following table summarizes the upload size limits per plan:
+
+| Plan | Max File Upload Size |
+| ---------- | -------------------- |
+| Free | 10 MB |
+| Startup | 10 MB |
+| Enterprise | 1 GB |
+
+<Note>
+  The default maximum file upload size is **10 MB**. With an active Enterprise License, the maximum file upload
+  size increases to **1 GB**. Source: `apps/web/lib/constants.ts`
+</Note>
+
+These limits apply to all file upload operations including survey image attachments, file upload question responses, project logos, organization logos, and survey background images.
+
 ## Configuration Methods
 
 ### Option 1: One-Click Setup Script

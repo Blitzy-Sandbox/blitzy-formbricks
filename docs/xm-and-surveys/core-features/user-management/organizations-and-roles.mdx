@@ -11,14 +11,14 @@ Organization-level roles apply to all teams and projects within your Formbricks 
   and **Startup** plan in the Cloud you can invite unlimited organization members as `Owner`.
 </Note>
 
-## Role hierarchy
+## Role Hierarchy
 
 Here are the different access permissions, ranked from highest to lowest access:
 
 1. **Owner** - Full organizational control
 2. **Manager** - Management access with some restrictions
-3. **Billing** - Billing and payment management only
-4. **Member** - Basic access to assigned projects
+3. **Member** - Basic access to assigned projects
+4. **Billing** - Billing and payment management only
 
 ### Role Permissions and Privilege Escalation Prevention
 
@@ -30,13 +30,13 @@ To prevent privilege escalation, the following rules apply:
 
 - **Managers** can:
   - Invite users only as members
-  - Assign roles up to member only, not manager or owner
+  - Assign roles up to member only, not manager, billing, or owner
 
 - **Members** cannot:
   - Invite users
   - Assign roles
 
-## Organization-level roles
+## Organization-Level Roles
 
 All users and their organization-level roles are listed in **Organization Settings > Access Control**. Users can hold any of the following org-level roles:
 
@@ -44,24 +44,33 @@ All users and their organization-level roles are listed in **Organization Settin
 - Have full access to the organization, its data, and settings
 - Can perform Team Admin actions without needing to join the team
 - Can manage all aspects of the organization including billing, integrations, and member management
+- Can transfer ownership to another organization member
+- Can configure organization-wide settings such as billing, subscription, and security
+- While multiple users can hold the Owner role, only one is designated as the primary organization owner who can initiate ownership transfer
 
 ### Manager
 - Have full management access to all teams and projects
 - Can manage the organization's membership (but can only invite or assign users as members)
 - Can perform Team Admin actions without needing to join the team
+- Can create and delete projects
+- Can manage integrations across projects
 - Cannot change other organization settings like billing or delete the organization
-
-### Billing
-- Can manage payment and compliance details in the organization
-- Have access to billing settings and subscription management
-- Cannot access other organizational data or settings
+- Cannot transfer ownership or escalate roles beyond member
 
 ### Member
 - Can view most data in the organization and act in the projects they are members of
 - Cannot create or join projects on their own and need to be assigned by owners or managers
 - Have limited permissions that depend on their project-level access
+- Can create and manage surveys within assigned projects
+- Cannot manage organization settings, billing, or other members
 
-## Detailed permissions matrix
+### Billing
+- Can manage payment and compliance details in the organization
+- Have access to billing settings and subscription management
+- Can manage subscription plans and payment methods
+- Cannot access projects, surveys, or other organizational data or settings
+
+## Detailed Permissions Matrix
 
 |                                  | Owner | Manager | Billing | Member |
 | -------------------------------- | ----- | ------- | ------- | ------ |
@@ -71,7 +80,7 @@ All users and their organization-level roles are listed in **Organization Settin
 | Add new member                   | ✅    | ✅      | ❌      | ❌     |
 | Delete member                    | ✅    | ✅      | ❌      | ❌     |
 | Update member access             | ✅    | ✅      | ❌      | ❌     |
-| Update billing                   | ✅    | ✅      | ✅      | ❌     |
+| Update billing                   | ✅    | ❌      | ✅      | ❌     |
 | **Project**                      |       |         |         |        |
 | Create project                   | ✅    | ✅      | ❌      | ❌     |
 | Update project name              | ✅    | ✅      | ❌      | ✅\*\* |
@@ -110,7 +119,46 @@ All users and their organization-level roles are listed in **Organization Settin
 
 \*\* - for the manage permissions team members
 
-## Best practices
+## Changing Member Roles
+
+Only **Owners** and **Managers** can change the roles of other organization members. To update a member's role:
+
+<Steps>
+  <Step title="Navigate To Access Control">
+    Go to **Organization Settings > Access Control** to view the list of all organization members and their current roles.
+  </Step>
+  <Step title="Select The Member">
+    Find the member whose role you want to change in the member list.
+  </Step>
+  <Step title="Open The Role Dropdown">
+    Click on the member's current role to open the role selection dropdown.
+  </Step>
+  <Step title="Assign The New Role">
+    Select the new role from the dropdown. The change takes effect immediately.
+  </Step>
+</Steps>
+
+<Note>
+  **Privilege escalation prevention:** Owners can assign any role (Owner, Manager, Member, or Billing). Managers can only assign the **Member** role — they cannot promote users to Manager, Billing, or Owner.
+</Note>
+
+## Ownership Transfer
+
+The ownership transfer process allows the current primary Owner to designate another organization member as the new Owner.
+
+- Only an existing **Owner** can initiate an ownership transfer
+- The selected member receives the **Owner** role
+- The original owner's role is changed after the transfer completes
+
+<Warning>
+  Ownership transfer is a critical and irreversible operation. Once you transfer ownership to another member, your role will be changed. Ensure you are transferring ownership to the correct person before confirming the action.
+</Warning>
+
+## Source Reference
+
+The four organization-level roles (`owner`, `manager`, `member`, `billing`) are defined in `packages/types/memberships.ts` as a Zod enum (`ZOrganizationRole`). Role assignment and membership management logic resides in `apps/web/modules/organization/`.
+
+## Best Practices
 
 - **Principle of least privilege**: Assign users the minimum role necessary for their responsibilities
 - **Regular audits**: Periodically review organization members and their roles

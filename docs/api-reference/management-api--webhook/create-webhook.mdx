@@ -1,3 +1,146 @@
 ---
 openapi: post /api/v1/webhooks
 ---
+
+## Authentication
+
+This endpoint requires an API key passed via the `x-api-key` header. The key must have **POST** permission for the target environment. You can generate and manage API keys from the **Settings → API Keys** page in the Formbricks application.
+
+Source: `apps/web/app/api/v1/webhooks/route.ts` — POST handler with `hasPermission(authentication.environmentPermissions, environmentId, "POST")` check
+
+## Request Body Details
+
+The request body must be a JSON object with the following fields:
+
+| Field           | Type     | Required | Description                                                                                                        |
+| --------------- | -------- | -------- | ------------------------------------------------------------------------------------------------------------------ |
+| `url`           | string   | Yes      | The HTTPS endpoint URL that will receive webhook payloads.                                                         |
+| `triggers`      | string[] | Yes      | An array of event triggers. Must include at least one of: `responseCreated`, `responseUpdated`, `responseFinished`. |
+| `environmentId` | string   | Yes      | The CUID2 identifier of the environment to associate this webhook with. Your API key must have POST permission for this environment. |
+| `name`          | string   | No       | An optional display name for the webhook.                                                                          |
+| `surveyIds`     | string[] | No       | An optional array of survey IDs (CUID2 format) to restrict the webhook to specific surveys. Defaults to all surveys (empty array). |
+| `source`        | string   | No       | The origin of the webhook. Defaults to `user` if not provided.                                                     |
+
+Source: `apps/web/app/api/v1/webhooks/types/webhooks.ts` — `ZWebhookInput` Zod schema
+
+### Trigger Values
+
+The `triggers` array must contain at least one of the following event types:
+
+| Trigger             | Description                                                                                  |
+| ------------------- | -------------------------------------------------------------------------------------------- |
+| `responseCreated`   | Fires when a new response is submitted (first question answered).                            |
+| `responseUpdated`   | Fires when an existing response is updated (additional questions answered in a multi-step survey). |
+| `responseFinished`  | Fires when a response is completed and the survey is fully submitted.                        |
+
+Source: `packages/database/schema.prisma` — `PipelineTriggers` enum
+
+### Source Values
+
+The optional `source` field identifies how the webhook was created. Valid values:
+
+| Source         | Description                                              |
+| -------------- | -------------------------------------------------------- |
+| `user`         | Created manually by a user (default).                    |
+| `zapier`       | Created through the Zapier integration.                  |
+| `make`         | Created through the Make (formerly Integromat) integration. |
+| `n8n`          | Created through the n8n workflow automation integration.  |
+| `activepieces` | Created through the Activepieces integration.            |
+
+Source: `packages/database/schema.prisma` — `WebhookSource` enum
+
+## Webhook Signing (Standard Webhooks)
+
+<Note>
+  When a webhook is created, Formbricks automatically generates a signing secret following the [Standard Webhooks specification](https://github.com/standard-webhooks/standard-webhooks). The `secret` field is returned in the creation response — **store it securely**, as it is needed to verify the authenticity of incoming webhook deliveries.
+</Note>
+
+The generated secret uses the format `whsec_` followed by base64-encoded 32 random bytes (256 bits of entropy):
+
+```text
+whsec_dGhpcyBpcyBhIHNhbXBsZSBzZWNyZXQgZm9yIGRvY3M=
+```
+
+Source: `apps/web/lib/crypto.ts` — `generateWebhookSecret()` function
+
+### Signature Verification
+
+Each webhook delivery includes a signature in the `v1,{base64_signature}` format, computed using HMAC-SHA256. The signed content is constructed as:
+
+```text
+{webhookId}.{timestamp}.{payload}
+```
+
+Where:
+- **`webhookId`** is the unique identifier of the webhook.
+- **`timestamp`** is the Unix timestamp (in seconds) when the delivery was sent.
+- **`payload`** is the raw JSON request body as a string.
+
+To verify a webhook delivery, reconstruct the signed content string and compute the HMAC-SHA256 signature using the raw secret bytes (after stripping the `whsec_` prefix and base64-decoding). Compare your computed signature against the one provided in the delivery headers.
+
+```typescript
+import { createHmac } from "crypto";
+
+function verifyWebhookSignature(
+  webhookId: string,
+  timestamp: number,
+  payload: string,
+  secret: string,
+  receivedSignature: string
+): boolean {
+  // Strip the whsec_ prefix and decode the base64 secret
+  const base64Secret = secret.replace(/^whsec_/, "");
+  const secretBytes = Buffer.from(base64Secret, "base64");
+
+  // Reconstruct the signed content
+  const signedContent = `${webhookId}.${timestamp}.${payload}`;
+
+  // Compute HMAC-SHA256 signature
+  const expectedSignature =
+    "v1," + createHmac("sha256", secretBytes).update(signedContent).digest("base64");
+
+  return expectedSignature === receivedSignature;
+}
+```
+
+Source: `apps/web/lib/crypto.ts` — `generateStandardWebhookSignature()` function
+
+## Discord URL Restriction
+
+<Warning>
+  Discord webhook URLs (`https://discord.com/api/webhooks/...`) are blocked when creating webhooks through the Formbricks web application UI. Attempting to register a Discord webhook URL will result in an error: *"Discord webhooks are currently not supported."*
+</Warning>
+
+The blocked URL pattern matches: `https://discord.com/api/webhooks/{id}/{token}`
+
+Source: `apps/web/modules/integrations/webhooks/lib/utils.ts` — `isDiscordWebhook()` function, `apps/web/modules/integrations/webhooks/lib/webhook.ts` — blocking enforcement
+
+## Response Structure
+
+A successful request returns the created webhook object wrapped in a `data` envelope:
+
+| Field           | Type           | Description                                                                                        |
+| --------------- | -------------- | -------------------------------------------------------------------------------------------------- |
+| `id`            | string         | The unique identifier (CUID format) of the created webhook.                                        |
+| `name`          | string \| null | The display name of the webhook. `null` if no name was provided.                                   |
+| `createdAt`     | string         | ISO 8601 timestamp of when the webhook was created.                                                |
+| `updatedAt`     | string         | ISO 8601 timestamp of when the webhook was last updated.                                           |
+| `url`           | string         | The destination URL that receives webhook payloads.                                                |
+| `source`        | string         | The origin of the webhook. One of `user`, `zapier`, `make`, `n8n`, or `activepieces`.              |
+| `environmentId` | string         | The CUID2 identifier of the environment this webhook belongs to.                                   |
+| `triggers`      | string[]       | An array of event triggers configured for this webhook.                                            |
+| `surveyIds`     | string[]       | An array of survey IDs the webhook is scoped to. An empty array means all surveys.                 |
+
+Source: `packages/database/zod/webhooks.ts` — `ZWebhook` schema
+
+## Error Responses
+
+The following error scenarios may be returned by this endpoint:
+
+| Status Code | Error            | Description                                                                                         |
+| ----------- | ---------------- | --------------------------------------------------------------------------------------------------- |
+| `400`       | Bad Request      | Required fields are missing or incorrectly formatted (e.g., invalid URL, empty triggers array).     |
+| `401`       | Unauthorized     | The API key is missing or does not have POST permission for the specified environment.               |
+| `500`       | Internal Error   | A database error occurred while creating the webhook, or a Discord URL was submitted.               |
+
+Source: `apps/web/app/api/v1/webhooks/route.ts` — POST handler error responses

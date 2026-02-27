@@ -5,47 +5,55 @@ description:
 icon: "lock"
 ---
 
-## **Enabling PIN Protection**
+## Enabling PIN Protection
 
-PIN protection can be applied to your surveys easily through the survey editor. This setup allows you to control access effectively, ensuring that only authorized users can participate.
+PIN protection can be applied to your surveys easily through the survey editor. This setup allows you to control access effectively, ensuring that only authorized users can participate. When enabled, respondents must enter an exact 4-digit numeric PIN before they can view or complete the survey.
 
-### **Steps to Set Up PIN Protection**
+### Steps To Set Up PIN Protection
 
-1. **Open Settings in Survey Editor**: Navigate to your survey in the survey editor where you wish to enable PIN protection & click on Settings Tab.
+<Steps>
+  <Step title="Open Settings In Survey Editor">
+    Navigate to your survey in the survey editor where you wish to enable PIN protection and click on the **Settings** tab.
+  </Step>
 
-2. **Select Response Options**: Find and select **`Response Options`** to access settings related to survey responses.
+  <Step title="Select Response Options">
+    Find and select **Response Options** to access settings related to survey responses.
 
-   ![Select Response Options](/images/xm-and-surveys/surveys/link-surveys/pin-protected-surveys/step-one.webp)
+    ![Response Options in survey editor settings](/images/xm-and-surveys/surveys/link-surveys/pin-protected-surveys/step-one.webp)
+  </Step>
 
-1. **Enable PIN Protection**: Find the option for "Protect Survey with a PIN" and
-   activate it. You will be prompted to enter a PIN that respondents must use to access
-   the survey.
+  <Step title="Enable PIN Protection">
+    Find the option for **Protect Survey with a PIN** and activate it. You will be prompted to enter a 4-digit numeric PIN that respondents must use to access the survey.
+  </Step>
+</Steps>
 
-### **Setting the PIN**
+### Setting The PIN
 
-![Choose a link survey template](/images/xm-and-surveys/surveys/link-surveys/pin-protected-surveys/step-two.webp)
+![PIN protection toggle and PIN entry field in survey settings](/images/xm-and-surveys/surveys/link-surveys/pin-protected-surveys/step-two.webp)
 
-Enter the PIN you wish to use for your survey. Once set, this PIN will need to be
-entered by participants to access the survey. Note that this can be changed anytime
-from here in the future.
+Enter the 4-digit numeric PIN you wish to use for your survey. The PIN must consist of exactly four digits (0–9) — letters and special characters are not allowed. Once set, this PIN will need to be entered by participants to access the survey.
 
-### **User Experience Upon Accessing the Survey**
+<Note>
+  The PIN can be changed at any time from the **Response Options** section of the survey settings. When toggling PIN protection on for the first time, a default PIN of `1234` is pre-filled — be sure to change it to a unique value before publishing your survey.
+</Note>
 
-When a respondent attempts to access the survey, they are prompted to enter the PIN:
+### User Experience Upon Accessing The Survey
 
-- **PIN Entry Prompt**: A screen will appear asking the respondent to enter the PIN to proceed. This acts as the first gatekeeping step before survey access is granted.
+When a respondent attempts to access a PIN-protected survey, they are prompted to enter the PIN:
 
-  ![Choose a link survey template](/images/xm-and-surveys/surveys/link-surveys/pin-protected-surveys/step-three.webp)
+- **PIN Entry Prompt**: A screen appears asking the respondent to enter the 4-digit PIN to proceed. This acts as the first gatekeeping step before survey access is granted.
 
-- **Incorrect PIN Handling**: If an incorrect PIN is entered, the respondent will be informed and asked to try again, ensuring secure access to the survey.
+  ![PIN entry prompt shown to survey respondents](/images/xm-and-surveys/surveys/link-surveys/pin-protected-surveys/step-three.webp)
 
-  ![Choose a link survey template](/images/xm-and-surveys/surveys/link-surveys/pin-protected-surveys/step-four.webp)
+- **Incorrect PIN Handling**: If an incorrect PIN is entered, the respondent is informed and asked to try again, ensuring secure access to the survey.
 
-- **Correct PIN**: On entering the correct PIN, the user access the survey & can fill it accordingly.
+  ![Error message displayed when incorrect PIN is entered](/images/xm-and-surveys/surveys/link-surveys/pin-protected-surveys/step-four.webp)
 
-  ![Choose a link survey template](/images/xm-and-surveys/surveys/link-surveys/pin-protected-surveys/step-five.webp)
+- **Correct PIN**: On entering the correct PIN, the respondent gains access to the survey and can fill it out accordingly.
 
-### **Benefits of PIN Protection**
+  ![Survey displayed after entering correct PIN](/images/xm-and-surveys/surveys/link-surveys/pin-protected-surveys/step-five.webp)
+
+### Benefits Of PIN Protection
 
 - **Enhanced Security**: Protects the survey from unauthorized access, ensuring that only participants with the PIN can enter.
 
@@ -53,7 +61,28 @@ When a respondent attempts to access the survey, they are prompted to enter the 
 
 - **Prevents Unwanted Access**: Deters casual browsing and unauthorized attempts to view or complete the survey.
 
-## **Use Cases**
+## Security Considerations
+
+PIN protection adds an access-control layer to your link surveys. Keep the following points in mind when using this feature:
+
+- **PIN Format**: The PIN is restricted to exactly 4 numeric digits (validated against the pattern `^\d{4}$`). Letters, special characters, and PINs shorter or longer than 4 digits are rejected by the editor.
+
+- **Storage**: The PIN is stored as a plain string in the database and is compared directly during validation. It is **not** hashed or encrypted at rest, so treat it as a lightweight access gate rather than a cryptographic secret.
+
+- **No Rate Limiting on PIN Entry**: There is currently no built-in brute-force protection on the PIN entry screen. Given that a 4-digit numeric PIN has only 10,000 possible combinations, consider combining PIN protection with other access controls (such as [single-use links](/xm-and-surveys/surveys/link-surveys/single-use-links) or [email verification](/xm-and-surveys/surveys/link-surveys/verify-email-before-survey)) for surveys requiring stronger security.
+
+- **PIN Distribution**: Share the PIN through secure channels (e.g., direct message, email to verified recipients) rather than posting it publicly. The survey creator is responsible for controlling who receives the PIN.
+
+- **Choosing The Right Access Control**: Formbricks offers several access-control mechanisms for link surveys. Use the following guidance:
+
+  | Method | Best For |
+  | --- | --- |
+  | **PIN Protection** | Quick, lightweight gating for small groups who can receive the PIN securely |
+  | **[Email Verification](/xm-and-surveys/surveys/link-surveys/verify-email-before-survey)** | Identity-verified access where you need to confirm respondent email addresses |
+  | **[Single-Use Links](/xm-and-surveys/surveys/link-surveys/single-use-links)** | Ensuring each respondent can only submit once, with unique URLs per participant |
+  | **[Personal Links](/xm-and-surveys/surveys/link-surveys/personal-links)** | Tracking individual responses tied to specific contacts |
+
+## Use Cases
 
 PIN protection is particularly useful in situations where:
 
@@ -63,6 +92,14 @@ PIN protection is particularly useful in situations where:
 
 - You want to limit survey responses to participants who have been explicitly invited or have registered in advance.
 
-## **Conclusion**
+- You are running a quick feedback round with a small team and need a simple access barrier without generating individual links.
+
+## Conclusion
 
 Setting up PIN protection for your Formbricks surveys is a straightforward and effective way to ensure that only authorized respondents can access and complete your surveys. This feature adds an additional layer of security and control, making it ideal for managing access to sensitive or exclusive surveys.
+
+For surveys requiring stronger security guarantees, consider combining PIN protection with [email verification](/xm-and-surveys/surveys/link-surveys/verify-email-before-survey) or [single-use links](/xm-and-surveys/surveys/link-surveys/single-use-links).
+
+---
+
+_Source references: PIN validation logic in `apps/web/modules/survey/link/actions.ts`, PIN editor controls in `apps/web/modules/survey/editor/components/response-options-card.tsx`, database schema field `pin String?` in `packages/database/schema.prisma`._

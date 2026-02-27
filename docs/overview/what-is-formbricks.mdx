@@ -4,31 +4,96 @@ description: "Get to know Formbricks and its capabilities."
 icon: "laptop-mobile"
 ---
 
-Formbricks is an open-source (AGPLv3) survey platform built to collect feedback from anyone—users, customers, or employees—on any platform.
+Formbricks is an open-source (AGPLv3) Experience Management (XM) and survey platform built to collect feedback from anyone—users, customers, or employees—across any channel. Available as both a cloud-hosted service and a fully self-hostable solution, Formbricks combines a powerful survey engine with advanced analytics, native integrations, and enterprise-grade access controls.
 
-With Formbricks, you can replace many existing survey tools:
+Built with Next.js 16.x, React 19.x, TypeScript, and Prisma 6.x on PostgreSQL, the platform includes a lightweight 7KB browser SDK for website and in-app surveys, a dual REST API architecture (v1 and v2), and over 6 native integrations out of the box. With 15 question types, 13+ best practice templates, and 4 distribution channels, Formbricks covers the full spectrum of feedback collection.
 
-- **Standalone surveys (share via link):** Replace Google Forms, Typeform or any other link survey tool [with Formbricks Form Builder](https://formbricks.com/open-source-form-builder). Use lots of question types and comprehensive customizations.
+## Distribution Channels
 
-- **Scalable website surveys:** Even if you have millions of website visitors, Formbricks lets you run well-timed and anonymously targeted [surveys on any public website.](https://formbricks.com/website-survey)
+Formbricks supports four distribution channels to reach your audience wherever they are:
 
-- **Highly targeted app surveys:** Identify known users with Formbricks and enrich their profiles with attributes and specific actions. Build cohorts for [highly targeted in-app surveys.](https://formbricks.com/in-app-survey)
+- **Link Surveys:** Create standalone surveys and share them via a unique URL. Features include single-use links, PIN protection, personal links, data prefilling, email verification before submission, source tracking, custom head scripts, and market research panel integration. A great replacement for Google Forms, Typeform, or any other link survey tool.
 
-The survey platform is **mostly free, even for commercial use**. Over time, all survey features will stay part of the free Community Edition.
+- **Website Surveys:** Deploy anonymously targeted surveys on any public-facing website using the lightweight 7KB JavaScript SDK. Designed to scale to millions of visitors with minimal performance impact, supporting well-timed micro-surveys triggered by page URL, CSS selector clicks, or exit intent.
 
-### Formbricks – The Experience Management (XM) Suite
+- **In-App Surveys:** Identify known users and enrich their profiles with custom attributes and actions. Build cohorts for highly targeted surveys using action-based triggers, advanced segmentation, recontact controls, and display-percentage targeting.
 
-To support the development of our open-source platform, we’ve created a premium offering: the **Formbricks XM Suite**.
+- **Email Surveys:** Send survey invitations and follow-up emails directly to contacts. Embed survey questions in transactional emails for higher response rates, with whitelabel branding options for a fully custom experience.
 
-- **What is XM?**
-  Experience Management (XM) involves collecting, analysing, and reporting feedback from stakeholders (like customers or employees) to understand and improve their experience with your organisation.
+The core survey platform is free and open source under AGPLv3. All survey features, question types, and distribution channels are included in the Community Edition.
 
-- **Why XM Matters**
-  Helping businesses, governments, and nonprofits understand their users' experiences leads to better services and happier people. Formbricks XM provides the data needed to make decisions that put people first.
+## Question Types
 
-- **How XM Works in Formbricks**
-  Formbricks XM simplifies experience management. It focuses only on what’s needed to measure specific experiences, with easy-to-use templates, reports, and best practices.
+Formbricks provides 15 question types to build rich, interactive surveys:
 
-We have spent a lot of time and energy building out the open-source survey platform which powers the above. Stick around to see how Formbricks XM Apps will empower everyone to think and work human-centric.
+| Question Type | Description |
+| --- | --- |
+| **Free Text** (OpenText) | Open-ended text responses with optional validation |
+| **Single Select** (MultipleChoiceSingle) | Single-option selection from a list of choices |
+| **Multi Select** (MultipleChoiceMulti) | Multiple-option selection from a list of choices |
+| **Net Promoter Score** (NPS) | 0–10 loyalty rating scale |
+| **CTA / Statement** | Call-to-action button or informational card |
+| **Rating** | Star, number, or smiley rating with CSAT scoring support |
+| **Consent** | Consent or agreement checkbox |
+| **Picture Selection** | Visual image-based selection |
+| **Cal.com Scheduling** | Embedded Cal.com meeting scheduler |
+| **Date** | Date picker input |
+| **Matrix** | Grid or matrix question format for multi-dimensional responses |
+| **Address** | Structured address input fields |
+| **Ranking** | Drag-and-drop ranking of options |
+| **Contact Info** | Structured contact information fields (name, email, phone) |
+| **File Upload** | File attachment with configurable size limits (5 MB / 10 MB / 1 GB by plan) |
 
-[Try Formbricks Cloud ☁️ ](https://app.formbricks.com/)
+Each question type supports [conditional logic](/xm-and-surveys/surveys/general-features/conditional-logic), [recall (piping)](/xm-and-surveys/surveys/general-features/recall), [validation rules](/xm-and-surveys/surveys/general-features/validation-rules), and [multi-language translations](/xm-and-surveys/surveys/general-features/multi-language-surveys).
+
+## Platform Architecture
+
+Formbricks is a modern, full-stack application built with production-grade technologies:
+
+- **Tech Stack:** Next.js 16.x, React 19.x, TypeScript (sole primary language), Prisma 6.x ORM, and PostgreSQL database
+- **Browser SDK:** A 7KB JavaScript SDK (`@formbricks/js`) for seamless website and in-app survey integration with minimal bundle impact
+- **APIs:** Dual REST API — v1 ([OpenAPI 3.0](/api-reference/rest-api)) for client and management operations, v2 ([OpenAPI 3.1.0, Beta](/api-v2-reference/introduction)) for advanced management with `x-api-key` authentication
+- **Integrations:** 6+ native integrations including [Slack](/xm-and-surveys/core-features/integrations/slack), [Google Sheets](/xm-and-surveys/core-features/integrations/google-sheets), [Notion](/xm-and-surveys/core-features/integrations/notion), [Airtable](/xm-and-surveys/core-features/integrations/airtable), [Zapier](/xm-and-surveys/core-features/integrations/zapier), and [n8n](/xm-and-surveys/core-features/integrations/n8n), plus [webhook](/xm-and-surveys/core-features/integrations/webhooks) support compliant with the Standard Webhooks specification
+- **Deployment:** Self-hostable via [Docker](/self-hosting/setup/docker), [Kubernetes](/self-hosting/setup/kubernetes) (Helm charts), [one-click Ubuntu setup](/self-hosting/setup/one-click), or use [Formbricks Cloud](https://app.formbricks.com/) for a fully managed experience
+
+For a deeper look at the technical architecture, see the [Technical Handbook](/development/technical-handbook/overview).
+
+## The Experience Management (XM) Suite
+
+Formbricks goes beyond basic surveys with a comprehensive Experience Management suite. XM involves collecting, analyzing, and acting on feedback from stakeholders—customers, employees, or users—to understand and improve their experience with your product or organization.
+
+### Why XM Matters
+
+Helping businesses, governments, and nonprofits understand their users' experiences leads to better services and happier people. Formbricks XM provides the data and tooling needed to make decisions that put people first, with 13+ [best practice templates](/xm-and-surveys/xm/best-practices/pmf-survey) for common use cases like PMF surveys, feedback boxes, feature chasers, churn surveys, and interview prompts.
+
+### Enterprise Features
+
+To support the continued development of the open-source platform, Formbricks offers a premium Enterprise Edition with advanced capabilities:
+
+<Note>
+  Enterprise features require a paid license key. The core survey platform remains free and open source under AGPLv3.
+</Note>
+
+- **SSO (SAML & OIDC):** Single sign-on via SAML (powered by BoxyHQ saml-jackson) and OpenID Connect for centralized authentication
+- **Audit Logging:** Asynchronous, Zod-validated audit event logging for compliance and security tracking
+- **Team-Based Access Control:** Granular team roles (admin, contributor) with project-level permission scoping
+- **Billing & Subscription:** Stripe-powered subscription management with Free, Startup, and Scale plans
+- **Multi-Language Surveys:** Support for 14 locales with full translation management
+- **Contact Management & Segments:** Advanced contact attribute tracking with segment-based targeting
+- **Email Follow-Ups:** Automated email follow-up sequences with whitelabel branding
+- **Whitelabel:** Remove Formbricks branding for a fully custom-branded experience
+- **Quotas & Limits:** Per-plan response and monthly identified user (MIU) limits (Free: 1,500 responses / 2,000 MIU; Startup: 5,000 / 7,500)
+- **Two-Factor Authentication:** TOTP-based 2FA with backup codes for enhanced account security
+
+For details on enabling enterprise features in a self-hosted deployment, see [Enterprise Features](/self-hosting/advanced/enterprise-features/saml-sso) and [License Activation](/self-hosting/advanced/license-activation).
+
+## Get Started
+
+<CardGroup cols={2}>
+  <Card title="Try Formbricks Cloud" icon="cloud" href="https://app.formbricks.com/">
+    Get started quickly with the hosted cloud offering—no infrastructure setup required.
+  </Card>
+  <Card title="Self-Host Formbricks" icon="server" href="/self-hosting/overview">
+    Deploy Formbricks on your own infrastructure with Docker, Kubernetes, or a one-click setup script.
+  </Card>
+</CardGroup>

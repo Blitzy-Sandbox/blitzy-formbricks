@@ -198,21 +198,24 @@ window.dataLayer.push({
 
 ## Troubleshooting
 
-**Surveys not showing?**
+### Surveys Not Showing?
+
 - Use GTM Preview mode to check tag firing
 - Add `?formbricksDebug=true` to your URL
 - Check browser console for errors
-- Wait 1 minute for the Server Cache to refresh
+- Wait up to 1 minute for the server-side cache to refresh
 
-**User ID not working?**
+### User ID Not Working?
+
 - Verify Data Layer push syntax
 - Check GTM variables are reading correct values
 - Ensure user tag fires after initialization
 
-**Events not tracking?**
+### Events Not Tracking?
+
 - Confirm `window.formbricks` exists before calling track
 - Match event names exactly with Formbricks action names
-- Check timing - Formbricks must be initialized first
+- Check timing — Formbricks must be initialized first
 
 ## Need Help?
 
@@ -220,4 +223,8 @@ window.dataLayer.push({
 - [Framework Guides](/xm-and-surveys/surveys/website-app-surveys/framework-guides)
 - [Actions](/xm-and-surveys/surveys/website-app-surveys/actions)
 - [User Identification](/xm-and-surveys/surveys/website-app-surveys/user-identification)
+
+---
+
+Source: SDK API methods (`setup()`, `setUserId()`, `setAttributes()`, `track()`) are defined in `packages/js-core/src/index.ts`. The `TConfigInput` interface (`{ environmentId, appUrl }`) is defined in `packages/js-core/src/types/config.ts`.
 

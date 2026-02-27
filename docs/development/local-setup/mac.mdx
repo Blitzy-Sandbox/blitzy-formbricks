@@ -4,63 +4,166 @@ description: How to set up Formbricks on a Mac machine
 icon: "apple"
 ---
 
-### Local Machine Setup - Mac
+<Note>This guide is recommended for advanced users setting up Formbricks on a **Mac** machine.</Note>
 
-<Info>This guide is recommended for advanced users setting up Formbricks on a **Mac** machine.</Info>
+## Requirements
 
-**Requirements:**
+Before you begin, ensure the following tools are installed on your Mac:
 
-- Node.JS (v20 recommended)
-- [pnpm](https://pnpm.io/)
-- [Docker](https://www.docker.com/)
+| Tool | Version | Notes |
+|------|---------|-------|
+| Node.js | ≥20.0.0 | LTS recommended; `.nvmrc` specifies 22.1.0 (source: `package.json` engines, `.nvmrc`) |
+| pnpm | 10.28.2 | Managed via `packageManager` field (source: `package.json`) |
+| Turborepo | 2.5.3 | Build orchestration, installed as devDependency (source: `package.json`) |
+| Docker | Latest | Docker Desktop for Mac; required for PostgreSQL, Valkey, MinIO, MailHog dev services |
+| Git | Latest | Version control |
 
-**Steps:**
+<Note>Install [Homebrew](https://brew.sh/) for easier tool management on macOS. You can install Node.js via `brew install node` and Docker via `brew install --cask docker`.</Note>
 
-1. **Clone the project & change directory:**
+## Docker Development Services
 
-   ```bash
-   git clone https://github.com/formbricks/formbricks && cd formbricks
-   ```
+The local development environment relies on four Docker services defined in `docker-compose.dev.yml`:
 
-2. **Setup NodeJS with nvm:**
+| Service | Image | Port(s) | Purpose |
+|---------|-------|---------|---------|
+| PostgreSQL | `pgvector/pgvector:pg17` | 5432 | Database with pgvector extension on PostgreSQL 17 |
+| Valkey | `valkey/valkey` | 6379 | Redis-compatible cache (replaces Redis) |
+| MinIO | `minio/minio:RELEASE.2025-09-07T16-13-09Z` | 9000 (S3 API), 9001 (Console) | S3-compatible object storage |
+| MailHog | `arjenz/mailhog` | 1025 (SMTP), 8025 (Web UI) | Local email testing |
 
-   ```bash
-   nvm install && nvm use
-   ```
+These services are started automatically when you run `pnpm go`, which internally executes `pnpm db:up` → `docker compose -f docker-compose.dev.yml up -d`.
 
-3. **Install NodeJS packages with pnpm:**
+Source: `docker-compose.dev.yml`
 
-   ```bash
-   pnpm install
-   ```
+## Setup Steps
 
-4. **Create a `.env` file from the example:**
+<Steps>
 
-   ```bash
-   cp .env.example .env
-   ```
+<Step title="Clone The Repository">
 
-5. **Generate & set secret values (using BSD sed syntax for macOS):**
+Clone the Formbricks repository and navigate into the project directory:
 
-   ```bash
-   sed -i '' '/^ENCRYPTION_KEY=/s|.*|ENCRYPTION_KEY='$(openssl rand -hex 32)'|' .env
-   sed -i '' '/^NEXTAUTH_SECRET=/s|.*|NEXTAUTH_SECRET='$(openssl rand -hex 32)'|' .env
-   sed -i '' '/^CRON_SECRET=/s|.*|CRON_SECRET='$(openssl rand -hex 32)'|' .env
-   ```
+```bash
+git clone https://github.com/formbricks/formbricks && cd formbricks
+```
 
-6. **Generate the Next.js AGENTS.md file (optional, for AI-assisted development):**
+</Step>
 
-   This step generates an `AGENTS.md` file at the repository root that provides Next.js documentation context for AI coding assistants (e.g. Cursor, GitHub Copilot). It runs `npx @next/codemod agents-md` under the hood. Re-run it whenever you upgrade Next.js.
+<Step title="Setup Node.js With nvm">
 
-   ```bash
-   pnpm agents:update
-   ```
+Use [nvm](https://github.com/nvm-sh/nvm) to install and activate the correct Node.js version:
 
-7. **Start the development setup:**
-   ```bash
-   pnpm go
-   ```
+```bash
+nvm install && nvm use
+```
 
-Visit [http://localhost:3000](http://localhost:3000) to access Formbricks.
+The `.nvmrc` file pins Node.js to version 22.1.0. If you don't have nvm installed, install it first via Homebrew: `brew install nvm`.
 
-<Tip>Ensure you create a new account at first login.</Tip>
+</Step>
+
+<Step title="Install Dependencies With pnpm">
+
+Install all monorepo dependencies:
+
+```bash
+pnpm install
+```
+
+If you don't have pnpm installed, enable it via Corepack: `corepack enable && corepack prepare pnpm@10.28.2 --activate`.
+
+</Step>
+
+<Step title="Create Environment File">
+
+Copy the example environment file to create your local configuration:
+
+```bash
+cp .env.example .env
+```
+
+</Step>
+
+<Step title="Generate And Set Secret Values">
+
+Generate cryptographically secure secrets using BSD sed syntax for macOS:
+
+```bash
+sed -i '' '/^ENCRYPTION_KEY=/s|.*|ENCRYPTION_KEY='$(openssl rand -hex 32)'|' .env
+sed -i '' '/^NEXTAUTH_SECRET=/s|.*|NEXTAUTH_SECRET='$(openssl rand -hex 32)'|' .env
+sed -i '' '/^CRON_SECRET=/s|.*|CRON_SECRET='$(openssl rand -hex 32)'|' .env
+```
+
+Three secrets are required: `ENCRYPTION_KEY`, `NEXTAUTH_SECRET`, and `CRON_SECRET`.
+
+<Note>macOS uses BSD sed, which requires an empty string `''` after `-i` for in-place editing. This is different from GNU sed on Linux, which uses `-i` without the extra argument. If you see errors like `invalid command code`, ensure you are using the BSD syntax shown above.</Note>
+
+</Step>
+
+<Step title="Run Database Migrations">
+
+Apply all Prisma migration files to the local PostgreSQL database:
+
+```bash
+pnpm db:migrate:dev
+```
+
+This command runs the Prisma migration engine against your local PostgreSQL instance and applies the 120+ migration files from `packages/database/`. The Docker services must be running before this step — if they are not already started, run `pnpm db:up` first.
+
+</Step>
+
+<Step title="Generate AGENTS.md File (Optional)">
+
+For AI-assisted development with tools like Cursor or GitHub Copilot, generate the `AGENTS.md` context file:
+
+```bash
+pnpm agents:update
+```
+
+This runs `npx @next/codemod agents-md` under the hood to produce a repository-level context file. Re-run this command whenever you upgrade Next.js.
+
+</Step>
+
+<Step title="Start Development Setup">
+
+Start all Docker services and dev servers with a single command:
+
+```bash
+pnpm go
+```
+
+This command executes `pnpm db:up` (starts Docker services via `docker compose -f docker-compose.dev.yml up -d`) and then launches all dev servers concurrently via Turborepo with up to 20 concurrent tasks.
+
+</Step>
+
+</Steps>
+
+## Environment Configuration
+
+The `.env.example` file contains 75+ environment variables with sensible defaults for local development. After copying it to `.env` and setting your secrets, the key variables are pre-configured for the Docker dev services:
+
+| Variable | Default Value | Purpose |
+|----------|---------------|---------|
+| `DATABASE_URL` | `postgresql://postgres:postgres@localhost:5432/formbricks?schema=public` | PostgreSQL connection string |
+| `WEBAPP_URL` | `http://localhost:3000` | Application URL |
+| `NEXTAUTH_URL` | `http://localhost:3000` | NextAuth.js callback URL |
+| `SMTP_HOST` | `localhost` | MailHog SMTP host |
+| `SMTP_PORT` | `1025` | MailHog SMTP port |
+
+For a comprehensive list of all environment variables and their descriptions, see the [environment variables reference](/self-hosting/configuration/environment-variables).
+
+Source: `.env.example`
+
+## Accessing Your Local Instance
+
+Visit [http://localhost:3000](http://localhost:3000) to access Formbricks once the development servers are running.
+
+<Note>Ensure you create a new account at first login. The first account created on a fresh instance is automatically assigned the owner role.</Note>
+
+<Warning>Ensure Docker Desktop is running and no other local services conflict on ports **5432** (PostgreSQL), **6379** (Valkey), **9000** (MinIO S3 API), **9001** (MinIO Console), **1025** (MailHog SMTP), **8025** (MailHog Web UI), or **3000** (Formbricks app). If you encounter port conflicts, stop the conflicting services or modify the ports in `docker-compose.dev.yml`.</Warning>
+
+## Additional Dev Services
+
+The following services are also available during local development:
+
+- **MailHog Web UI**: Access at [http://localhost:8025](http://localhost:8025) to view all emails sent during development (signup confirmations, password resets, survey notifications)
+- **MinIO Console**: Access at [http://localhost:9001](http://localhost:9001) for S3-compatible storage management (credentials: `devminio` / `devminio123`)

@@ -19,7 +19,6 @@ Overwrite the global styling theme for individual surveys to create unique style
 2. Activate the **Add Custom Styles** toggle to override the default project styling:
 
    ![Add Custom Styles toggle](/images/xm-and-surveys/surveys/general-features/overwrite-styling/step-ten.webp)
-   />
 
 3. Customize your survey's style as needed:
 
@@ -29,59 +28,93 @@ Just hit the **Save** button to apply your changes. Your survey is now ready to 
 
 ## Overwrite CSS Styles for App & Website Surveys
 
-You can overwrite the default CSS styles for app and website surveys by adding the following CSS to your global CSS file (e.g., `globals.css`):
+You can overwrite the default CSS styles for app and website surveys by adding the following CSS to your global CSS file (e.g., `globals.css`).
+
+All Formbricks survey styles are scoped under the `#fbjs` container element. When overriding CSS variables, target the `#fbjs` selector to ensure your custom styles apply correctly.
 
 **Do not** change the CSS variable names, as Formbricks uses them to identify styling elements. You can adjust the values to fit your design. Below are sample values for reference:
 
 ```css
 /* Overwrite Formbricks default styles */
---fb-brand-color: red;
---fb-brand-text-color: white;
---fb-border-color: green;
---fb-border-color-highlight: rgb(13, 13, 12);
---fb-focus-color: red;
---fb-heading-color: yellow;
---fb-subheading-color: green;
---fb-info-text-color: orange;
---fb-signature-text-color: blue;
---fb-survey-background-color: black;
---fb-accent-background-color: rgb(13, 13, 12);
---fb-accent-background-color-selected: red;
---fb-placeholder-color: white;
---fb-rating-fill: rgb(13, 13, 12);
---fb-rating-hover: green;
---fb-back-btn-border: blue;
---fb-submit-btn-border: transparent;
---fb-rating-selected: black;
+#fbjs {
+  /* Brand */
+  --fb-brand-color: red;
+  --fb-brand-text-color: white;
+
+  /* Borders & Focus */
+  --fb-border-color: green;
+  --fb-border-color-highlight: rgb(13, 13, 12);
+  --fb-border-radius: 8px;
+  --fb-focus-color: red;
+
+  /* Text Colors */
+  --fb-heading-color: yellow;
+  --fb-subheading-color: green;
+  --fb-info-text-color: orange;
+  --fb-signature-text-color: blue;
+  --fb-branding-text-color: gray;
+  --fb-placeholder-color: white;
+
+  /* Survey Background */
+  --fb-survey-background-color: black;
+  --fb-survey-border-color: rgb(248, 250, 252);
+
+  /* Accent Colors */
+  --fb-accent-background-color: rgb(13, 13, 12);
+  --fb-accent-background-color-selected: red;
+
+  /* Input Fields */
+  --fb-input-background-color: rgb(248, 250, 252);
+  --fb-input-background-color-selected: rgb(229, 231, 235);
+
+  /* Rating */
+  --fb-rating-fill: rgb(13, 13, 12);
+  --fb-rating-hover: green;
+  --fb-rating-selected: black;
+
+  /* Buttons */
+  --fb-back-btn-border: blue;
+  --fb-submit-btn-border: transparent;
+
+  /* Close Button */
+  --fb-close-btn-color: rgb(100, 116, 139);
+  --fb-close-btn-color-hover: rgb(51, 65, 85);
+
+  /* Calendar */
+  --fb-calendar-tile-color: rgb(248, 250, 252);
+}
 ```
+
+<Note>
+  The `#fbjs` selector is required because the Formbricks survey UI scopes all styles under this container. Without the `#fbjs` selector, your CSS overrides may not take effect.
+</Note>
 
 Check out an example in our Demo project.
 
-Funky Survey Examples
-Super Mario
+## Funky Survey Examples
+
+Here are some creative examples of what you can achieve with custom survey styling:
+
+### Super Mario
+
 "I guess he won't let himself be limited by radio buttons and do all three things!"
 
 ![Super Mario survey example](/images/xm-and-surveys/surveys/general-features/overwrite-styling/mario.webp)
 
-Hipster Living
+### Hipster Living
+
 "Does your monstera get enough water?"
 
 ![Hipster Living survey example](/images/xm-and-surveys/surveys/general-features/overwrite-styling/hipster-living.webp)
 
-Windows XP
+### Windows XP
+
 "Hach, nostalgia. It made us want to play Mafia."
 
 ![Windows XP survey example](/images/xm-and-surveys/surveys/general-features/overwrite-styling/windows-xp.webp)
 
-Who's a Good Boy?
+### Who's A Good Boy?
+
 "Things you've likely said to your dog."
 
 ![Dog-themed survey example](/images/xm-and-surveys/surveys/general-features/overwrite-styling/doggo.webp)
-
-### Fixes & Improvements:
-- **Numbered list formatting**: Fixed numbering issues.
-- **Consistent image alt text**: Updated descriptions for clarity.
-- **CSS syntax correction**: Removed unnecessary text before code block.
-- **Grammar & punctuation fixes**: Ensured clarity and smooth readability.
-
-This should now display correctly on Mintlify! Let me know if you need further tweaks. 

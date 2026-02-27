@@ -1,7 +1,7 @@
 ---
 title: "Net Promoter Score"
 description: "Net Promoter Score questions allow respondents to rate a question on a scale from 0 to 10. Displays a title and a list of radio buttons for the respondent to choose from."
-icon: "presentation-screen"
+icon: "gauge-simple-high"
 ---
 
 
@@ -21,20 +21,55 @@ icon: "presentation-screen"
 
 ## Elements
 
+The Net Promoter Score (NPS) question type presents a **fixed 0–10 scale** (11 points). This scale follows the industry-standard NPS methodology and is not configurable — respondents always choose a single integer value between 0 and 10.
+
 ![Overview of Net Promoter Score question type](/images/xm-and-surveys/core-features/question-type/net-promoter-score.webp)
 
 ### Title
 
-Add a clear title to inform the respondent what information you are asking for.
+Add a clear title to inform the respondent what information you are asking for. This maps to the `headline` field in the survey schema and is a required I18n string that supports multi-language translations.
 
 ### Description
 
-Provide an optional description with further instructions.
+Provide an optional description with further instructions. This maps to the `subheader` field and is an optional I18n string, so you can include translated variants when using multi-language surveys.
+
+### NPS Score Segmentation
+
+Formbricks automatically segments NPS responses into three industry-standard categories based on the score each respondent selects:
+
+| Category | Score Range | Description |
+|----------|------------|-------------|
+| **Detractors** | 0–6 | Unhappy customers who can damage your brand through negative word-of-mouth. |
+| **Passives** | 7–8 | Satisfied but unenthusiastic customers who are vulnerable to competitive offerings. |
+| **Promoters** | 9–10 | Loyal enthusiasts who fuel growth through referrals and repeat engagement. |
+
+<Note>
+  The NPS formula is: **NPS = % Promoters − % Detractors**. The resulting score ranges from **−100** (all detractors) to **+100** (all promoters). This segmentation is built into Formbricks' analytics summary — when you collect NPS responses, the response dashboard automatically calculates and displays the breakdown across these three categories.
+</Note>
 
 ### Labels
 
-Add labels for the lower and upper bounds of the score. The default is "Not at all likely" and "Extremely likely".
+Customize the labels displayed at the lower and upper bounds of the 0–10 scale:
 
-### Add color coding
+- **Lower Label** (`lowerLabel`) — The text shown beneath the low end (0) of the scale. Defaults to "Not at all likely". This is an optional I18n string that supports multi-language translations.
+- **Upper Label** (`upperLabel`) — The text shown beneath the high end (10) of the scale. Defaults to "Extremely likely". This is also an optional I18n string with multi-language support.
 
-Add color coding to the score. This will show a color bar above the score.
+Both labels help respondents understand the meaning of the scale endpoints and can be tailored to match your specific survey context (for example, "Very Dissatisfied" and "Very Satisfied" for a satisfaction-oriented question).
+
+### Add Color Coding
+
+Enable visual color coding on the 0–10 scale buttons by toggling the `isColorCodingEnabled` option. When enabled, each button is color-coded according to its NPS category:
+
+- **Red tones** for detractor scores (0–6)
+- **Yellow / amber tones** for passive scores (7–8)
+- **Green tones** for promoter scores (9–10)
+
+This provides immediate visual feedback to respondents about the sentiment associated with their selection. Color coding is disabled by default and can be toggled on in the survey editor.
+
+### Response Format
+
+The NPS element does not include configurable validation rules. The response is always a single integer from 0 to 10 — no additional constraints (such as minimum or maximum character limits) are applicable for this question type.
+
+---
+
+*Source: `packages/types/surveys/elements.ts` — `ZSurveyNPSElement`*

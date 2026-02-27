@@ -13,9 +13,9 @@ icon: "envelope"
 Email branding is a white-label feature that allows you to customize the email that is sent to your users. You can upload a logo of your company and use it in the email.
 
 <Note>Email branding is part of the Formbricks [Enterprise Edition](/self-hosting/advanced/license).</Note>
-<Info>Only the Owner and Managers of the organization can modify the logo.</Info>
+<Note>Only the Owner and Managers of the organization can modify the logo.</Note>
 
-## How to upload a logo
+## How to Upload a Logo
 
 1. Go to the Organization Settings page.
 2. You will see a card called **Email Customization** under the **General** section.
@@ -35,5 +35,64 @@ You can click on the **Send test email** button to get a test email with the log
 
 ## Use Cases
 
-- **White-labeling**: You can use this feature to white-label your emails to your users.
-- **Branding**: You can use this feature to add your logo to your emails to increase brand recognition.
+- **White-Labeling**: Customize all outgoing emails with your organization logo and branding to remove default Formbricks branding from respondent-facing communications.
+- **Branding**: Add your company logo to every email sent by Formbricks, reinforcing brand recognition with survey respondents and team members.
+- **Survey Distribution**: Send branded link surveys directly to contacts via email, ensuring recipients see your organization identity throughout the survey experience.
+- **Notification Emails**: Response completion notifications sent to your team carry your organization branding for a professional, cohesive look.
+- **Invitation Emails**: Brand member invitation emails with your organization logo so new team members recognize your organization immediately.
+- **Follow-Up Emails**: Automated post-response follow-up emails include your branding for a consistent experience.
+
+<Note>Follow-up emails are part of the Formbricks [Enterprise Edition](/self-hosting/advanced/license). An active enterprise license is required to use email follow-ups.</Note>
+
+## Transactional Email Types
+
+Formbricks sends several categories of transactional emails, all of which adopt the branded email template when a custom logo is configured. The following table lists all email types organized by category:
+
+| Email Category | Email Type | Description |
+|----------------|------------|-------------|
+| Authentication | Forgot Password | Sent when a user requests a password reset link |
+| Authentication | Email Verification | Sent to verify a new user's email address during signup |
+| Authentication | Password Reset Notification | Notifies the user after their password has been successfully changed |
+| Authentication | New Email Verification | Sent to verify an updated email address when a user changes their email |
+| Invitations | Invite Email | Organization membership invitation sent to new team members |
+| Invitations | Invite Accepted | Notification sent to the inviter when an invitation is accepted |
+| Survey | Link Survey Email | Email distribution of link surveys directly to contacts |
+| Survey | Follow-Up Email | Post-response follow-up emails triggered automatically (Enterprise Edition) |
+| Survey | Response Finished | Notification sent when a survey response is completed |
+| Preview | Email Customization Preview | Preview email used to test the branded email template |
+| Preview | Embed Survey Preview | Preview of an embedded survey rendered within an email |
+
+Source: `packages/email/emails/` — organized into `auth/`, `invite/`, `survey/`, and `general/` subdirectories.
+
+## Legal Footer Configuration
+
+All transactional emails sent by Formbricks include a legal footer section for regulatory compliance. The email template supports configurable legal properties that self-hosted instances should set to comply with email regulations such as CAN-SPAM and GDPR.
+
+The email template wrapper accepts the following legal configuration properties:
+
+| Property | Description |
+|----------|-------------|
+| `privacyUrl` | URL to your organization's privacy policy page |
+| `imprintUrl` | URL to your organization's imprint or legal notice page |
+| `imprintAddress` | Physical mailing address displayed in the email footer |
+
+The footer is rendered by `packages/email/src/components/email-footer.tsx` and the legal links are rendered within the shared template at `packages/email/src/components/email-template.tsx`. Footer text is translatable via the internationalization system using translation keys such as `emails.email_footer_text_1` and `emails.email_footer_text_2`.
+
+<Note>
+  **Compliance Requirement**: If you are self-hosting Formbricks, ensure your email footer includes a valid physical mailing address and links to your privacy policy and imprint pages. These are required by email regulations including CAN-SPAM (United States) and GDPR (European Union).
+</Note>
+
+## Email Template Components
+
+Formbricks uses a set of shared React Email components to ensure consistent styling and branding across all transactional emails. All email types use the shared `EmailTemplate` wrapper for a unified layout.
+
+| Component | File | Purpose |
+|-----------|------|---------|
+| Email Template | `email-template.tsx` | Shared wrapper that renders the branded layout including logo, content area, and legal footer for every email |
+| Email Button | `email-button.tsx` | Call-to-action button component used in emails for actions such as verifying an email or resetting a password |
+| Email Element Header | `email-element-header.tsx` | Section header component for rendering question headlines and subheaders in embedded survey emails |
+| Email Footer | `email-footer.tsx` | Footer component that renders translatable legal compliance text at the bottom of every email |
+
+Source: `packages/email/src/components/`
+
+When a custom organization logo is uploaded, the `EmailTemplate` wrapper replaces the default Formbricks logo with your organization's logo across all email types. The template also renders imprint and privacy policy links in the footer section when configured.

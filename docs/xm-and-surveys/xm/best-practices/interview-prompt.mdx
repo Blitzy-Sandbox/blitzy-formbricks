@@ -18,7 +18,7 @@ Product analytics and app surveys are incomplete without user interviews. Set th
 
 * Set scheduling user interviews on auto pilot.
 
-* Soon: Integrate directly with your [Cal.com](http://Cal.com) account.
+* Integrate directly with Cal.com using the [Schedule a Meeting](/xm-and-surveys/surveys/question-type/schedule-a-meeting) question type for seamless scheduling.
 
 ## Installation
 
@@ -31,10 +31,10 @@ To display an Interview Prompt in your app you want to proceed as follows:
 3. That’s it! 🎉
 
 <Note>
-  Formbricks Widget running? We assume that you have already installed the Formbricks Widget in your web app. It’s required to display messages and surveys in your app. If not, please follow the [Quick Start Guide (15mins)](/xm-and-surveys/surveys/website-app-surveys/quickstart)
+  Formbricks SDK running? We assume that you have already installed the Formbricks SDK in your web app. It’s required to display messages and surveys in your app. If not, please follow the [Quick Start Guide (15mins)](/xm-and-surveys/surveys/website-app-surveys/quickstart)
 </Note>
 
-### 1. Create new Interview Prompt
+### 1. Create New Interview Prompt
 
 If you don't have an account yet, create one at [app.formbricks.com](https://app.formbricks.com/auth/signup)
 
@@ -42,19 +42,19 @@ Click on "Create Survey" and choose the template [Interview Prompt](https://form
 
 ![Create interview prompt by template](/images/xm-and-surveys/xm/best-practices/interview-prompt/create-prompt.webp)
 
-### 2. Update prompt and CTA
+### 2. Update Prompt And CTA
 
 Update the prompt, description and button text to match your products tonality. You can also update the button color in the Project Settings.
 
 ![Change text content](/images/xm-and-surveys/xm/best-practices/interview-prompt/change-text.webp)
 
-In the button settings you have to make sure it is set to “External URL”. In the URL field, copy your booking link (e.g. [https://cal.com/company/user-interview).](https://cal.com/company/user-interview\).) If you don’t have a booking link yet, head over to [cal.com](http://cal.com) and get one - they have the best free plan out there!
+In the button settings you have to make sure it is set to “External URL”. In the URL field, copy your booking link (e.g. [https://cal.com/company/user-interview).](https://cal.com/company/user-interview\).) If you don’t have a booking link yet, head over to [cal.com](https://cal.com) and get one - they have the best free plan out there!
 
 ![Add CSS action](/images/xm-and-surveys/xm/best-practices/interview-prompt/interview-example.webp)
 
 Save, and move over to the “Audience” tab.
 
-### 3. Pre-segment your audience
+### 3. Pre-Segment Your Audience
 
 Once you clicked over to the “Audience” tab you can change the settings. In the **Who To Send** card, select “Filter audience by attribute”. This allows you to only show the prompt to a specific segment of your user base.
 
@@ -62,7 +62,7 @@ In our case, we want to select users who we have assigned the attribute “Power
 
 Great, now only the “Power User” segment will see our Interview Prompt. But when will they see it?
 
-### 4. Set up a trigger for the Interview Prompt:
+### 4. Set Up A Trigger For The Interview Prompt
 
 To create the trigger to show your Interview Prompt, go to the “Audience” tab, find the “When to send” card and choose “Add Action”. We will now use our super cool User Action Tracker:
 
@@ -80,20 +80,20 @@ Generally, we have two types of user actions: Page views and clicks. The Intervi
 
 ![Add inner text action](/images/xm-and-surveys/xm/best-practices/interview-prompt/action-innertext.webp)
 
-### 5. Select action in the “When to ask” card
+### 5. Select Action In The “When To Ask” Card
 
 ![Select feedback button action](/images/xm-and-surveys/xm/best-practices/interview-prompt/select-action.webp)
 
-### 6. Set Recontact Options correctly
+### 6. Set Recontact Options Correctly
 
 Scroll down to “Recontact Options”. Here you have to choose the correct settings to strike the right balance between asking for user feedback and preventing survey fatigue. Your settings also depend on the size of your user base or segment. If you e.g. have thousands of “Power Users” you can easily afford to only display the prompt once. If you have a smaller user base you might want to ask twice to get a sufficient amount of bookings:
 
 ![Set recontact options](/images/xm-and-surveys/xm/best-practices/interview-prompt/recontact-options.webp)
 
-### 7. Congrats! You’re ready to publish your survey 💃 🤸
+### 7. Congrats! You’re Ready To Publish Your Survey 💃 🤸
 
 ![Publish survey](/images/xm-and-surveys/xm/best-practices/interview-prompt/publish-survey.webp)
 
 <Note>
- Formbricks Widget running? You need to have the Formbricks Widget installed to display the Feedback Box in your app. Please follow [this tutorial (Step 4 onwards)](/xm-and-surveys/surveys/website-app-surveys/quickstart) to install the widget.
+  Formbricks SDK running? You need to have the Formbricks SDK installed to display the Interview Prompt in your app. Please follow [this tutorial (Step 4 onwards)](/xm-and-surveys/surveys/website-app-surveys/quickstart) to install the SDK.
 </Note>

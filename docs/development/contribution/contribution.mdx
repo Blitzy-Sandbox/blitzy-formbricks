@@ -4,40 +4,213 @@ description: "How to contribute to Formbricks"
 icon: "code"
 ---
 
-We’re excited that you want to contribute to Formbricks! There are many ways to help, including reporting issues, fixing bugs, adding new features, or improving documentation.
+## Overview
 
-#### How to Contribute
+We're excited that you want to contribute to Formbricks! Formbricks is an open-source experience management platform licensed under **AGPLv3**, and community contributions help make it better for everyone.
 
-- **Issues:** Found a bug? Facing deployment problems? Have user feedback? Report an issue for the fastest response.
+There are many ways to get involved:
 
-- **Feature Requests:** Have an idea? Open an issue, tag it as an **Enhancement**, and clearly describe the issue you're solving.
+- **Report Issues** — Found a bug or deployment problem? Open an issue so we can address it quickly.
+- **Suggest Features** — Have an idea for improvement? Propose it as an Enhancement.
+- **Submit Pull Requests** — Fix bugs, improve documentation, or add new capabilities.
+- **Improve Documentation** — Help keep our docs accurate, clear, and comprehensive.
 
-- **Pull Requests (PRs):** Fork the repo, make your changes, and submit a PR.
+Before diving in, we recommend engaging with the community on [**GitHub Discussions**](https://github.com/formbricks/formbricks/discussions) to validate ideas and coordinate efforts.
 
-  - For small fixes with 1-5 lines of code changes, go ahead!
+## Contribution Workflow
 
-  - For bigger changes, we currently don't have the capacity to facilitate them.
+Follow these steps to contribute code or documentation to Formbricks:
 
-#### Talk to Us First
+<Steps>
+  <Step title="Fork the Repository">
+    Fork the Formbricks repository on GitHub and clone it locally:
 
-We highly recommend engaging with us on [**GitHub Discussions**](https://github.com/formbricks/formbricks/discussions) before submitting contributions.
-This helps improve the chances of your PR being accepted while avoiding unnecessary work.
+    ```bash
+    git clone https://github.com/<your-username>/formbricks && cd formbricks
+    ```
+  </Step>
 
-#### Contributor License Agreement (CLA)
+  <Step title="Create a Feature Branch">
+    Create a branch from `main` with a descriptive name:
 
-To keep Formbricks sustainable, we require a **CLA** from all contributors.
+    ```bash
+    git checkout -b feat/your-feature-name
+    ```
 
-Once you open a PR, our **CLA bot** will prompt you to sign the agreement. We can only merge contributions after the CLA is signed.
+    Use prefixes like `feat/`, `fix/`, or `docs/` to indicate the type of change.
+  </Step>
 
-#### Setting Up Your Development Environment
+  <Step title="Set Up the Development Environment">
+    Install dependencies and start Docker development services:
 
-You can set up your environment using:
+    ```bash
+    pnpm install
+    cp .env.example .env
+    pnpm db:up
+    pnpm dev
+    ```
 
-- [**Gitpod**](/development/local-setup/gitpod)
+    For detailed environment setup instructions, see the [Local Setup Guides](/development/local-setup/mac).
+  </Step>
 
-- [**GitHub Codespaces**](/development/local-setup/github-codespaces)
+  <Step title="Make Your Changes">
+    Develop your feature or fix following the project's [Coding Standards](/development/standards/practices/code-formatting) and [File Organization](/development/standards/organization/file-and-directory-organization) conventions.
+  </Step>
 
-- [**Local Machine Setup**](/development/local-setup)
+  <Step title="Test Your Changes">
+    Run the test suite before submitting:
 
-For junior developers, **Gitpod or GitHub Codespaces** are recommended as they allow you to start coding in minutes.
+    ```bash
+    pnpm lint
+    pnpm test
+    pnpm test:e2e
+    ```
 
+    Ensure all linting rules pass, unit tests succeed, and end-to-end tests remain green.
+  </Step>
+
+  <Step title="Submit a Pull Request">
+    Push your branch and open a PR against the `main` branch. Include a clear description of your changes, the motivation behind them, and any relevant issue references. The CLA bot will prompt you to sign the Contributor License Agreement before the PR can be merged.
+  </Step>
+</Steps>
+
+## Reporting Issues
+
+Found a bug? Encountering deployment problems? Have user feedback to share? Your quickest route to help is by [raising an issue](https://github.com/formbricks/formbricks/issues/new/choose).
+
+When reporting an issue, please include:
+
+- **Reproduction steps** — A clear, step-by-step description of how to trigger the issue.
+- **Expected vs. actual behavior** — What you expected to happen and what actually happened.
+- **Environment details** — Browser, OS, Formbricks version, self-hosted or cloud, and any relevant configuration.
+
+*Source: `CONTRIBUTING.md`*
+
+## Feature Requests
+
+Have a great idea that could make Formbricks even better? We welcome feature proposals:
+
+- Open an issue on [GitHub Issues](https://github.com/formbricks/formbricks/issues/new/choose) and tag it as **Enhancement**.
+- Clearly describe the **use case** and the **"why"** behind your request — what problem does it solve?
+- Consider starting the conversation on [GitHub Discussions](https://github.com/formbricks/formbricks/discussions) first to gather feedback and validate the idea with the community.
+
+*Source: `CONTRIBUTING.md`*
+
+## Pull Request Guidelines
+
+- **Small fixes** (1–5 lines of code): Feel free to submit directly.
+- **Larger changes**: Please discuss first on [GitHub Discussions](https://github.com/formbricks/formbricks/discussions) before investing significant effort.
+
+<Note>
+  The Formbricks team currently has limited capacity for facilitating community code contributions. We've decided to focus on facilitating community code contributions in rare exceptions in the coming months. Starting a discussion before submitting a large PR helps ensure your work aligns with the project's priorities.
+</Note>
+
+When submitting a PR:
+
+- Reference any related issues using `Closes #123` or `Fixes #456` syntax.
+- Provide a clear, concise description of the changes.
+- Ensure all tests pass (`pnpm lint`, `pnpm test`, `pnpm test:e2e`).
+- Follow the project's coding standards and naming conventions.
+
+*Source: `CONTRIBUTING.md`*
+
+## Contributor License Agreement
+
+To keep Formbricks sustainable, we require a **Contributor License Agreement (CLA)** from all contributors.
+
+Once you open a PR, our **CLA bot** will automatically prompt you to sign the agreement. We can only merge contributions after the CLA is signed.
+
+## Development Prerequisites
+
+The following tools are required to develop Formbricks locally:
+
+| Tool | Version | Notes |
+|------|---------|-------|
+| **Node.js** | ≥20.0.0 | LTS versions recommended |
+| **pnpm** | 10.28.2 | Package manager with workspace support |
+| **Docker** | Latest stable | Required for development services |
+
+### Development Docker Services
+
+Formbricks uses a Docker Compose configuration (`docker-compose.dev.yml`) to run the following backing services during local development:
+
+| Service | Image | Ports | Purpose |
+|---------|-------|-------|---------|
+| **PostgreSQL** | `pgvector/pgvector:pg17` | 5432 | Primary database with pgvector extension |
+| **Valkey** | `valkey/valkey` | 6379 | Redis-compatible cache |
+| **MinIO** | `minio/minio` | 9000 (API), 9001 (Console) | S3-compatible object storage |
+| **MailHog** | `arjenz/mailhog` | 8025 (Web UI), 1025 (SMTP) | Email testing |
+
+Start all services with:
+
+```bash
+pnpm db:up
+```
+
+Stop all services with:
+
+```bash
+pnpm db:down
+```
+
+*Source: `docker-compose.dev.yml`, `package.json`*
+
+## Build and Test Commands
+
+The following commands are available at the monorepo root and orchestrated via Turborepo:
+
+| Command | Description |
+|---------|-------------|
+| `pnpm install` | Install workspace dependencies pinned by `pnpm-lock.yaml` |
+| `pnpm db:up` | Start Docker development services |
+| `pnpm db:down` | Stop Docker development services |
+| `pnpm dev` | Run all app and worker dev servers in parallel via Turborepo |
+| `pnpm build` | Generate production builds for every package and app |
+| `pnpm lint` | Apply the shared ESLint rules across the workspace |
+| `pnpm test` | Execute Vitest test suites |
+| `pnpm test:coverage` | Run tests with coverage reporting |
+| `pnpm test:e2e` | Run Playwright end-to-end browser tests |
+| `pnpm db:migrate:dev` | Apply Prisma migrations against the development database |
+
+*Source: `AGENTS.md`, `package.json`*
+
+## Setting Up Your Development Environment
+
+Choose the setup method that works best for you. Cloud-based environments (Gitpod and GitHub Codespaces) are recommended for a quick start — they allow you to begin coding in minutes without local configuration.
+
+<CardGroup cols={2}>
+  <Card title="Gitpod" icon="cloud" href="/development/local-setup/gitpod">
+    Cloud-based development environment — recommended for quick start.
+  </Card>
+  <Card title="GitHub Codespaces" icon="github" href="/development/local-setup/github-codespaces">
+    Cloud-based development environment — recommended for quick start.
+  </Card>
+  <Card title="Mac" icon="apple" href="/development/local-setup/mac">
+    Local setup instructions for macOS.
+  </Card>
+  <Card title="Linux" icon="linux" href="/development/local-setup/linux">
+    Local setup instructions for Linux distributions.
+  </Card>
+  <Card title="Windows" icon="windows" href="/development/local-setup/windows">
+    Local setup instructions for Windows.
+  </Card>
+</CardGroup>
+
+## Coding Standards
+
+Formbricks enforces consistent coding standards across the monorepo. Familiarize yourself with the following guides before contributing:
+
+- [File and Directory Organization](/development/standards/organization/file-and-directory-organization) — Project structure and file placement rules
+- [Module Component Structure](/development/standards/organization/module-component-structure) — Feature module architecture patterns
+- [Naming Conventions](/development/standards/organization/naming-conventions) — PascalCase, camelCase, and SCREAMING_SNAKE_CASE rules
+- [Code Formatting](/development/standards/practices/code-formatting) — ESLint and Prettier configuration (110-char width, double quotes, semicolons)
+- [Documentation Standards](/development/standards/practices/documentation) — Mintlify MDX conventions, frontmatter, and component usage
+- [Error Handling](/development/standards/practices/error-handling) — Result pattern, Zod validation, and error boundaries
+- [Testing Methodology](/development/standards/qa/testing-methodology) — Vitest for `.ts` files, Playwright for `.tsx` components
+- [Framework Usage](/development/standards/technical/framework-usage) — Next.js 16.1.6, React 19.2.3, TypeScript strict mode conventions
+
+## Talk to Us
+
+We highly recommend engaging with us on [**GitHub Discussions**](https://github.com/formbricks/formbricks/discussions) before submitting contributions. This helps improve the chances of your PR being accepted while avoiding unnecessary work.
+
+Whether you have questions about the codebase, want to propose a feature, or need guidance on your contribution — the Discussions board is the best place to start.

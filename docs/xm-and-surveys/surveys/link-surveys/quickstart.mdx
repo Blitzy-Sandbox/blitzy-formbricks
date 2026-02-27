@@ -8,38 +8,93 @@ sidebarTitle: "Quickstart"
 Link Surveys make it easy for your users to give you feedback. They are a great way to get feedback from your users, without interrupting their workflow. This quickstart guide will show you how to create your first link survey in under 5 minutes.
 
 <Steps>
-  <Step title="Create a free Formbricks Cloud account">
+  <Step title="Create a Free Formbricks Cloud Account">
     While you can [self-host](/self-hosting/overview) Formbricks, the quickest and easiest way to get started is with the free Cloud plan. Just [sign up here](https://app.formbricks.com/auth/signup) and click through the onboarding.
+
+    <Note>
+      If you prefer full data ownership, you can [self-host Formbricks](/self-hosting/overview) on your own infrastructure using Docker, Kubernetes, or a one-click setup script.
+    </Note>
 
     Choose one of the pre-created templates to get started. We'll choose the **Product Market Fit** template for this quickstart guide.
   </Step>
 
-  <Step title="Create your first survey">
-    When you click the template, you'll be taken to the survey editor. Here, you can edit the survey questions and settings. To keep it simple, we'll leave the questions as they are and go to the survey settings.
+  <Step title="Create Your First Survey">
+    When you click the template, you'll be taken to the survey editor. Here, you can edit the survey questions and settings. The editor supports 15 question types, conditional logic branching, recall piping, and hidden fields — browse the template library for ready-to-use surveys covering Product-Market Fit, NPS, feature feedback, and more.
 
-    Click on the **Settings** tab to edit the survey settings.
+    To keep it simple, we'll leave the questions as they are and go to the survey settings. Click on the **Settings** tab to edit the survey settings.
   </Step>
 
-  <Step title="Configure your survey settings">
+  <Step title="Configure Your Survey Settings">
     Formbricks packs a lot of useful functionality out of the box. You can:
 
-    - Close the survey on a specidic date
-    - After a number of response
+    - Close the survey on a specific date
+    - Close after a number of responses
     - Redirect users to a URL after they completed the survey
-    - Protect survey with a Pin
-    - ... and much more!
+    - Protect the survey with a [PIN](/xm-and-surveys/surveys/link-surveys/pin-protected-surveys)
+    - Generate [single-use links](/xm-and-surveys/surveys/link-surveys/single-use-links) for one-time access
+    - Require [email verification](/xm-and-surveys/surveys/link-surveys/verify-email-before-survey) before respondents can access the survey
+
+    For a full breakdown of all available link survey options, see the [Link Settings](/xm-and-surveys/surveys/link-surveys/link-settings) page.
   </Step>
 
-  <Step title="Style your survey">
-    Style your survey to your need. You can keep it simplistic or use animated backgrounds. You can change the main color and soon you'll be able to fully control the appearance of the survey.
+  <Step title="Style Your Survey">
+    Style your survey to match your brand. Formbricks gives you full control over the appearance of your survey including:
+
+    - **Brand Color**: Set the primary accent color used throughout the survey
+    - **Text Color**: Adjust the text color for readability against your chosen background
+    - **Background**: Choose from solid colors, animated gradients, or custom background images
+    - **Card Styling**: Configure roundness, opacity, and shadow settings on the survey card
+
+    For the complete styling reference, see [Styling Theme](/xm-and-surveys/core-features/styling-theme).
   </Step>
 
+  <Step title="Publish Your Survey">
+    Once you're happy with your survey questions, settings, and styling, hit the **Publish** button. Your survey link becomes active immediately and responses start collecting as soon as respondents access the URL.
 
-<Step title="Publish your survey">
-    Once you're happy with your survey settings, hit the **Publish** button. You'll be forwarded to the Summary Page where all the responses to your survey will appear.
-</Step>
+    You'll be forwarded to the Summary Page where all the responses to your survey will appear in real-time.
+  </Step>
 
-<Step title="Share your survey">
-    Congratulations! Your survey is now published and ready to be shared with your users. You can share the survey link via email, SMS, or any other channel you prefer.
-</Step>
+  <Step title="Share Your Survey">
+    Congratulations! Your survey is now published and ready to be shared. Use the **Share** button in the top toolbar to open the sharing options:
+
+    - **Copy Link**: Copy the direct survey URL to your clipboard
+    - **Embed**: Get an iframe embed code to [embed the survey](/xm-and-surveys/surveys/link-surveys/embed-surveys) directly in your website or emails
+    - **Personal Links**: Generate unique links for individual contacts (Enterprise Edition)
+
+    You can share the survey link via email, SMS, social media, or any other channel you prefer. Use [source tracking](/xm-and-surveys/surveys/link-surveys/source-tracking) to attribute responses to specific distribution channels.
+  </Step>
+
+  <Step title="Collect and View Responses">
+    As respondents complete your survey, their responses appear on the Summary Page in real-time. The Summary Page provides:
+
+    - **Response Overview**: View individual responses with timestamps and metadata
+    - **Aggregated Analytics**: See charts and summaries across all collected responses
+    - **Filtering**: Filter responses by completion status, date range, or specific answer values
+    - **Export**: Download your response data as CSV or Excel for further analysis
+
+    You can also share a read-only link to the Summary Page with team members who need access to the results.
+  </Step>
 </Steps>
+
+## Explore Advanced Link Survey Features
+
+<CardGroup cols={2}>
+  <Card title="Link Settings" icon="gear" href="/xm-and-surveys/surveys/link-surveys/link-settings">
+    Customize link titles, descriptions, and preview images for social sharing.
+  </Card>
+  <Card title="Data Prefilling" icon="fill" href="/xm-and-surveys/surveys/link-surveys/data-prefilling">
+    Prefill survey questions via URL parameters to boost completion rates.
+  </Card>
+  <Card title="Embed Surveys" icon="code" href="/xm-and-surveys/surveys/link-surveys/embed-surveys">
+    Embed surveys directly in your website or emails using iframe snippets.
+  </Card>
+  <Card title="Single-Use Links" icon="link" href="/xm-and-surveys/surveys/link-surveys/single-use-links">
+    Generate one-time-use links to ensure each respondent submits only once.
+  </Card>
+  <Card title="PIN Protection" icon="lock" href="/xm-and-surveys/surveys/link-surveys/pin-protected-surveys">
+    Require a secure PIN to restrict survey access to authorized respondents.
+  </Card>
+  <Card title="Source Tracking" icon="display-chart-up" href="/xm-and-surveys/surveys/link-surveys/source-tracking">
+    Track which distribution channels your responses originate from.
+  </Card>
+</CardGroup>

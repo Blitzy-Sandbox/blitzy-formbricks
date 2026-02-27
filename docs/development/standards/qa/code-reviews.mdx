@@ -4,21 +4,78 @@ description: This document outlines our comprehensive code review process at For
 icon: eyes
 ---
 
+## Initial Checks Via GitHub Workflows
 
+When a Pull Request (PR) is opened, several automated GitHub workflows perform critical checks to ensure code quality before any manual review begins.
 
-## Initial Checks via GitHub Workflows
+<Note>
+  At Formbricks, all feature changes must be submitted through Pull Requests — direct pushes to protected branches are not allowed.
+</Note>
 
-When a Pull Request (PR) is opened, our automated GitHub workflows perform several critical checks:
+The main `pr.yml` workflow (named **PR Update**) orchestrates the following reusable sub-workflows:
 
-> **Note:** At Formbricks, all feature changes must be submitted through Pull Requests - direct pushes to protected branches are not allowed.
+1. **Unit Tests** (`test.yml`): Runs Vitest unit test suites across the monorepo to catch regressions early.
+2. **Linting** (`lint.yml`): Enforces shared ESLint rules (`@formbricks/eslint-config`) and Prettier formatting (110-char width, semicolons, double quotes).
+3. **Build Verification** (`build-web.yml`): Confirms that `pnpm build` completes successfully for `apps/web`.
+4. **E2E Tests** (`e2e.yml`): Launches the Playwright browser regression suite against a full environment with PostgreSQL + pgvector and Valkey.
 
-- **PR Title Validation**: Ensures clear, descriptive titles following our conventions
-- **Build Verification**: Confirms that the build process completes successfully
-- **Test Suite**: Runs all automated tests to catch potential regressions
-- **Translation Check**: Identifies any missing translation keys
-- **Linting**: Enforces our coding standards and style guidelines
+In addition, the following workflows run independently on every pull request:
 
-These checks must pass before proceeding to manual review.
+5. **PR Title Validation** (`semantic-pull-requests.yml`): Uses `amannn/action-semantic-pull-request` to enforce [Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/) format (`fix:`, `feat:`, `chore:`, `docs:`, `refactor:`, etc.).
+6. **Translation Validation** (`translation-check.yml`): Validates that translation keys are consistent across the 14-locale i18n system when relevant source or locale files are changed.
+7. **SonarQube** (`sonarqube.yml`): Code quality analysis, code smell detection, and security hotspot identification. Runs on PRs and pushes to `main`.
+
+*Source: `.github/workflows/pr.yml`, `.github/workflows/semantic-pull-requests.yml`, `.github/workflows/translation-check.yml`, `.github/workflows/sonarqube.yml`*
+
+<Note>
+  All automated checks must pass before proceeding to manual review. The PR Update summary job aggregates results from the four orchestrated sub-workflows and fails the PR if any of them fail or are skipped.
+</Note>
+
+## Pull Request Template
+
+Every PR must follow the template defined in `.github/pull_request_template.md`. Proper use of the template speeds up reviews and ensures consistent quality across contributions.
+
+### PR Title
+
+PR titles must follow the [Conventional Commits specification](https://www.conventionalcommits.org/en/v1.0.0/). Accepted prefixes include `fix:`, `feat:`, `chore:`, `docs:`, `style:`, `refactor:`, `perf:`, `test:`, `build:`, `ci:`, and `revert:`. The PR number is typically appended on merge:
+
+```
+fix: update OpenAPI schema (#6617)
+feat: add survey validation
+chore: bump dependencies
+```
+
+### Description
+
+Summarize the change, link the related issue (`Fixes #issue`), and provide motivation and context. Include screenshots or a [Loom](https://www.loom.com/) recording for any visual changes.
+
+### How To Test
+
+Provide clear, step-by-step instructions so reviewers can reproduce and verify the changes.
+
+### Required Checklist
+
+- [ ] Filled out the "How to test" section
+- [ ] Read [How we Code at Formbricks](https://formbricks.com/docs/contributing/how-we-code)
+- [ ] Self-reviewed own code
+- [ ] Commented on hard-to-understand bits
+- [ ] Ran `pnpm build`
+- [ ] Checked for warnings (none)
+- [ ] Removed all `console.logs`
+- [ ] Merged latest changes from main with `git pull origin main`
+- [ ] No responsiveness issues
+- [ ] First PR? Signed the [CLA](https://cla-assistant.io/formbricks/formbricks)
+
+### Appreciated Checklist
+
+- [ ] If a UI change was made: Added a screen recording or screenshots to the PR
+- [ ] Updated the Formbricks Docs if changes were necessary
+
+<Note>
+  The Contributor License Agreement (CLA) signature is required for first-time contributors. Without a signed CLA, the PR cannot be merged.
+</Note>
+
+*Source: `.github/pull_request_template.md`*
 
 ## Reviewer Assignment
 
@@ -28,7 +85,7 @@ Once all automated checks pass successfully:
 - The reviewer is notified automatically through GitHub
 - Priority is given based on PR urgency and complexity
 
-## Functional Testing and UI Review
+## Functional Testing And UI Review
 
 The assigned reviewer performs thorough testing:
 
@@ -39,7 +96,7 @@ The assigned reviewer performs thorough testing:
 - Ensures proper error handling
 - Checks integration with existing features
 
-### UI Review (if applicable)
+### UI Review (If Applicable)
 
 - Validates visual consistency
 - Checks responsive behavior
@@ -53,48 +110,70 @@ If improvements are needed:
 - Reviewers add inline comments on GitHub
 - Feedback is specific and actionable
 - Code suggestions are provided when helpful
-- Comments follow our constructive feedback guidelines
+- Comments follow constructive feedback guidelines
 
-## In-depth Code Review
+## In-Depth Code Review
 
-Our code review process utilizes both human expertise and AI assistance:
+The code review process utilizes both human expertise and AI assistance:
 
 ### Manual Review
 
-- Code structure and organization
-- Design patterns and best practices
-- Performance considerations
-- Security implications
-- Documentation completeness
+Reviewers evaluate the following areas, informed by the project quality checklist:
+
+- **Code Quality:** Keep code DRY and small; remove dead code and unused imports. Functions should be focused and single-purpose.
+- **Type Safety:** Avoid `any`; use shared types from `@formbricks/types` and prefer type inference over explicit annotations.
+- **Test Coverage:** Run `pnpm test` before opening a PR. Use `pnpm test:coverage` when touching critical flows and keep coverage from regressing.
+- **Documentation Completeness:** Verify that documentation is updated if changes warrant it. Add JSDoc comments on exported functions.
+- **React Best Practices:** Follow React hooks rules, keep effects focused, and avoid unnecessary `useMemo`/`useCallback`. Keep components focused and avoid deep nesting.
+- **Accessibility:** Ensure basic accessibility standards are met (semantic HTML, ARIA attributes, keyboard navigation).
+- **Security Implications:** Check for exposed secrets, injection vectors, and proper authentication and authorization checks.
+- **Performance Considerations:** Write efficient database queries, avoid N+1 patterns, and use proper caching strategies.
+
+<Note>
+  Avoid `any` — use shared types from `@formbricks/types` and prefer type inference. This is a critical rule enforced during all code reviews.
+</Note>
+
+*Source: `AGENTS.md` (Quality Checklist section), `AGENTS.md` (Testing Guidelines section)*
 
 ### AI-Assisted Review
 
-We leverage advanced AI tools for additional insights:
+Advanced AI tools provide additional automated insights on every pull request:
 
-- **Code Rabbit**: Automated code analysis and suggestions
-- **Sonarqube**: Code quality metrics and potential issues
+- **Code Rabbit:** Automated code analysis and inline suggestions on PRs, highlighting potential issues and recommending improvements.
+- **SonarQube:** Code quality metrics, code smell detection, and security hotspot analysis. SonarQube runs automatically on all PRs and pushes to `main` via the `sonarqube.yml` workflow.
 
-## Resolution and Merge
+*Source: `.github/workflows/sonarqube.yml`*
+
+## Resolution And Merge
 
 Final steps before merging:
 
-- All review comments must be addressed
-- Required changes are implemented
-- At least one reviewer approval is required
-- All conversations must be resolved
-- CI/CD pipeline passes again
-- PR is merged into the target branch
+<Steps>
+  <Step title="Address Review Comments">
+    All review comments must be addressed and all conversations resolved.
+  </Step>
+  <Step title="Implement Required Changes">
+    Any requested changes are implemented and pushed to the PR branch.
+  </Step>
+  <Step title="Obtain Approval">
+    At least one reviewer approval is required before merging.
+  </Step>
+  <Step title="Pass CI/CD Pipeline">
+    All CI/CD checks must pass, including unit tests, linting, build verification, E2E tests, translation validation, and SonarQube analysis.
+  </Step>
+  <Step title="Merge">
+    The PR is merged into the target branch.
+  </Step>
+</Steps>
 
 ## Best Practices
 
-- Keep PRs focused and reasonably sized
+- Keep PRs focused and reasonably sized for efficient review cycles
 - Respond to review comments promptly
-- Use the "Request Changes" feature when necessary
+- Attach screenshots or GIFs for UI-facing work
+- List any database migrations or environment variable changes in the PR description
+- Paste output of relevant commands (`pnpm test`, `pnpm lint`, `pnpm db:migrate:dev`) so reviewers can verify readiness
+- Use the "Request Changes" feature when blocking issues are found
 - Mark conversations as resolved when addressed
-- Use approve/request changes workflow appropriately
 
-## Conclusion
-
-Our code review process combines automated checks, manual review, and AI assistance to ensure high-quality code contributions. This multi-layered approach helps maintain code quality while promoting knowledge sharing within the team.
-
-Remember: Code reviews are not just about finding issues—they're opportunities for learning and improving our codebase together.
+*Source: `AGENTS.md` (Commit & Pull Request Guidelines section)*

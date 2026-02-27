@@ -1,6 +1,6 @@
 ---
 title: "Variables"
-description: "Variables are a powerful feature in Formbricks that allows you to keep track of data variables when user fills a form. This feature is especially useful when you want to use your survey as a quiz."
+description: "Variables are a powerful feature in Formbricks that allows you to keep track of data when a user fills a survey. This feature is especially useful for quizzes, scoring, and personalisation."
 icon: "x"
 ---
 
@@ -8,55 +8,77 @@ icon: "x"
 
 There are two types of variables you can add to your survey:
 
-1. **Text**: You can add text variables to your survey to capture text data.
+1. **Text** — Captures text data. Supports the following operators:
+   - `assign`: Sets the variable to a specific text value
+   - `concat`: Appends text to the existing variable value
 
-2. **Number**: You can add number variables to your survey to capture number data.
+2. **Number** — Captures numeric data. Supports the following operators:
+   - `assign`: Sets the variable to a specific numeric value
+   - `add`: Adds a value to the current variable
+   - `subtract`: Subtracts a value from the current variable
+   - `multiply`: Multiplies the current variable by a value
+   - `divide`: Divides the current variable by a value
+
+<Note>
+  Division by zero is prevented at the validation level. If you attempt to divide a number variable by a static value of zero, the survey editor will display a validation error.
+</Note>
 
 ## How to Add Variables
 
-1. Edit the survey you want to add variables to & switch to the Questions tab and scroll down to the bottom of the page. You will see a section called **Variables**.
+<Steps>
+  <Step title="Open the Variables Section">
+    Edit the survey you want to add variables to, switch to the **Questions** tab, and scroll down to the bottom of the page. You will see a section called **Variables**.
 
-![Variables card](/images/xm-and-surveys/surveys/general-features/variables/variables-card.webp)
+    ![Variables card](/images/xm-and-surveys/surveys/general-features/variables/variables-card.webp)
+  </Step>
+  <Step title="Add a New Variable">
+    Click on it to add a new variable ID. You can add as many variables as you want. Choose the type of variable (Text or Number) along with the default value.
 
+    ![Add variables](/images/xm-and-surveys/surveys/general-features/variables/input-variables.webp)
 
-1. Now click on it to add a new variable ID. You can add as many variables as you want. You can also choose the type of variable you want to add along with the default value.
+    ![Created variables](/images/xm-and-surveys/surveys/general-features/variables/created-variables.webp)
+  </Step>
+</Steps>
 
-![add variables](/images/xm-and-surveys/surveys/general-features/variables/input-variables.webp)
+## Use Cases
 
+- **Quiz**: You can use variables to create a quiz. For example, add a `score` number variable and update it every time a user answers a question correctly using the `add` operator. You can also recall the variable to show the final score to the user.
 
-![created variables](/images/xm-and-surveys/surveys/general-features/variables/created-variables.webp)
+- **Personalisation**: You can use variables to store user data and personalise the survey experience. For example, add a `full_name` text variable and update it using the `concat` operator as the user fills in their first name and last name. Use the variable to personalise the survey by addressing the user with their full name.
 
-## Use cases
-
-- **Quiz**: You can use variables to create a quiz. For example, you can add a variable `score` and update it every time a user answers a question. You can also use the variable for recall to show the final score to the user.
-
-- **Personalisation**: You can use variables to store user data and personalise the survey experience. For example, you can add a variable `full_name` and update it every time a user fills in their first name and last name. You can use the variable to personalise the survey experience by addressing the user with their full name.
-
-## How is it different from Hidden Fields?
+## Differences From Hidden Fields
 
 Variables are different from hidden fields in the following ways:
 
-1. **Setting**: Hidden fields can be set through query parameters or `formbricks.init`, but the variables can only be set either during creation or dynamically by using logic actions.
+| Feature | Variables | Hidden Fields |
+|---------|-----------|---------------|
+| **Setting** | Set during creation or dynamically by using logic actions | Set through URL query parameters or the `formbricks.init` SDK call |
+| **Updating** | Can be updated while the user fills the survey | Set once and cannot be changed during the survey |
+| **Type** | Support both **text** and **number** data types | Only store **text** data |
 
-2. **Updating**: Hidden fields cannot be set again, but the value of variables can be updated while the user fills the survey.
+## How to Use Variables
 
-3. **Type**: Hidden fields can only store text data, but variables can store both text and number data.
+<Steps>
+  <Step title="Access Variables in the Logic Editor">
+    Once you have added variables to your survey, you can access them in the logic editor. Variables can be used as condition sources (left operand) to create logic conditions, and they can be modified via the `calculate` action.
 
-## How to use Variables
+    ![Variables usage](/images/xm-and-surveys/surveys/general-features/variables/variables-usage.webp)
+  </Step>
+  <Step title="Create Logic With Variables">
+    You can create logic based on the variables and questions in your survey and update the variables based on the user's response. Variables interact with questions and hidden fields in logic conditions.
 
-1. Once you have added the variables to your survey, you'll be able to access them in the logic editor. You can use the variables to create logic actions and conditions.
-
-![Variables usage](/images/xm-and-surveys/surveys/general-features/variables/variables-usage.webp)
-
-1. You can create logic based on the variables and questions in your survey and can update the variables based on the user's response.
-
-![Logic with variables](/images/xm-and-surveys/surveys/general-features/variables/logic-with-variables.webp)
+    ![Logic with variables](/images/xm-and-surveys/surveys/general-features/variables/logic-with-variables.webp)
+  </Step>
+</Steps>
 
 ### Recalling Variables in the Survey
 
-You can recall show the variable value to the respondent by using the [Recall Data](/xm-and-surveys/surveys/general-features/recall) function.
+You can recall the variable value and display it to the respondent by using the [Recall Data](/xm-and-surveys/surveys/general-features/recall) function. Type `@` in any question text or description field to see a dropdown of available variables, hidden fields, and previous question answers.
 
 <Note>
-  To know more about how to use logic in Formbricks, check out the [Conditional
-  Logic](/xm-and-surveys/surveys/general-features/conditional-logic).
+  To learn more about how to use logic in Formbricks, check out the [Conditional
+  Logic](/xm-and-surveys/surveys/general-features/conditional-logic) page.
 </Note>
+
+<!-- Source: packages/types/surveys/logic.ts — ZActionTextVariableCalculateOperator, ZActionNumberVariableCalculateOperator -->
+<!-- Source: packages/types/surveys/blocks.ts — ZActionCalculateText, ZActionCalculateNumber -->

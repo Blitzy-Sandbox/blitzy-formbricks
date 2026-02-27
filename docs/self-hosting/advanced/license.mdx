@@ -46,6 +46,107 @@ Additional to the AGPL licensed Formbricks core, this repository contains code l
   Concept.
 </Note>
 
+## License Validation Mechanism
+
+When you configure an Enterprise License, Formbricks performs remote validation to verify that your license key is authentic and active. The validation system is designed to be resilient — it includes caching, automatic retries, and a grace period to ensure your instance continues operating even during temporary connectivity issues.
+
+### How License Validation Works
+
+<Steps>
+  <Step title="Key Input">
+    Set the `ENTERPRISE_LICENSE_KEY` environment variable in your deployment configuration. This key is provided when you purchase or trial the Enterprise Edition. See [License Activation](/self-hosting/advanced/license-activation) for detailed setup instructions.
+  </Step>
+
+  <Step title="Remote Validation">
+    On startup and periodically, Formbricks validates the license key against the remote license server at `https://ee.formbricks.com/api/licenses/check`. The server verifies the key's authenticity, expiration status, and licensed feature set.
+  </Step>
+
+  <Step title="Cache Result">
+    Successful validation results are cached locally for 24 hours to minimize remote calls. This ensures that your instance does not depend on continuous connectivity to the license server for normal operation.
+  </Step>
+
+  <Step title="Periodic Re-validation">
+    The license is re-checked every 24 hours. If a check fails, Formbricks retries up to 3 times with a 1-second delay between each attempt before falling back to cached data.
+  </Step>
+
+  <Step title="Grace Period">
+    If the license server is unreachable after all retries are exhausted, Formbricks continues using the previously cached valid license for up to **3 days** (grace period). This ensures that temporary network outages or server maintenance windows do not disrupt your enterprise features.
+  </Step>
+</Steps>
+
+*Source: `apps/web/modules/ee/license-check/lib/license.ts`*
+
+### License Validation Caching Details
+
+The license validation system uses a multi-tier caching strategy to balance freshness with reliability:
+
+| Cache Parameter | Duration | Description |
+| --------------- | -------- | ----------- |
+| Successful validation TTL | 24 hours | How long a successful license check result is cached before re-validation is triggered |
+| Failed validation TTL | 10 minutes | How long a failed or null result is cached before the system retries validation |
+| Previous result TTL | 4 days | How long a previously valid result is kept as a fallback in case of repeated failures |
+| Grace period | 3 days | How long the system continues operating with cached license data when the license server is unreachable |
+| Max retries | 3 | Number of retry attempts when a remote validation call fails |
+| Retry delay | 1 second | Delay between each retry attempt |
+
+<Note>
+  If you are deploying Formbricks behind a firewall or in a restricted network environment, ensure that your instance can reach `https://ee.formbricks.com` on port 443 (HTTPS). The license check is a lightweight POST request that occurs once every 24 hours.
+</Note>
+
+*Source: `apps/web/modules/ee/license-check/lib/license.ts` — CONFIG object*
+
+### License Feature Flags
+
+The Enterprise License controls access to the following features. Each flag is validated as part of the license check and determines which enterprise capabilities are available in your instance:
+
+| Feature Flag | Description |
+| ------------ | ----------- |
+| `isMultiOrgEnabled` | Enable multiple organizations within a single instance |
+| `projects` | Custom project count (nullable — `null` means unlimited projects) |
+| `twoFactorAuth` | Two-factor authentication via TOTP with backup codes |
+| `sso` | OAuth SSO providers (Google, GitHub, Azure AD, OIDC) |
+| `saml` | SAML SSO via BoxyHQ saml-jackson |
+| `whitelabel` | White-label email follow-ups (remove Formbricks branding from emails) |
+| `removeBranding` | Hide "Powered by Formbricks" from surveys |
+| `contacts` | Contact management, attributes, and segment-based targeting |
+| `ai` | AI-powered features and insights |
+| `spamProtection` | Spam protection via reCAPTCHA integration |
+| `auditLogs` | Audit logging for organization-level activity tracking |
+| `multiLanguageSurveys` | Multi-language survey support across 14 locales |
+| `accessControl` | Team-based access control with granular role permissions |
+| `quotas` | Quota management for responses and monthly identified users |
+
+*Source: `apps/web/modules/ee/license-check/types/enterprise-license.ts` — `ZEnterpriseLicenseFeatures` schema*
+
+### License Status States
+
+When Formbricks checks your license, the system returns one of the following status values:
+
+| Status | Description |
+| ------ | ----------- |
+| `active` | License is valid and all licensed features are enabled |
+| `expired` | License has expired — enterprise features will be disabled |
+| `unreachable` | License server cannot be reached — grace period may apply if a cached result exists |
+| `invalid_license` | License key is invalid or not recognized by the license server |
+| `no-license` | No license key is configured — the instance runs in Community Edition mode |
+
+*Source: `apps/web/modules/ee/license-check/types/enterprise-license.ts`*
+
+### Fallback Levels
+
+The license validation system operates with a layered fallback hierarchy to maximize uptime for your enterprise features:
+
+<Note>
+  **Fallback hierarchy for license validation:**
+
+  1. **Live** — Direct validation from the license server (freshest data, preferred source)
+  2. **Cached** — Using a cached validation result within the 24-hour TTL
+  3. **Grace** — Using previously cached data during a server outage (up to 3 days)
+  4. **Default** — No valid license data is available — the instance operates with Community Edition features only
+
+  The system always attempts to use the highest-priority source available. If the license server is reachable, it will use the live result. If not, it falls back through the hierarchy until it either finds valid cached data or defaults to Community Edition mode.
+</Note>
+
 ## White-Labeling Formbricks and Other Licensing Needs
 
 We offer Formbricks white-labeled in some cases. [Please send us an email with a project description and we'll get back to you.](mailto:hola@formbricks.com).

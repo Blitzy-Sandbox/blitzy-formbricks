@@ -1695,6 +1695,14 @@ paths:
                             - custom
                           description: Whether this is a default or custom attribute
                           example: custom
+                        dataType:
+                          type: string
+                          enum:
+                            - string
+                            - number
+                            - date
+                          description: The data type of the attribute (string, number, date)
+                          example: string
                         environmentId:
                           type: string
                           description: The ID of the environment this attribute belongs to
@@ -1766,6 +1774,14 @@ paths:
                       - custom
                     description: Whether this is a default or custom attribute
                     example: custom
+                  dataType:
+                    type: string
+                    enum:
+                      - string
+                      - number
+                      - date
+                    description: The data type of the attribute (string, number, date)
+                    example: string
                   environmentId:
                     type: string
                     description: The ID of the environment this attribute belongs to
@@ -1829,6 +1845,14 @@ paths:
                       - custom
                     description: Whether this is a default or custom attribute
                     example: custom
+                  dataType:
+                    type: string
+                    enum:
+                      - string
+                      - number
+                      - date
+                    description: The data type of the attribute (string, number, date)
+                    example: string
                   environmentId:
                     type: string
                     description: The ID of the environment this attribute belongs to
@@ -1898,6 +1922,14 @@ paths:
                       - custom
                     description: Whether this is a default or custom attribute
                     example: custom
+                  dataType:
+                    type: string
+                    enum:
+                      - string
+                      - number
+                      - date
+                    description: The data type of the attribute (string, number, date)
+                    example: string
                   environmentId:
                     type: string
                     description: The ID of the environment this attribute belongs to
@@ -1960,6 +1992,14 @@ paths:
                       - custom
                     description: Whether this is a default or custom attribute
                     example: custom
+                  dataType:
+                    type: string
+                    enum:
+                      - string
+                      - number
+                      - date
+                    description: The data type of the attribute (string, number, date)
+                    example: string
                   environmentId:
                     type: string
                     description: The ID of the environment this attribute belongs to
@@ -2240,6 +2280,11 @@ paths:
                           items:
                             type: string
                           description: "The IDs of the surveys "
+                        secret:
+                          type:
+                            - string
+                            - "null"
+                          description: The shared secret used to generate HMAC signatures for webhook requests
                   meta:
                     type: object
                     properties:
@@ -2345,6 +2390,11 @@ paths:
                     items:
                       type: string
                     description: "The IDs of the surveys "
+                  secret:
+                    type:
+                      - string
+                      - "null"
+                    description: The shared secret used to generate HMAC signatures for webhook requests
   /management/webhooks/{id}:
     get:
       operationId: getWebhook
@@ -2406,6 +2456,11 @@ paths:
                     items:
                       type: string
                     description: "The IDs of the surveys "
+                  secret:
+                    type:
+                      - string
+                      - "null"
+                    description: The shared secret used to generate HMAC signatures for webhook requests
     put:
       operationId: updateWebhook
       summary: Update a webhook
@@ -2509,6 +2564,11 @@ paths:
                     items:
                       type: string
                     description: "The IDs of the surveys "
+                  secret:
+                    type:
+                      - string
+                      - "null"
+                    description: The shared secret used to generate HMAC signatures for webhook requests
     delete:
       operationId: deleteWebhook
       summary: Delete a webhook
@@ -2569,6 +2629,11 @@ paths:
                     items:
                       type: string
                     description: "The IDs of the surveys "
+                  secret:
+                    type:
+                      - string
+                      - "null"
+                    description: The shared secret used to generate HMAC signatures for webhook requests
   /organizations/{organizationId}/teams:
     get:
       operationId: getTeams
@@ -3800,6 +3865,18 @@ components:
           type: string
           description: The value of the attribute
           example: example@email.com
+        valueNumber:
+          type:
+            - number
+            - "null"
+          description: The numeric value of the attribute (used for number type)
+          example: 123
+        valueDate:
+          type:
+            - string
+            - "null"
+          description: The date value of the attribute (used for date type)
+          example: "2022-01-19 00:00:00"
       required:
         - id
         - createdAt
@@ -3807,6 +3884,8 @@ components:
         - attributeKeyId
         - contactId
         - value
+        - valueNumber
+        - valueDate
     contactAttributeKey:
       type: object
       properties:
@@ -3848,6 +3927,14 @@ components:
             - custom
           description: Whether this is a default or custom attribute
           example: custom
+        dataType:
+          type: string
+          enum:
+            - string
+            - number
+            - date
+          description: The data type of the attribute (string, number, date)
+          example: string
         environmentId:
           type: string
           description: The ID of the environment this attribute belongs to
@@ -3860,6 +3947,7 @@ components:
         - name
         - description
         - type
+        - dataType
         - environmentId
     survey:
       type: object
@@ -5744,6 +5832,11 @@ components:
           items:
             type: string
           description: "The IDs of the surveys "
+        secret:
+          type:
+            - string
+            - "null"
+          description: The shared secret used to generate HMAC signatures for webhook requests
       required:
         - id
         - name
@@ -5754,6 +5847,7 @@ components:
         - environmentId
         - triggers
         - surveyIds
+        - secret
     team:
       type: object
       properties:
@@ -5890,6 +5984,14 @@ components:
         environmentId:
           type: string
           description: The ID of the environment this attribute belongs to
+        dataType:
+          type: string
+          enum:
+            - string
+            - number
+            - date
+          description: The data type of the attribute (string, number, date)
+          example: string
       required:
         - key
         - name
@@ -5914,15 +6016,10 @@ components:
             - "null"
           description: Description of the attribute
           example: The user's email address
-        key:
-          type: string
-          description: The attribute identifier used in the system
-          example: email
       required:
         - name
         - description
-        - key
-      description: A contact attribute key to update.
+      description: A contact attribute key to update. Key cannot be changed.
     webhookId:
       type: string
       description: The ID of the webhook

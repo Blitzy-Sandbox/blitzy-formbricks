@@ -4,4 +4,107 @@ description: "Configure Single Sign-On with your Formbricks instance."
 icon: "key"
 ---
 
-Implement enterprise-grade authentication for your survey platform with [Open ID connect, Azure AD OAuth, Google OAuth, and SAML](/self-hosting/configuration/auth-sso)
+<Note>
+  This feature requires an active Formbricks Enterprise License. [Learn more about licensing](/self-hosting/advanced/license).
+</Note>
+
+OpenID Connect (OIDC) enables Single Sign-On (SSO) with any OIDC-compliant identity provider. Formbricks supports OIDC via the NextAuth.js OAuth provider, allowing organizations to authenticate users through providers such as Okta, Auth0, Keycloak, Azure AD, or any standards-compliant OIDC issuer.
+
+When configured, an OIDC login button appears on the Formbricks sign-in page, redirecting users to your identity provider for authentication before returning them to Formbricks with a valid session.
+
+<!-- Source: apps/web/modules/ee/sso/lib/providers.ts — OIDC provider configuration (lines 38-56) -->
+
+## OIDC Environment Variables
+
+Configure the following environment variables in your deployment to enable OIDC SSO:
+
+| Variable | Type | Default | Description |
+|----------|------|---------|-------------|
+| `OIDC_CLIENT_ID` | String | — | OIDC client identifier from your identity provider |
+| `OIDC_CLIENT_SECRET` | String | — | OIDC client secret from your identity provider |
+| `OIDC_ISSUER` | String | — | OIDC issuer URL (e.g., `https://accounts.google.com`) |
+| `OIDC_DISPLAY_NAME` | String | `"OpenId"` | Display name shown on the login button |
+| `OIDC_SIGNING_ALGORITHM` | String | `RS256` | Token signing algorithm (`RS256` is the default) |
+
+<!-- Source: apps/web/modules/ee/sso/lib/providers.ts lines 38-56 — the OIDC provider object uses these constants imported from @/lib/constants -->
+
+<Note>
+  The `wellKnown` URL is automatically derived as `{OIDC_ISSUER}/.well-known/openid-configuration`. Ensure your OIDC issuer exposes this endpoint.
+</Note>
+
+## Setting Up OIDC SSO
+
+<Steps>
+  <Step title="Register Your Application With Your OIDC Provider">
+    In your identity provider (Okta, Auth0, Keycloak, etc.), create a new OIDC application:
+
+    - Set the **Redirect URI** to `{WEBAPP_URL}/api/auth/callback/openid` (replace `{WEBAPP_URL}` with your Formbricks instance URL, e.g., `https://formbricks.example.com`).
+    - Note the **Client ID** and **Client Secret** provided by your identity provider.
+    - Ensure the provider is configured to return `openid`, `email`, and `profile` scopes.
+  </Step>
+
+  <Step title="Set Environment Variables">
+    Configure the five OIDC environment variables in your `docker-compose.yml`, `.env` file, or container environment:
+
+    ```bash
+    OIDC_CLIENT_ID=your-client-id
+    OIDC_CLIENT_SECRET=your-client-secret
+    OIDC_ISSUER=https://your-provider.example.com
+    OIDC_DISPLAY_NAME="Company SSO"
+    OIDC_SIGNING_ALGORITHM=RS256
+    ```
+
+    Replace the placeholder values with the actual credentials from your OIDC provider.
+  </Step>
+
+  <Step title="Restart Formbricks">
+    Restart your Formbricks instance to apply the new configuration. If you are using Docker Compose, run:
+
+    ```bash
+    docker compose down && docker compose up -d
+    ```
+  </Step>
+
+  <Step title="Verify SSO Login">
+    - Navigate to the Formbricks login page.
+    - A new button labeled with your `OIDC_DISPLAY_NAME` (e.g., "Company SSO") should appear.
+    - Click the button and verify the OIDC redirect to your identity provider and the successful authentication back to Formbricks.
+  </Step>
+</Steps>
+
+## Security Details
+
+Formbricks enforces several security mechanisms during the OIDC authentication flow:
+
+- **Scopes requested:** Formbricks requests `openid email profile` scopes from the identity provider, granting access to the user's basic profile information and email address.
+- **ID token authentication:** ID tokens are used for authentication (`idToken: true`), meaning Formbricks validates the signed token issued by the identity provider rather than relying solely on the userinfo endpoint.
+- **PKCE and state checks:** Proof Key for Code Exchange (PKCE) and state parameter checks are enforced for additional security, mitigating authorization code interception and cross-site request forgery attacks.
+- **Profile attributes extracted:** Formbricks extracts the following attributes from the ID token: `sub` (mapped as the user ID), `name`, and `email`.
+
+<!-- Source: apps/web/modules/ee/sso/lib/providers.ts lines 43-53 -->
+
+## Detailed Configuration Guide
+
+For detailed configuration instructions for all supported SSO providers (OpenID Connect, Azure AD OAuth, Google OAuth, and SAML), see the [Auth SSO Configuration Guide](/self-hosting/configuration/auth-sso).
+
+The dedicated [OpenID Connect Configuration](/self-hosting/configuration/auth-sso/open-id-connect) page provides a step-by-step walkthrough with a FusionAuth example configuration.
+
+## Troubleshooting
+
+### OIDC Button Not Appearing
+
+- Verify that both `OIDC_CLIENT_ID` and `OIDC_CLIENT_SECRET` environment variables are set and non-empty.
+- Confirm that your Formbricks Enterprise License is active. OIDC SSO is an enterprise feature and will not render without a valid license.
+- Restart your Formbricks instance after setting the environment variables.
+
+### Authentication Fails After Redirect
+
+- Check that the Redirect URI in your identity provider matches exactly: `{WEBAPP_URL}/api/auth/callback/openid`.
+- Ensure there are no trailing slashes or protocol mismatches (e.g., `http` vs `https`).
+- Verify that the `OIDC_ISSUER` URL is correct and the `/.well-known/openid-configuration` endpoint is accessible from your Formbricks server.
+
+### Token Validation Errors
+
+- Verify that `OIDC_SIGNING_ALGORITHM` matches the algorithm configured in your identity provider (common values: `RS256`, `HS256`).
+- Ensure the OIDC issuer's signing keys are accessible and not expired.
+- Check server logs for detailed error messages related to token validation.

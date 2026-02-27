@@ -5,4 +5,77 @@ icon: "address-book"
 sidebarTitle: "Contacts & Segments"
 ---
 
-Contacts are helpful if you want to assign response to specific contacts or users of your mobile application. Also, if you'd like to do [attribute-based targeting](/xm-and-surveys/surveys/website-app-surveys/advanced-targeting) of specific cohorts or segments of your user base you need this feature.
+<Note>
+  This feature requires an active Formbricks Enterprise License. [Learn more about licensing](/self-hosting/advanced/license).
+</Note>
+
+Contacts are helpful if you want to assign responses to specific contacts or users of your application. Also, if you'd like to do [attribute-based targeting](/xm-and-surveys/surveys/website-app-surveys/advanced-targeting) of specific cohorts or segments of your user base you need this feature.
+
+With contact management and segments enabled, you can build rich user profiles, group contacts into attribute-based segments, and deliver highly targeted surveys to exactly the right audience — all without writing additional code after the initial SDK setup.
+
+## Contact Management
+
+Contacts represent identified users of your application who interact with surveys. Each contact can have custom attributes attached such as plan type, role, company, or sign-up date.
+
+Contacts are created when users are identified through the JavaScript SDK by calling `formbricks.setUserId()`. For details on how to identify contacts via the JavaScript SDK, see the [User Identification Guide](/xm-and-surveys/surveys/website-app-surveys/user-identification).
+
+Once identified, a contact profile is created in Formbricks that stores:
+
+- **Custom attributes** — Key-value pairs you define (e.g., `plan`, `role`, `company`)
+- **Survey responses** — All responses submitted by this contact across surveys
+- **Interaction history** — Actions and events tracked for this contact
+
+From the Formbricks dashboard you can view individual contact profiles, inspect their attributes, browse their response history, delete contacts, and generate personal survey links for targeted outreach.
+
+<Note>
+  Source: Contact management logic is located in `apps/web/modules/ee/contacts/`, including individual contact views, attribute sections, response feeds, deletion, and personal link generation.
+</Note>
+
+## Attribute-Based Segments
+
+Segments allow you to group contacts based on their attribute values. Once you have identified contacts with custom attributes, you can create segments using flexible filter conditions to target specific user cohorts.
+
+Example segment conditions:
+
+| Condition | Description |
+| --- | --- |
+| `plan` equals `"enterprise"` | Target enterprise plan users |
+| `signupDate` before `"2024-01-01"` | Target early adopters |
+| `role` contains `"admin"` | Target administrators |
+
+Segments support multiple conditions combined with **AND/OR** logic, giving you fine-grained control over which contacts belong to a segment.
+
+Once a segment is defined, you can use it for targeted survey delivery — show specific surveys only to contacts matching the segment criteria. This is configured through the [Advanced Targeting](/xm-and-surveys/surveys/website-app-surveys/advanced-targeting) settings when creating a Website & App survey.
+
+<Note>
+  Source: Segment evaluation logic is located in `apps/web/modules/ee/contacts/api/v1/client/[environmentId]/user/lib/segments.ts`.
+</Note>
+
+## Bulk Contact Import
+
+Contacts can be imported in bulk via CSV upload, allowing mass creation of contacts along with their attributes. This is particularly useful for:
+
+- **Migrating existing user databases** — Import contacts from your current system into Formbricks
+- **Importing from external tools** — Bring in contacts from CRM platforms, email marketing tools, or analytics services
+- **Populating test environments** — Quickly set up contacts for QA and staging environments
+
+The audit log tracks bulk imports with the `createdFromCSV` action type, giving you full visibility into when and how contacts were added to your instance.
+
+## Attribute Tracking
+
+Contact attributes can be updated programmatically through the JavaScript SDK using the `setAttribute` function:
+
+```javascript
+formbricks.setAttribute("plan", "enterprise");
+```
+
+Key details about attribute tracking:
+
+- **Environment-scoped** — Attributes are tracked per environment (development vs production), so testing attribute changes in development does not affect production data
+- **Custom attribute keys** — You can create and manage any number of custom attribute keys to match your application's data model
+- **Segment evaluation** — Attribute updates are automatically reflected in segment membership, ensuring targeted surveys always reach the right audience
+- **Advanced targeting** — Attributes power the [Advanced Targeting](/xm-and-surveys/surveys/website-app-surveys/advanced-targeting) feature, letting you filter survey audiences without code changes
+
+<Note>
+  Source: Attribute update logic is located in `apps/web/modules/ee/contacts/api/v1/client/[environmentId]/user/lib/update-user.ts`.
+</Note>

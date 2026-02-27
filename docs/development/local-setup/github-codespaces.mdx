@@ -4,61 +4,155 @@ description: How to set up Formbricks in a GitHub Codespaces environment
 icon: "github"
 ---
 
-### GitHub Codespaces Setup
+GitHub Codespaces provides a cloud-hosted development environment that lets you start contributing to Formbricks without configuring your local machine. The repository includes a devcontainer configuration that automates most of the setup process.
 
-<Info>This guide outlines how to set up Formbricks in a **GitHub Codespaces** environment.</Info>
+<Note>This guide outlines how to set up Formbricks in a **GitHub Codespaces** environment. If the devcontainer runs successfully, most manual steps are handled automatically.</Note>
 
-**Requirements:**
+## Requirements
 
-- A GitHub Codespace that has support for Node.JS, pnpm, and Docker.
+The following tools are required for Formbricks development in GitHub Codespaces:
 
-**Steps:**
+| Tool | Version | Notes |
+|------|---------|-------|
+| Node.js | ≥20.0.0 | LTS recommended; monorepo requires `engines.node: ">=20.0.0"` (source: `package.json`) |
+| pnpm | 10.28.2 | Managed via the `packageManager` field (source: `package.json`) |
+| Turborepo | 2.5.3 | Build orchestration, installed as a devDependency (source: `package.json`) |
+| Docker | Latest | Required for dev database, cache, storage, and mail services |
 
-1. **Open your repository in GitHub Codespaces. If needed, clone the repository:**
+- A GitHub Codespace with support for Node.js, pnpm, and Docker
+- The `.devcontainer/devcontainer.json` uses the `mcr.microsoft.com/devcontainers/universal:2` image, which includes these tools pre-installed
 
-   ```bash
-   git clone https://github.com/formbricks/formbricks && cd formbricks
-   ```
+## Devcontainer Configuration
 
-2. **Setup NodeJS with nvm (if not already configured):**
+The Formbricks repository ships with a `.devcontainer/devcontainer.json` that pre-configures the Codespaces environment. When you open the repository in a Codespace, the devcontainer automates environment setup so you can start developing immediately.
 
-   ```bash
-   nvm install && nvm use
-   ```
+**Key configuration details:**
 
-3. **Install the dependencies:**
+- **Image:** `mcr.microsoft.com/devcontainers/universal:2` — a Microsoft-maintained image with Node.js, Python, Docker, and common developer tools pre-installed
+- **`postCreateCommand`:** Runs once when the Codespace is first created. It performs the following:
+  1. Copies `.env.example` to `.env`
+  2. Generates cryptographic secrets for `ENCRYPTION_KEY`, `NEXTAUTH_SECRET`, and `CRON_SECRET` via `openssl rand -hex 32`
+  3. Installs all dependencies with `pnpm install`
+  4. Runs database migrations with `pnpm db:migrate:dev`
+- **`postAttachCommand`:** Runs `pnpm go` each time you attach to the Codespace, which starts Docker services and all development servers concurrently
 
-   ```bash
-   pnpm install
-   ```
+```json
+{
+  "features": {},
+  "image": "mcr.microsoft.com/devcontainers/universal:2",
+  "postAttachCommand": "pnpm go",
+  "postCreateCommand": "cp .env.example .env && sed -i '/^ENCRYPTION_KEY=/c\\ENCRYPTION_KEY='$(openssl rand -hex 32) .env && sed -i '/^NEXTAUTH_SECRET=/c\\NEXTAUTH_SECRET='$(openssl rand -hex 32) .env && sed -i '/^CRON_SECRET=/c\\CRON_SECRET='$(openssl rand -hex 32) .env && pnpm install && pnpm db:migrate:dev"
+}
+```
 
-4. **Create a `.env` file from the template:**
+<Note>If the devcontainer setup completes successfully, you do not need to run the manual steps below. The manual setup is provided as an alternative for users who prefer more control over the process.</Note>
 
-   ```bash
-   cp .env.example .env
-   ```
+## Docker Development Services
 
-5. **Generate & set the required secrets:**
+The `pnpm go` command starts the following Docker services via `docker-compose.dev.yml`. These services provide the backing infrastructure for local development:
 
-   ```bash
-   sed -i '/^ENCRYPTION_KEY=/c\ENCRYPTION_KEY='$(openssl rand -hex 32) .env
-   sed -i '/^NEXTAUTH_SECRET=/c\NEXTAUTH_SECRET='$(openssl rand -hex 32) .env
-   sed -i '/^CRON_SECRET=/c\CRON_SECRET='$(openssl rand -hex 32) .env
-   ```
+| Service | Image | Port(s) | Purpose |
+|---------|-------|---------|---------|
+| PostgreSQL | `pgvector/pgvector:pg17` | 5432 | Database with pgvector extension on PostgreSQL 17 |
+| Valkey | `valkey/valkey` | 6379 | Redis-compatible cache (replaces Redis) |
+| MinIO | `minio/minio:RELEASE.2025-09-07T16-13-09Z` | 9000 (S3 API), 9001 (Console) | S3-compatible object storage |
+| MailHog | `arjenz/mailhog` | 1025 (SMTP), 8025 (Web UI) | Local email testing |
 
-6. **Generate the Next.js AGENTS.md file (optional, for AI-assisted development):**
+Source: `docker-compose.dev.yml`
 
-   This step generates an `AGENTS.md` file at the repository root that provides Next.js documentation context for AI coding assistants (e.g. Cursor, GitHub Copilot). It runs `npx @next/codemod agents-md` under the hood. Re-run it whenever you upgrade Next.js.
+## Manual Setup Steps
 
-   ```bash
-   pnpm agents:update
-   ```
+If the devcontainer automation does not run or you prefer to set up the environment manually, follow these steps:
 
-7. **Launch the development setup:**
-   ```bash
-   pnpm go
-   ```
+<Steps>
+  <Step title="Open Repository In GitHub Codespaces">
+    Navigate to the [Formbricks repository](https://github.com/formbricks/formbricks) on GitHub and click **Code → Codespaces → Create codespace on main**. The repository includes a `.devcontainer/devcontainer.json` that pre-configures the environment. If the devcontainer runs successfully, most steps below are automated.
+  </Step>
 
-Use the Codespaces port forwarding to access Formbricks at [http://localhost:3000](http://localhost:3000).
+  <Step title="Clone The Repository">
+    If the repository is not auto-cloned into your Codespace, clone it manually:
 
-<Tip>Make sure your Codespaces port configuration is set to allow access to the app.</Tip>
+    ```bash
+    git clone https://github.com/formbricks/formbricks && cd formbricks
+    ```
+  </Step>
+
+  <Step title="Setup Node.js With nvm">
+    Install and activate the correct Node.js version using nvm. The `.nvmrc` file specifies Node.js 22.1.0:
+
+    ```bash
+    nvm install && nvm use
+    ```
+  </Step>
+
+  <Step title="Install Dependencies">
+    Install all monorepo dependencies with pnpm:
+
+    ```bash
+    pnpm install
+    ```
+  </Step>
+
+  <Step title="Create Environment File">
+    Copy the example environment file to create your local configuration:
+
+    ```bash
+    cp .env.example .env
+    ```
+  </Step>
+
+  <Step title="Generate Secret Values">
+    Generate cryptographic secrets for the required environment variables:
+
+    ```bash
+    sed -i '/^ENCRYPTION_KEY=/c\ENCRYPTION_KEY='$(openssl rand -hex 32) .env
+    sed -i '/^NEXTAUTH_SECRET=/c\NEXTAUTH_SECRET='$(openssl rand -hex 32) .env
+    sed -i '/^CRON_SECRET=/c\CRON_SECRET='$(openssl rand -hex 32) .env
+    ```
+  </Step>
+
+  <Step title="Run Database Migrations">
+    Apply all Prisma database migrations to set up the schema:
+
+    ```bash
+    pnpm db:migrate:dev
+    ```
+  </Step>
+
+  <Step title="Generate AGENTS.md File (Optional)">
+    This step generates an `AGENTS.md` file at the repository root that provides Next.js documentation context for AI coding assistants (e.g., Cursor, GitHub Copilot). It runs `npx @next/codemod agents-md` under the hood. Re-run it whenever you upgrade Next.js:
+
+    ```bash
+    pnpm agents:update
+    ```
+  </Step>
+
+  <Step title="Start Development Setup">
+    Launch all Docker services and development servers concurrently:
+
+    ```bash
+    pnpm go
+    ```
+
+    This command starts the Docker development services (PostgreSQL, Valkey, MinIO, MailHog) and all application dev servers. Once startup completes, Formbricks is accessible at `http://localhost:3000`.
+  </Step>
+</Steps>
+
+## Port Forwarding
+
+GitHub Codespaces automatically detects open ports and offers to forward them. The following ports are used by the Formbricks development environment:
+
+| Port | Service | Description |
+|------|---------|-------------|
+| 3000 | Next.js App | Main Formbricks application |
+| 5432 | PostgreSQL | Database (internal, typically not forwarded) |
+| 6379 | Valkey | Cache (internal, typically not forwarded) |
+| 8025 | MailHog Web UI | Email testing interface |
+| 9000 | MinIO S3 API | Object storage API |
+| 9001 | MinIO Console | Object storage web console |
+
+Ensure that port **3000** is forwarded and set to the appropriate visibility (e.g., **Public** or **Private to Organization**) to access the Formbricks application from your browser.
+
+<Tip>Make sure your Codespaces port configuration is set to allow access to the app. If port 3000 does not appear in the Ports tab, click **Add Port** and enter `3000` manually.</Tip>
+
+<Note>On your first visit to the application, create a new account to get started. The onboarding wizard guides you through initial project and environment configuration.</Note>

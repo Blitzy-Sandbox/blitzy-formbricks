@@ -158,7 +158,7 @@ Source: `generateStandardWebhookSignature()` in `apps/web/lib/crypto.ts` line 18
 
 The signature is computed as follows:
 
-```
+```text
 signed_content = "{webhook-id}.{webhook-timestamp}.{body}"
 signature = base64(HMAC-SHA256(secret, signed_content))
 header_value = "v1,{signature}"

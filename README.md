@@ -85,45 +85,71 @@ Formbricks is both a free and open source survey platform - and a privacy-first 
 
 - 🔗 Distribute surveys across **4 channels**: in-app, website, link, and email surveys.
 
-- 👨‍👩‍👦 **Collaborate** with organization roles (owner, manager, member, billing) and team-based access control.
-
-- 🔌 Integrate Formbricks with **Slack, Google Sheets, Notion, Airtable, Zapier, n8n, webhooks, and more**.
-
-- 🔒 All **open source**, transparent and self-hostable.
+- 📥 **Response collection** — Collect responses with partial submission capture, file uploads, and spam protection (Turnstile/reCAPTCHA).
 
 - 📊 **Analytics & Insights** — Response dashboards, CSAT scoring, and shareable analytics links.
 
-- 🌍 **Multi-language surveys** — 14-locale internationalization support (enterprise feature).
+- 📈 **REST API v1 & v2** — Comprehensive API with dual-version architecture.
+
+- 🔐 **Authentication** — Email/password, OAuth providers (Google, Azure AD), and CAPTCHA protection.
+
+- 👨‍👩‍👦 **Organization management** — Organization roles (owner, manager, member, billing) and multi-org support.
+
+- 📁 **Project management** — Multi-project support with environment-based configuration (development/production).
+
+- 🔌 **Webhook integrations** — Standard Webhooks–compliant webhook delivery with HMAC-SHA256 signing.
+
+- 🧩 Integrate Formbricks with **Slack, Google Sheets, Notion, Airtable, Zapier, n8n, and more** native integrations.
+
+- 📎 **File storage** — S3-compatible file storage with plan-based size limits (5 MB / 10 MB / 1 GB).
+
+- 🌍 **Internationalization** — 14-locale support for surveys, emails, and platform UI.
+
+- ⏱️ **Rate limiting** — Redis-backed rate limiting with 12 configurable categories and fail-open design.
+
+- 📧 **Email notifications** — Transactional email system with customizable templates, branding, and legal footers.
+
+- 🚀 **Setup & onboarding** — Guided onboarding wizard for fresh instances with Docker, Kubernetes, and one-click setup.
+
+- 🔒 All **open source**, transparent and self-hostable.
 
 - 🔐 **Enterprise SSO** — SAML and OIDC single sign-on support.
 
+- 🏷️ **Contact management** — Contact segments with attribute-based targeting (enterprise feature).
+
+- 🛡️ **Two-factor authentication** — TOTP-based 2FA with backup codes (enterprise feature).
+
 - 📝 **Audit logging** — Enterprise audit trail with async queue processing.
 
-- 📧 **Email follow-ups** — Automated email follow-ups based on survey responses.
+- 💳 **Billing & subscription** — Stripe-powered subscription management with plan-based feature gating.
 
-- 🏷️ **Contact management** — Contact segments with attribute-based targeting.
+- 👥 **Role management** — Team-based access control with admin and contributor roles (enterprise feature).
 
-- 🛡️ **Two-factor authentication** — TOTP-based 2FA with backup codes.
+- 🌐 **Multi-language surveys** — Translate surveys into 14 supported locales (enterprise feature).
 
-- 📈 **REST API v1 & v2** — Comprehensive API with dual-version architecture.
+- ✉️ **Email follow-ups** — Automated email follow-ups based on survey responses (enterprise feature).
+
+- 📏 **Quotas & limits** — Plan-based response quotas (Free: 1,500, Startup: 5,000) and configurable limits.
+
+- 🔑 **License management** — Enterprise license validation with remote verification, caching, and grace period.
 
 ### Built on Open Source
 
-- 💻 [Typescript](https://www.typescriptlang.org/)
+- 💻 [TypeScript](https://www.typescriptlang.org/) — Strict mode, sole primary language
 
-- 🚀 [Next.js](https://nextjs.org/)
+- 🚀 [Next.js 16.1.6](https://nextjs.org/) — App Router with RSC
 
-- ⚛️ [React](https://react.dev/)
+- ⚛️ [React 19.2.3](https://react.dev/) — Server and client components
 
-- 🎨 [TailwindCSS](https://tailwindcss.com/)
+- 🎨 [TailwindCSS](https://tailwindcss.com/) — Utility-first CSS framework
 
-- 📚 [Prisma](https://prisma.io/)
+- 📚 [Prisma 6.14.0](https://prisma.io/) — Type-safe ORM with PostgreSQL
 
-- 🔒 [Auth.js](https://authjs.dev/)
+- 🔒 [Auth.js](https://authjs.dev/) — Authentication framework
 
-- 🧘‍♂️ [Zod](https://zod.dev/)
+- 🧘‍♂️ [Zod](https://zod.dev/) — Runtime type validation
 
-- 🐛 [Vitest](https://vitest.dev/)
+- 🐛 [Vitest](https://vitest.dev/) — Unit and integration testing
 
 <a id="getting-started"></a>
 

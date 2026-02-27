@@ -53,7 +53,7 @@ The default log level in production environments is `warn`, while in development
 LOG_LEVEL=debug
 ```
 
-### AccessDocker Container Logs
+### Access Docker Container Logs
 
 ```bash
 # One-Click setup
@@ -84,59 +84,143 @@ Since all logs are written to stdout/stderr, you can integrate with various logg
 
 ## OpenTelemetry Integration
 
-Formbricks offers two complementary observability approaches:
+Formbricks includes built-in OpenTelemetry instrumentation via the `@opentelemetry/sdk-node` NodeSDK. When configured, it provides distributed tracing, metrics collection, and auto-instrumentation of HTTP requests, database queries (Prisma), and Node.js runtime metrics.
 
-1. **Next.js OpenTelemetry** - For tracing and APM integration
-2. **Prometheus Integration** - For metrics collection and monitoring
+<Note>
+  OpenTelemetry is disabled by default. It only activates when `OTEL_EXPORTER_OTLP_ENDPOINT` is set (for OTLP trace and metric export) or `PROMETHEUS_ENABLED` is set to `1` (for pull-based Prometheus metrics). Without either variable, the SDK initializes with no exporters.
+</Note>
 
-### Next.js OpenTelemetry for Tracing
+Source: `apps/web/instrumentation-node.ts`
 
-Formbricks leverages Next.js's built-in OpenTelemetry instrumentation for tracing and APM integration. When enabled, it automatically instruments various aspects of your application, providing detailed insights into request flows and performance.
+### Configuration Environment Variables
 
-To enable Next.js OpenTelemetry, set the following environment variables:
+The following environment variables control OpenTelemetry and monitoring behavior. See the [Environment Variables](/self-hosting/configuration/environment-variables) page for the full list.
+
+| Variable | Type | Default | Description |
+|----------|------|---------|-------------|
+| `OTEL_EXPORTER_OTLP_ENDPOINT` | string | (none) | OTLP collector endpoint (e.g., `http://localhost:4318`). Enables trace and metric export when set. Exporters append `/v1/traces` and `/v1/metrics` automatically for HTTP transport. |
+| `OTEL_EXPORTER_OTLP_PROTOCOL` | string | `http/protobuf` | Transport protocol for OTLP export. |
+| `OTEL_EXPORTER_OTLP_HEADERS` | string | (none) | Additional headers for OTLP export in W3C OTel format (`key=value,key2=value2`). |
+| `OTEL_SERVICE_NAME` | string | `formbricks` | Service name reported in telemetry resource attributes. |
+| `OTEL_RESOURCE_ATTRIBUTES` | string | (none) | Additional resource attributes in comma-separated `key=value` format. |
+| `OTEL_TRACES_SAMPLER` | string | `always_on` | Trace sampling strategy. Options: `always_on`, `always_off`, `traceidratio`, `parentbased_traceidratio`, `parentbased_always_on`, `parentbased_always_off`. |
+| `OTEL_TRACES_SAMPLER_ARG` | number | `1` | Sampling ratio argument (0.0 to 1.0) for ratio-based samplers. |
+| `PROMETHEUS_ENABLED` | string | (none) | Set to `1` to enable the Prometheus metrics endpoint. |
+| `PROMETHEUS_EXPORTER_PORT` | number | `9464` | Port for the Prometheus metrics scrape endpoint. |
+| `SENTRY_DSN` | string | (none) | Sentry DSN for error tracking and performance monitoring. |
+| `SENTRY_AUTH_TOKEN` | string | (none) | Sentry auth token for source map uploads during build. |
+| `SENTRY_ENVIRONMENT` | string | (none) | Environment identifier in Sentry (e.g., `production`, `staging`). |
+
+### Setting Up OpenTelemetry Tracing
+
+<Steps>
+  <Step title="Deploy An OTLP-Compatible Collector">
+    Set up an OTLP-compatible backend such as Jaeger, SigNoz, Grafana Tempo, or any platform that accepts OTLP data. Ensure the collector is reachable from your Formbricks instance.
+  </Step>
+  <Step title="Configure The OTLP Endpoint">
+    Set the `OTEL_EXPORTER_OTLP_ENDPOINT` environment variable to point to your collector. The exporter automatically appends `/v1/traces` and `/v1/metrics` for HTTP transport.
+
+    ```env
+    OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4318
+    OTEL_SERVICE_NAME=formbricks
+    ```
+  </Step>
+  <Step title="Configure Sampling (Optional)">
+    Optionally adjust the trace sampling strategy with `OTEL_TRACES_SAMPLER` and `OTEL_TRACES_SAMPLER_ARG` to control the volume of trace data:
+
+    ```env
+    OTEL_TRACES_SAMPLER=parentbased_traceidratio
+    OTEL_TRACES_SAMPLER_ARG=0.5
+    ```
+
+    This example uses parent-based sampling with a 50% trace ratio — child spans inherit the sampling decision of their parent, and root spans are sampled at 50%.
+  </Step>
+  <Step title="Restart Formbricks">
+    Restart your Formbricks instance. The OpenTelemetry instrumentation initializes automatically on startup and logs the active exporters and sampler configuration.
+  </Step>
+</Steps>
+
+**Complete example `.env` configuration:**
 
 ```env
-OTEL_ENABLED=true
-OTEL_ENDPOINT=<your-collector-endpoint> # e.g., http://localhost:4318/v1/traces for OTLP HTTP
+OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4318
 OTEL_SERVICE_NAME=formbricks
-NEXT_OTEL_VERBOSE=1 # Optional: enables detailed tracing
+OTEL_TRACES_SAMPLER=parentbased_traceidratio
+OTEL_TRACES_SAMPLER_ARG=0.5
 ```
 
-#### Default Next.js Instrumentation
+### Auto-Instrumentation Details
 
-The Next.js OpenTelemetry integration automatically tracks:
+Formbricks automatically instruments the following components when OpenTelemetry is active:
 
-- HTTP requests and responses
-- Route rendering
-- API route execution
-- Server-side operations
-- Database queries
-- External API calls
+- **HTTP requests and responses** — All inbound and outbound HTTP calls are traced, providing visibility into request latency and error rates.
+- **Database queries** — Prisma query tracing via `@prisma/instrumentation` captures SQL execution times and query patterns.
+- **Node.js runtime** — Garbage collection frequency and duration, event loop lag, and heap statistics are collected via `@opentelemetry/instrumentation-runtime-node`.
 
-#### Supported Backends for Tracing
+The following instrumentations are **disabled by default** to reduce noise:
 
-OpenTelemetry trace data can be exported to various observability platforms:
+- **File system (`fs`)** — Disabled to avoid tracing every file read/write operation.
+- **DNS** — Disabled to reduce trace volume from DNS resolution.
+- **TCP (`net`)** — Disabled to avoid low-level network tracing.
+- **Raw PostgreSQL (`pg`)** — Disabled because Prisma instrumentation handles database tracing at a higher level.
 
-##### Tracing Backends
+<Note>
+  The HTTP instrumentation automatically ignores `/health`, `/metrics`, and `/api/v2/health` endpoints to prevent health check and metrics scrape requests from generating trace noise.
+</Note>
 
-- Jaeger
-- Zipkin
-- Tempo
+### Batch Processing Configuration
 
-##### APM & Full-Stack Observability Platforms
+Trace spans are batched before export using a `BatchSpanProcessor` with the following settings:
 
-- New Relic
-- Datadog
-- Dynatrace
-- Azure Monitor
-- AWS X-Ray
-- Google Cloud Trace
+| Setting | Value | Description |
+|---------|-------|-------------|
+| `maxQueueSize` | 2048 spans | Maximum number of spans buffered in memory before dropping. |
+| `maxExportBatchSize` | 512 spans | Maximum number of spans exported in a single batch. |
+| `scheduledDelayMillis` | 5000 ms (5 seconds) | Time interval between scheduled batch exports. |
+| `exportTimeoutMillis` | 30000 ms (30 seconds) | Maximum time allowed for a single export operation. |
+
+Metrics are exported every **60 seconds** via the `PeriodicExportingMetricReader`.
+
+<Note>
+  Formbricks registers a `SIGTERM` handler to gracefully shut down the OpenTelemetry SDK, ensuring all pending spans and metrics are flushed before the process exits.
+</Note>
+
+### Supported OTLP Backends
+
+Formbricks exports telemetry data using the standard OTLP protocol, which is compatible with a wide range of observability platforms:
+
+**Tracing Backends:**
+
+- **Jaeger** — Open-source distributed tracing
+- **Grafana Tempo** — Scalable trace storage and querying
+- **Zipkin** — Distributed tracing system
+
+**Full-Stack Observability Platforms:**
+
+- **SigNoz** — Open-source observability (traces + metrics + logs)
+- **New Relic** — APM and observability
+- **Datadog** — APM and monitoring
+- **Dynatrace** — Full-stack observability
+
+**Cloud Provider Backends (via OTLP Collector):**
+
+- **AWS X-Ray** — Distributed tracing on AWS
+- **Google Cloud Trace** — Tracing on Google Cloud
+- **Azure Monitor** — Monitoring on Azure
+
+**Example: SigNoz Cloud configuration:**
+
+```env
+OTEL_EXPORTER_OTLP_ENDPOINT=https://ingest.signoz.io:443
+OTEL_EXPORTER_OTLP_HEADERS=signoz-ingestion-key=YOUR_SIGNOZ_KEY
+OTEL_SERVICE_NAME=formbricks
+```
 
 ## Prometheus Integration
 
-Formbricks implements a dedicated Prometheus metrics exporter using OpenTelemetry. This integration runs a metrics server on a separate port and exposes metrics in Prometheus format for scraping. It focuses specifically on host and runtime metrics rather than application-specific traces.
+Formbricks includes a built-in Prometheus metrics exporter using the `@opentelemetry/exporter-prometheus` package. When enabled, it exposes a `/metrics` endpoint for Prometheus scraping on a dedicated port, separate from the main application.
 
-### Configuration
+### Enabling Prometheus Metrics
 
 To enable and configure the Prometheus exporter, set the following environment variables:
 
@@ -145,9 +229,11 @@ PROMETHEUS_ENABLED=1
 PROMETHEUS_EXPORTER_PORT=9464  # Optional, defaults to 9464
 ```
 
-The `PROMETHEUS_ENABLED` environment variable must be set to `1` to enable metrics collection. The `PROMETHEUS_EXPORTER_PORT` variable is optional and defaults to 9464 if not specified.
+The `PROMETHEUS_ENABLED` environment variable must be set to `1` to enable metrics collection. The `PROMETHEUS_EXPORTER_PORT` variable is optional and defaults to `9464` if not specified.
 
-The exporter listens on all network interfaces (0.0.0.0) and exposes metrics at the `/metrics` endpoint.
+<Warning>
+  The Prometheus exporter listens on all network interfaces (`0.0.0.0`) on the configured port. Ensure this port is accessible from your Prometheus server but **not** exposed to the public internet. Use firewall rules or network policies to restrict access.
+</Warning>
 
 ### Available Metrics
 
@@ -171,9 +257,9 @@ The metrics exported by the Prometheus integration include:
   - Event loop lag
   - Heap statistics (size, used, available)
 
-### Collecting Metrics
+### Prometheus Scrape Configuration
 
-You can scrape metrics from your Prometheus server by adding the following to your Prometheus configuration:
+Add the following to your Prometheus configuration to scrape metrics from Formbricks:
 
 ```yaml
 scrape_configs:
@@ -181,6 +267,27 @@ scrape_configs:
     static_configs:
       - targets: ["your-formbricks-host:9464"]
 ```
+
+For Kubernetes deployments using the Prometheus Operator, you can use a `ServiceMonitor` resource:
+
+```yaml
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: formbricks
+spec:
+  selector:
+    matchLabels:
+      app: formbricks
+  endpoints:
+    - port: metrics
+      interval: 5s
+      path: /metrics
+```
+
+<Note>
+  The Formbricks Helm chart includes a built-in ServiceMonitor that is enabled by default (`serviceMonitor.enabled: true`). Metrics are scraped every 5 seconds from the `/metrics` endpoint on port `9464`. See the [Kubernetes Deployment](/self-hosting/setup/kubernetes) guide for details.
+</Note>
 
 ### Resource Attributes
 
@@ -190,7 +297,60 @@ The metrics include resource attributes automatically detected from:
 - Process information
 - Host information
 
+Additionally, the following resource attributes are set by Formbricks:
+
+| Attribute | Source | Description |
+|-----------|--------|-------------|
+| `service.name` | `OTEL_SERVICE_NAME` or `formbricks` | Identifies the service in dashboards. |
+| `service.version` | `npm_package_version` | Application version from `package.json`. |
+| `deployment.environment` | `ENVIRONMENT` or `NODE_ENV` | Deployment environment (e.g., `production`). |
+
 These attributes can help you filter and group metrics in your dashboards.
+
+## Sentry Integration
+
+Formbricks supports Sentry for error tracking and performance monitoring. Sentry captures unhandled exceptions, tracks performance bottlenecks, and provides readable stack traces with source map support.
+
+### Configuring Sentry
+
+```env
+SENTRY_DSN=https://your-sentry-dsn@sentry.io/project-id
+SENTRY_AUTH_TOKEN=your-sentry-auth-token
+SENTRY_ENVIRONMENT=production
+```
+
+| Variable | Purpose |
+|----------|---------|
+| `SENTRY_DSN` | Enables error tracking and performance monitoring at runtime. Obtain from your Sentry project settings. |
+| `SENTRY_AUTH_TOKEN` | Used during the build process by the Sentry Build Plugin to upload source maps for readable error stack traces. |
+| `SENTRY_ENVIRONMENT` | Tags errors with the deployment environment name (e.g., `production`, `staging`, `development`). |
+
+<Note>
+  `SENTRY_AUTH_TOKEN` is only required during build time for source map uploads. If you are using pre-built Docker images, you only need to set `SENTRY_DSN` at runtime.
+</Note>
+
+## Observability Architecture
+
+The following diagram illustrates the three observability paths available in Formbricks:
+
+```mermaid
+flowchart LR
+    FB[Formbricks] -->|OTLP traces & metrics| OC[OTLP Collector]
+    FB -->|/metrics endpoint| PROM[Prometheus]
+    FB -->|Error reports| SENTRY[Sentry]
+    OC --> JAEGER[Jaeger / Tempo]
+    OC --> SIGNOZ[SigNoz]
+    OC --> NR[New Relic / Datadog]
+    PROM --> GRAFANA[Grafana]
+```
+
+Formbricks provides three complementary observability paths that can be used independently or together:
+
+1. **OTLP Export** — Distributed traces and metrics are sent to an OTLP-compatible collector via `OTEL_EXPORTER_OTLP_ENDPOINT`. The collector forwards data to backends such as Jaeger, Grafana Tempo, SigNoz, or commercial APM platforms.
+2. **Prometheus Scrape** — Pull-based metrics collection from the `/metrics` endpoint. Prometheus scrapes host, HTTP, and runtime metrics at a configurable interval, which can be visualized in Grafana dashboards.
+3. **Sentry** — Error tracking and performance monitoring with source map support for readable stack traces. Sentry captures unhandled exceptions and can be configured independently of OpenTelemetry.
+
+Source: `apps/web/instrumentation-node.ts`
 
 ## Health Checks
 
@@ -198,6 +358,11 @@ Available endpoints:
 
 ```
 GET /health
+GET /api/v2/health
 ```
 
 Use these endpoints for monitoring system health in container orchestration and monitoring tools.
+
+<Note>
+  Both `/health` and `/api/v2/health` endpoints are available for health checks. The HTTP instrumentation automatically excludes these endpoints from tracing to prevent noise.
+</Note>

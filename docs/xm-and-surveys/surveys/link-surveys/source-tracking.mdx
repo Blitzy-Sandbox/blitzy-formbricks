@@ -16,29 +16,87 @@ Source tracking for link surveys is essential when you:
 
 - Want to analyze the origin of your survey respondents.
 - Aim to ensure compliance with tracking and data collection regulations.
+- Need to measure the effectiveness of different marketing channels.
+- Want to attribute survey responses to specific campaigns or outreach efforts.
 
-## Code Example
+## Source Parameter
 
-```sh Example Source as Google
+Formbricks uses a dedicated `?source=` URL parameter to track where survey respondents are coming from. When a user opens a link survey with this parameter, the value is captured and stored as part of the response metadata.
+
+| Parameter | Format | Example |
+|-----------|--------|---------|
+| `source` | `?source=YourSource` | `?source=Google` |
+
+<Note>
+  Formbricks uses the `?source=` parameter as the primary source tracking mechanism. Standard UTM parameters (`utm_source`, `utm_medium`, `utm_campaign`) are not captured automatically. If you need to pass additional campaign metadata, consider using [Hidden Fields](/xm-and-surveys/surveys/general-features/hidden-fields) alongside source tracking.
+</Note>
+
+```sh Example Source As Google
 https://formbricks.com/s/clin3dxja02k8l80hpwmx4bjy?source=Google
 ```
 
-## How it Works
+## How It Works
 
 To track the source of users in your link surveys effectively, follow these steps:
 
-1. **Generate Survey URL**: Create a Link Survey and get the sharable link. Append `?source=YourSouce` to the link to reference it with your campaigns and sources.
+<Steps>
+  <Step title="Generate Survey URL">
+    Create a Link Survey and get the sharable link. Append `?source=YourSource` to the link to reference it with your campaigns and sources.
 
-```sh Example Source as Google
-https://formbricks.com/s/clin3dxja02k8l80hpwmx4bjy?source=Google
+    ```sh Example Source As Google
+    https://formbricks.com/s/clin3dxja02k8l80hpwmx4bjy?source=Google
+    ```
+  </Step>
+
+  <Step title="Collect Data">
+    When users access the survey through these links, the `source` URL parameter is automatically captured and stored in the response metadata. No additional configuration is required.
+  </Step>
+
+  <Step title="View Responses">
+    Use the collected source data to analyze where your survey respondents are coming from. In the **Responses** tab, hover over the user icon to see the source metadata for each individual response.
+
+    ![View Source in Response](/images/xm-and-surveys/surveys/link-surveys/source-tracking/view-response.webp)
+  </Step>
+
+  <Step title="Analyze Data">
+    Download all the responses as a CSV or Excel file to access the source information in a dedicated **Source** column. This can provide valuable insights into which channels drive the most engagement.
+  </Step>
+</Steps>
+
+## Source Data In Responses
+
+The captured source value is stored in the response `meta` object and is accessible in multiple places:
+
+- **Responses Tab**: Hover over the user icon on any response card to see the source alongside other metadata (country, browser, OS, device, URL).
+- **CSV / Excel Export**: The source appears as a dedicated column when you download responses, making it easy to filter and analyze by channel.
+- **REST API**: When retrieving responses via the API, the source is included in the `meta.source` field of each response object:
+
+```json Example API Response Meta
+{
+  "meta": {
+    "source": "Google",
+    "url": "https://formbricks.com/s/clin3dxja02k8l80hpwmx4bjy?source=Google",
+    "userAgent": {
+      "browser": "Chrome",
+      "os": "Mac OS",
+      "device": "desktop"
+    },
+    "country": "US"
+  }
+}
 ```
 
-2. **Collect Data**: When users access the survey through these links, the URL parameters will capture the source information from which they were shared.
+## Use Cases
 
-3. **View Responses**: Use the collected source data to analyze where your survey respondents are coming from. You can hover over the user icon in the responses tab to see the source of the user.
+Source tracking is flexible and supports a variety of attribution scenarios:
 
-   ![View Source in Response](/images/xm-and-surveys/surveys/link-surveys/source-tracking/view-response.webp)
-
-4. **Analyse Data**: Download all the responses as a CSV/Excel and get access to the source information. This can provide valuable insights into your audience.
+- **Marketing Channel Attribution**: Use different source values for each distribution channel (e.g., `?source=Email`, `?source=Twitter`, `?source=LinkedInAd`) to measure which channels drive the most responses.
+- **Campaign Effectiveness**: Assign unique source values per campaign (e.g., `?source=Q1-Promo`, `?source=Product-Launch`) to compare performance across initiatives.
+- **A/B Testing Distribution Methods**: Create separate source-tagged links for the same survey to compare engagement across different distribution strategies.
+- **Partner And Referral Tracking**: Tag links shared with partners or affiliates (e.g., `?source=PartnerA`, `?source=Referral-Blog`) to measure referral-driven responses.
 
 Source tracking allows you to make informed decisions based on the origin of your survey participants, helping you tailor your surveys and marketing strategies accordingly.
+
+---
+
+_Source: `packages/surveys/src/components/general/survey.tsx` (source parameter extraction), `packages/types/responses.ts` (ZResponseMeta schema)_

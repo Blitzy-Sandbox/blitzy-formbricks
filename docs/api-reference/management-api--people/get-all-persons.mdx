@@ -1,3 +1,23 @@
 ---
 openapi: get /api/v1/management/people
 ---
+
+<Warning>
+  The People API endpoints are maintained for backward compatibility. In newer versions of Formbricks, the terminology has shifted from "People" to "Contacts." For new integrations, consider using the [Contacts API](/api-reference/management-api--contacts/get-all-contacts) instead.
+</Warning>
+
+## Endpoint Details
+
+This endpoint retrieves all identified people from your Formbricks environment. The response includes pagination support for large datasets.
+
+### Authentication
+
+This endpoint requires a valid API key passed via the `x-api-key` header with appropriate read permissions. See [Generate API Key](/api-reference/generate-key) for setup instructions.
+
+### Pagination
+
+The response includes pagination metadata. Use the returned offset and limit values to paginate through large result sets.
+
+<Note>
+  This endpoint returns identified people only — anonymous visitors are not included in the results. Each person object includes their internal Formbricks ID, creation timestamp, and associated attributes.
+</Note>

@@ -16,6 +16,23 @@ You can combine multiple validation rules using **All are true** or **Any is tru
 - **All are true**: All rules must pass for the response to be valid
 - **Any is true**: At least one rule must pass for the response to be valid
 
+## Technical Overview
+
+Under the hood, Formbricks validation rules are built on [Zod](https://zod.dev/) schemas. Each validation rule is defined as a structured object with the following properties:
+
+| Property | Type | Description |
+|----------|------|-------------|
+| `id` | `string` | Unique identifier for the rule |
+| `type` | `string` | The validation rule type (e.g., `minLength`, `maxValue`, `isLaterThan`) |
+| `params` | `object` | Type-specific parameters for the rule (e.g., `{ min: 10 }` for `minLength`) |
+| `field` | `string` (optional) | Targets a specific sub-field within composite questions like Address or Contact Info |
+
+The platform defines 26 validation rule types organized into six categories: text rules, numeric rules, selection rules, date rules, ranking/matrix rules, and file upload rules. An internal `APPLICABLE_RULES` mapping determines which rule types are available for each question type, ensuring only relevant validation options appear in the survey editor.
+
+<Note>
+  Source: `packages/types/surveys/validation-rules.ts` — contains `ZValidationRuleType`, `ZValidationRule`, and `APPLICABLE_RULES` definitions.
+</Note>
+
 ## Available Validation Rules by Question Type
 
 ### Free Text Questions
@@ -59,8 +76,10 @@ Phone input automatically validates phone number format. Additional rules availa
 
 | Rule | Description | Example |
 |------|-------------|---------|
-| At least | Number must be at least N | Age must be at least 18 |
-| At most | Number cannot exceed N | Quantity at most 100 |
+| At least | Number must be at least N (inclusive, ≥) | Age must be at least 18 |
+| At most | Number cannot exceed N (inclusive, ≤) | Quantity at most 100 |
+| Greater than | Number must be strictly greater than N (>) | Score greater than 0 |
+| Less than | Number must be strictly less than N (<) | Discount less than 100 |
 | Is | Number must equal N | Quantity is 1 |
 | Is not | Number must not equal N | Cannot be 0 |
 
@@ -77,6 +96,10 @@ Phone input automatically validates phone number format. Additional rules availa
 |------|-------------|---------|
 | At least (options selected) | Require at least N pictures | At least 1 design selected |
 | At most (options selected) | Limit to N pictures | At most 2 favorites selected |
+
+<Note>
+  Selection validation rules for Picture Selection questions are only available when **Allow Multiple Selections** is enabled in the question settings. When single selection mode is active, the respondent can only pick one picture and selection count rules do not apply.
+</Note>
 
 ### Date Questions
 
@@ -118,24 +141,41 @@ Phone input automatically validates phone number format. Additional rules availa
 
 ### Address Questions
 
-Each address field (Address Line 1, Address Line 2, City, State, ZIP, Country) can have its own validation rules:
-- At least, At most (characters)
-- Matches Regex Pattern
-- Is, Is not
-- Contains, Does not contain
+Each address field (Address Line 1, Address Line 2, City, State, ZIP, Country) can have its own validation rules. The `field` property on each rule specifies which sub-field the validation targets (e.g., `city`, `state`, `zip`).
+
+| Rule | Description | Example |
+|------|-------------|---------|
+| At least (characters) | Minimum character count for the field | City must be at least 2 characters |
+| At most (characters) | Maximum character count for the field | ZIP at most 10 characters |
+| Matches Regex Pattern | Field must match a regex pattern | ZIP matches `^\d{5}(-\d{4})?$` |
+| Email format | Field must be a valid email address | Alternate contact field |
+| URL format | Field must be a valid URL | Website field |
+| Phone format | Field must be a valid phone number | Alternate phone field |
+| Is | Field must exactly match a value | Country is "US" |
+| Is not | Field must not match a value | State is not "N/A" |
+| Contains | Field must include substring | Address contains "Suite" |
+| Does not contain | Field must not include substring | Address does not contain "PO Box" |
 
 ### Contact Info Questions
 
-Each contact field can have specific validation rules:
+Each contact field (First Name, Last Name, Email, Phone, Company) can have its own validation rules. The `field` property on each rule specifies which sub-field the validation targets (e.g., `firstName`, `email`, `phone`).
 
-**First Name, Last Name, Company**:
-- At least, At most (characters)
-- Matches Regex Pattern, Is, Is not
-- Contains, Does not contain
+| Rule | Description | Example |
+|------|-------------|---------|
+| At least (characters) | Minimum character count for the field | First Name must be at least 2 characters |
+| At most (characters) | Maximum character count for the field | Company at most 100 characters |
+| Matches Regex Pattern | Field must match a regex pattern | Last Name matches `^[A-Za-z\s'-]+$` |
+| Email format | Field must be a valid email address | Email sub-field validation |
+| URL format | Field must be a valid URL | Company website field |
+| Phone format | Field must be a valid phone number | Phone sub-field validation |
+| Is | Field must exactly match a value | Company is "Acme Corp" |
+| Is not | Field must not match a value | First Name is not "Test" |
+| Contains | Field must include substring | Email contains "@company.com" |
+| Does not contain | Field must not include substring | Phone does not contain "+0" |
 
-**Email**: Automatically validates email format, plus text rules above
-
-**Phone**: Automatically validates phone format, plus text rules above
+<Note>
+  The **Email** and **Phone** sub-fields benefit from their respective built-in format validators (`email` and `phone` rule types) to automatically enforce correct formatting in addition to any custom text-based rules.
+</Note>
 
 ## Adding Validation Rules
 
@@ -183,3 +223,40 @@ When using multiple validation rules:
 
 **Any is true**: Use when any condition is acceptable.
 - Example: Date is earlier than 2025-01-01 OR is later than 2025-12-31
+
+## Complete Validation Rule Type Reference
+
+The table below lists every validation rule type supported by the platform, organized by category:
+
+| Category | Rule Type | Parameters | Description |
+|----------|-----------|------------|-------------|
+| Text | `minLength` | `min` (number) | Minimum character count |
+| Text | `maxLength` | `max` (number) | Maximum character count |
+| Text | `pattern` | `pattern` (string), `flags` (optional) | Regex pattern match |
+| Text | `email` | — | Valid email format |
+| Text | `url` | — | Valid URL format |
+| Text | `phone` | — | Valid phone number format |
+| Text | `equals` | `value` (string) | Exact match required |
+| Text | `doesNotEqual` | `value` (string) | Must not match value |
+| Text | `contains` | `value` (string) | Must include substring |
+| Text | `doesNotContain` | `value` (string) | Must not include substring |
+| Numeric | `minValue` | `min` (number) | Minimum value (inclusive, ≥) |
+| Numeric | `maxValue` | `max` (number) | Maximum value (inclusive, ≤) |
+| Numeric | `isGreaterThan` | `min` (number) | Strictly greater than (>) |
+| Numeric | `isLessThan` | `max` (number) | Strictly less than (<) |
+| Selection | `minSelections` | `min` (number) | Minimum selections required |
+| Selection | `maxSelections` | `max` (number) | Maximum selections allowed |
+| Date | `isLaterThan` | `date` (YYYY-MM-DD) | Date must be after value |
+| Date | `isEarlierThan` | `date` (YYYY-MM-DD) | Date must be before value |
+| Date | `isBetween` | `startDate`, `endDate` (YYYY-MM-DD) | Date within range |
+| Date | `isNotBetween` | `startDate`, `endDate` (YYYY-MM-DD) | Date outside range |
+| Ranking | `minRanked` | `min` (number) | Minimum items ranked |
+| Ranking | `rankAll` | — | All items must be ranked |
+| Matrix | `minRowsAnswered` | `min` (number) | Minimum rows answered |
+| Matrix | `answerAllRows` | — | All rows must be answered |
+| File | `fileExtensionIs` | `extensions` (string array) | Allowed file extensions |
+| File | `fileExtensionIsNot` | `extensions` (string array) | Blocked file extensions |
+
+<Note>
+  Source: `packages/types/surveys/validation-rules.ts` — This reference table is derived from the `ZValidationRuleType` enum and the corresponding Zod parameter schemas defined in the source.
+</Note>

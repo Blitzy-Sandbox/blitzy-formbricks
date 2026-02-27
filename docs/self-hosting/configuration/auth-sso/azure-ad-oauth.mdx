@@ -6,11 +6,11 @@ icon: "microsoft"
 
 <Note>AzureAD OAuth is part of the Formbricks [Enterprise Edition](/self-hosting/advanced/license)</Note>
 
-### Microsoft Entra ID
+## Microsoft Entra ID
 
 Do you have a Microsoft Entra ID Tenant? Integrate it with your Formbricks instance to allow users to log in using their existing Microsoft credentials. This guide will walk you through the process of setting up an Application Registration for your Formbricks instance.
 
-### Requirements
+## Requirements
 
 - A Microsoft Entra ID Tenant populated with users. [Create a tenant as per Microsoft's documentation](https://learn.microsoft.com/en-us/entra/fundamentals/create-new-tenant).
 
@@ -18,7 +18,7 @@ Do you have a Microsoft Entra ID Tenant? Integrate it with your Formbricks insta
 
 - The callback URI for your Formbricks instance: `{WEBAPP_URL}/api/auth/callback/azure-ad`
 
-## How to connect your Formbricks instance to Microsoft Entra
+## How To Connect Your Formbricks Instance To Microsoft Entra
 
 <Steps>
   <Step title="Access the Microsoft Entra admin center">
@@ -88,7 +88,7 @@ Do you have a Microsoft Entra ID Tenant? Integrate it with your Formbricks insta
     - Update these environment variables in your `docker-compose.yml` or pass it like your other environment variables to the Formbricks container.
 
     <Note>
-      You must wrap the `AZUREAD_CLIENT_SECRET` value in double quotes (e.g., "THis~iS4faKe.53CreTvALu3"`) to prevent issues with special characters.
+      You must wrap the `AZUREAD_CLIENT_SECRET` value in double quotes (e.g., `"THis~iS4faKe.53CreTvALu3"`) to prevent issues with special characters.
     </Note>
 
     An example `.env` for Microsoft Entra ID in Formbricks would look like this:
@@ -105,3 +105,7 @@ Do you have a Microsoft Entra ID Tenant? Integrate it with your Formbricks insta
     - You're all set! Users can now sign up & log in using their Microsoft credentials associated with your Entra ID Tenant.
   </Step>
 </Steps>
+
+---
+
+Source: `apps/web/modules/ee/sso/lib/providers.ts`, `apps/web/lib/constants.ts`

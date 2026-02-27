@@ -1,6 +1,7 @@
 ---
-title: Google Sheets (On Premise)
-description: Instantly populate your Google Sheet table with survey data
+title: "Google Sheets (On Premise)"
+description: "Instantly populate your Google Sheet table with survey data."
+icon: "table-cells"
 ---
 
 The Google Sheets integration allows you to automatically send responses to an Google Sheets of your choice.
@@ -67,21 +68,13 @@ Integrating Google Sheets with a self-hosted Formbricks instance requires config
 
 * Save and note the Client ID and Client Secret.
 
-* Copy the Client ID and Client Secret and set them as environment variables in your Formbricks instance:
+* Copy the Client ID, Client Secret, and Redirect URL and set them as environment variables in your Formbricks instance (e.g., in the docker-compose file):
 
-  * `GOOGLE_SHEETS_CLIENT_ID`
+  * `GOOGLE_SHEETS_CLIENT_ID` — OAuth Client ID
 
-  * `GOOGLE_SHEETS_CLIENT_SECRET`
+  * `GOOGLE_SHEETS_CLIENT_SECRET` — OAuth Client Secret
 
-  * `GOOGLE_SHEETS_REDIRECT_URL`
-
-Now just copy **GOOGLE\_SHEETS\_CLIENT\_ID**, **GOOGLE\_SHEETS\_CLIENT\_SECRET** and **GOOGLE\_SHEETS\_REDIRECT\_URL** for your integration & add it to your **Formbricks environment variables** as in the docker compose file:
-
-* `GOOGLE_SHEETS_CLIENT_ID`
-
-* `GOOGLE_SHEETS_CLIENT_SECRET`
-
-* `GOOGLE_SHEETS_REDIRECT_URL`
+  * `GOOGLE_SHEETS_REDIRECT_URL` — Set to `https://<your-public-facing-url>/api/google-sheet/callback`
 
 Voila! You have successfully enabled the Google Sheets integration in your self-hosted Formbricks instance. Now you can follow the steps mentioned in [Google Sheets Integration with Formbricks](/xm-and-surveys/core-features/integrations/google-sheets) section to link a Google Sheet with Formbricks.
 

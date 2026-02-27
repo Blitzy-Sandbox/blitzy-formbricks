@@ -4,63 +4,145 @@ description: How to set up Formbricks on a Linux machine
 icon: "linux"
 ---
 
-### Local Machine Setup - Linux
+<Note>This guide is recommended for advanced users setting up Formbricks on a **Linux** machine.</Note>
 
-<Info>This guide is recommended for advanced users setting up Formbricks on a **Linux** machine.</Info>
+## Requirements
 
-Here are the requirements for setting up Formbricks on Linux:
+The following tools must be installed before proceeding with local development:
 
-- Node.JS (v20 recommended)
-- [pnpm](https://pnpm.io/)
-- [Docker](https://www.docker.com/) (to run PostgreSQL/MailHog)
+| Tool | Version | Notes |
+|------|---------|-------|
+| Node.js | ≥20.0.0 | LTS recommended; `.nvmrc` specifies 22.1.0 (source: `package.json` engines, `.nvmrc`) |
+| pnpm | 10.28.2 | Managed via the `packageManager` field (source: `package.json`) |
+| Turborepo | 2.5.3 | Build orchestration, installed as devDependency (source: `package.json`) |
+| Docker | Latest | Required for PostgreSQL, Valkey, MinIO, and MailHog dev services |
+| Git | Latest | Version control |
 
-**Steps:**
+<Note>
+On Linux, you also need the following system-level prerequisites:
 
-1. **Clone the project & move into the directory:**
+- **Build essentials** (`gcc`, `make`) for native module compilation — install via `sudo apt-get install -y build-essential` (Debian/Ubuntu) or `sudo dnf groupinstall "Development Tools"` (Fedora/RHEL)
+- **curl** or **wget** for downloading nvm
+- **Docker Engine** — Docker Engine is the recommended option for Linux; Docker Desktop is also supported but not required
+</Note>
 
-   ```bash
-   git clone https://github.com/formbricks/formbricks && cd formbricks
-   ```
+## Docker Development Services
 
-2. **Setup NodeJS with nvm:**
+The local development environment uses four Docker services defined in `docker-compose.dev.yml`. These are started automatically when you run `pnpm go` (which executes `pnpm db:up` → `docker compose -f docker-compose.dev.yml up -d`).
 
-   ```bash
-   nvm install && nvm use
-   ```
+| Service | Image | Port(s) | Purpose |
+|---------|-------|---------|---------|
+| PostgreSQL | `pgvector/pgvector:pg17` | 5432 | Database with pgvector extension on PostgreSQL 17 |
+| Valkey | `valkey/valkey` | 6379 | Redis-compatible cache (replaces Redis) |
+| MinIO | `minio/minio:RELEASE.2025-09-07T16-13-09Z` | 9000 (S3 API), 9001 (Console) | S3-compatible object storage |
+| MailHog | `arjenz/mailhog` | 1025 (SMTP), 8025 (Web UI) | Local email testing |
 
-3. **Install NodeJS packages via pnpm:**
+Source: `docker-compose.dev.yml`
 
-   ```bash
-   pnpm install
-   ```
+## Setup Steps
 
-4. **Create a `.env` file based on `.env.example`:**
+<Steps>
+  <Step title="Clone The Repository">
+    Clone the Formbricks repository and navigate into the project directory:
 
-   ```bash
-   cp .env.example .env
-   ```
+    ```bash
+    git clone https://github.com/formbricks/formbricks && cd formbricks
+    ```
+  </Step>
 
-5. **Generate & set the secret values:**
+  <Step title="Setup Node.js With nvm">
+    Install and activate the correct Node.js version using nvm. The `.nvmrc` file pins Node.js to version 22.1.0:
 
-   ```bash
-   sed -i '/^ENCRYPTION_KEY=/c\ENCRYPTION_KEY='$(openssl rand -hex 32) .env
-   sed -i '/^NEXTAUTH_SECRET=/c\NEXTAUTH_SECRET='$(openssl rand -hex 32) .env
-   sed -i '/^CRON_SECRET=/c\CRON_SECRET='$(openssl rand -hex 32) .env
-   ```
+    ```bash
+    nvm install && nvm use
+    ```
+  </Step>
 
-6. **Generate the Next.js AGENTS.md file (optional, for AI-assisted development):**
+  <Step title="Install Dependencies With pnpm">
+    Install all project dependencies across the monorepo workspaces:
 
-   This step generates an `AGENTS.md` file at the repository root that provides Next.js documentation context for AI coding assistants (e.g. Cursor, GitHub Copilot). It runs `npx @next/codemod agents-md` under the hood. Re-run it whenever you upgrade Next.js.
+    ```bash
+    pnpm install
+    ```
+  </Step>
 
-   ```bash
-   pnpm agents:update
-   ```
+  <Step title="Create Environment File">
+    Copy the example environment file to create your local `.env` configuration:
 
-7. **Start the development setup:**
-   ```bash
-   pnpm go
-   ```
+    ```bash
+    cp .env.example .env
+    ```
+  </Step>
+
+  <Step title="Generate And Set Secret Values">
+    Generate cryptographically secure secrets for encryption, authentication, and cron jobs. These commands use GNU `sed` syntax (Linux default):
+
+    ```bash
+    sed -i '/^ENCRYPTION_KEY=/c\ENCRYPTION_KEY='$(openssl rand -hex 32) .env
+    sed -i '/^NEXTAUTH_SECRET=/c\NEXTAUTH_SECRET='$(openssl rand -hex 32) .env
+    sed -i '/^CRON_SECRET=/c\CRON_SECRET='$(openssl rand -hex 32) .env
+    ```
+
+    <Note>Three secrets are required: `ENCRYPTION_KEY`, `NEXTAUTH_SECRET`, and `CRON_SECRET`. Each must be a unique 32-byte hex string.</Note>
+  </Step>
+
+  <Step title="Run Database Migrations">
+    Apply all Prisma migration files to the local PostgreSQL database:
+
+    ```bash
+    pnpm db:migrate:dev
+    ```
+
+    This ensures your database schema is up to date with all 120+ migration files in the `packages/database/` directory.
+  </Step>
+
+  <Step title="Generate AGENTS.md File (Optional)">
+    This step generates an `AGENTS.md` file at the repository root that provides Next.js documentation context for AI coding assistants (e.g., Cursor, GitHub Copilot). It runs `npx @next/codemod agents-md` under the hood. Re-run it whenever you upgrade Next.js:
+
+    ```bash
+    pnpm agents:update
+    ```
+  </Step>
+
+  <Step title="Start Development Setup">
+    Start all Docker services and dev servers concurrently via Turborepo:
+
+    ```bash
+    pnpm go
+    ```
+
+    This command runs `pnpm db:up` (starts Docker containers) followed by `turbo run go --concurrency 20` (starts all development servers).
+  </Step>
+</Steps>
+
+## Environment Configuration
+
+The `.env.example` file contains 75+ environment variables for configuring the application. Key defaults for local development include:
+
+- **Database URL**: `DATABASE_URL='postgresql://postgres:postgres@localhost:5432/formbricks?schema=public'`
+- **SMTP (MailHog)**: `SMTP_HOST=localhost`, `SMTP_PORT=1025`
+- **Application URL**: `WEBAPP_URL=http://localhost:3000`
+
+For a comprehensive reference of all available environment variables, see the [Environment Variables documentation](/self-hosting/configuration/environment-variables).
+
+Source: `.env.example`
+
+## Accessing Formbricks
 
 You can now access Formbricks at [http://localhost:3000](http://localhost:3000).
 
-<Tip>Create a new account on first login as no default account is available.</Tip>
+<Note>Create a new account on first login as no default account is available.</Note>
+
+<Warning>
+Ensure no other local services are using the following ports before starting development:
+
+- **5432** — PostgreSQL
+- **6379** — Valkey
+- **9000** — MinIO S3 API
+- **9001** — MinIO Console
+- **1025** — MailHog SMTP
+- **8025** — MailHog Web UI
+- **3000** — Formbricks application
+
+If a port conflict occurs, stop the conflicting service or update the port mapping in `docker-compose.dev.yml`.
+</Warning>

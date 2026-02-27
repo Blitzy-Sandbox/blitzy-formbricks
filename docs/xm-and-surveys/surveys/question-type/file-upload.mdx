@@ -26,24 +26,83 @@ icon: "upload"
 
 ## Elements
 
-![Overview of Fill Upload question type](/images/xm-and-surveys/core-features/question-type/file-upload.webp)
+![Overview of File Upload question type](/images/xm-and-surveys/core-features/question-type/file-upload.webp)
 
 ### Title
 
-Add a clear title that informs the respondent about the purpose of the file upload.
+Add a clear title that informs the respondent about the purpose of the file upload. This maps to the `headline` field in the survey element configuration and supports internationalization (I18n) for multi-language surveys.
 
 ### Description
 
-Provide an optional description to give respondents more details or instructions about what files they need to upload.
+Provide an optional description to give respondents more details or instructions about what files they need to upload. This maps to the `subheader` field and also supports I18n strings for multi-language surveys.
 
 ### Allow Multiple Files
 
-Enable this option to allow respondents to upload multiple files at once.
+The `allowMultipleFiles` toggle controls whether respondents can upload a single file or multiple files in one response:
+
+- **Enabled**: Respondents can upload several files in a single response.
+- **Disabled**: Only one file can be uploaded per response.
 
 ### Max File Size
 
-You can set a maximum file size limit, and an input box will appear to specify the size in MB.
+You can set a maximum file size limit per uploaded file using the `maxSizeInMB` field. The maximum allowed value depends on your Formbricks plan:
 
-### File Type Restrictions
+| Plan | Max File Size Per File |
+| ------------ | --------------------- |
+| Free         | 5 MB                  |
+| Startup      | 10 MB                 |
+| Enterprise   | 1 GB                  |
 
-You can restrict the allowed file types. An input box will appear where you can specify the file formats, such as `.pdf`, `.jpg`, `.docx`, etc.
+<Note>
+  The `maxSizeInMB` property is optional. When configured, it allows you to set a custom file size limit up to the maximum allowed by your plan. File size validation is enforced client-side during the upload process.
+</Note>
+
+### Allowed File Extensions
+
+The `allowedFileExtensions` field lets you restrict which file types respondents can upload. When configured, only files matching the specified extensions are accepted. When left unconfigured, all file types are allowed by default.
+
+Common extension configurations include:
+
+- **Images**: `.jpg`, `.png`, `.webp`, `.gif`
+- **Documents**: `.pdf`, `.doc`, `.docx`
+- **Spreadsheets**: `.xls`, `.xlsx`, `.csv`
+- **Mixed**: `.pdf`, `.jpg`, `.png`, `.docx`
+
+## Storage Backend
+
+File uploads are stored in S3-compatible object storage. The storage backend is configurable via environment variables:
+
+- **Cloud instances** use managed S3 storage with no additional configuration required.
+- **Self-hosted instances** can use [MinIO](https://min.io/) (an open-source, S3-compatible storage server) or any other S3-compatible provider.
+
+Key storage environment variables include:
+
+| Variable              | Description                                                         |
+| --------------------- | ------------------------------------------------------------------- |
+| `S3_ACCESS_KEY`       | Access key for S3-compatible storage                                |
+| `S3_SECRET_KEY`       | Secret key for S3-compatible storage                                |
+| `S3_REGION`           | AWS region or MinIO region                                          |
+| `S3_BUCKET_NAME`      | Storage bucket name                                                 |
+| `S3_ENDPOINT_URL`     | Custom endpoint URL (required for MinIO or non-AWS providers)       |
+| `S3_FORCE_PATH_STYLE` | Set to `1` for path-style access (required for MinIO)               |
+
+For detailed self-hosting storage configuration, see [File Uploads Configuration](/self-hosting/configuration/file-uploads).
+
+*Source: `packages/storage/src/constants.ts`*
+
+## Validation Rules
+
+The File Upload question type supports the following validation rules that can be applied to control which files respondents are allowed to submit:
+
+| Rule                   | Description                                                                          | Parameters                  |
+| ---------------------- | ------------------------------------------------------------------------------------ | --------------------------- |
+| `fileExtensionIs`      | Validates that the uploaded file has one of the specified extensions                  | `{ extensions: string[] }`  |
+| `fileExtensionIsNot`   | Validates that the uploaded file does **not** have any of the specified extensions    | `{ extensions: string[] }`  |
+
+Multiple validation rules can be combined using `and` or `or` logic operators.
+
+<Note>
+  File size validation rules (such as `fileSizeAtLeast` and `fileSizeAtMost`) are **not** available as response-level validation rules. This is because survey responses store only file URLs, not file metadata. File size validation is enforced client-side during the upload process via the `maxSizeInMB` element property.
+</Note>
+
+*Source: `packages/types/surveys/elements.ts`, `packages/types/surveys/validation-rules.ts`*

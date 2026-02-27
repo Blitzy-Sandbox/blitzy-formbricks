@@ -1,3 +1,45 @@
 ---
 openapi: delete /api/v1/webhooks/{webhookId}
 ---
+
+## Deletion Behavior
+
+<Warning>
+  Deleting a webhook is **permanent and irreversible**. The webhook is hard-deleted from the database — there is no soft-delete or recovery mechanism. Ensure you no longer need the webhook before proceeding.
+</Warning>
+
+When a webhook is deleted:
+
+- The webhook record is permanently removed from the database via a hard delete operation.
+- The previous webhook state is captured in `auditLog.oldObject` before the deletion is executed, preserving a record of the original configuration.
+- The operation is tracked in audit logs with `action: "deleted"` and `targetType: "webhook"`, providing a full audit trail.
+- The deleted webhook object is returned in the success response body, allowing the caller to confirm exactly which webhook was removed.
+
+Source: `apps/web/app/api/v1/webhooks/[webhookId]/route.ts`
+
+## Path Parameter
+
+| Parameter   | Type   | Required | Description                                                                                     |
+| ----------- | ------ | -------- | ----------------------------------------------------------------------------------------------- |
+| `webhookId` | string | Yes      | The unique identifier (CUID2 format) of the webhook to delete.                                  |
+
+The webhook must exist in the database and the API key used for the request must have `DELETE` permission for the webhook's associated environment.
+
+## Error Responses
+
+The following error scenarios may be returned by this endpoint:
+
+| Status Code | Error              | Description                                                                                             |
+| ----------- | ------------------ | ------------------------------------------------------------------------------------------------------- |
+| `404`       | Not Found          | No webhook exists with the given `webhookId`. This check occurs both before the deletion attempt and if the underlying database deletion fails. |
+| `401`       | Unauthorized       | The API key does not have `DELETE` permission for the environment associated with the webhook.           |
+
+Source: `apps/web/app/api/v1/webhooks/[webhookId]/route.ts`
+
+## Success Response
+
+<Note>
+  On successful deletion, the API returns an **HTTP 200** response with the deleted webhook object in the response body. This allows the caller to verify which webhook was deleted and log the event on their side.
+</Note>
+
+After deletion, any pending webhook deliveries targeting this webhook will no longer be dispatched. If you need to re-enable notifications for the same URL, you must create a new webhook via the [Create Webhook](/api-reference/management-api--webhook/create-webhook) endpoint.

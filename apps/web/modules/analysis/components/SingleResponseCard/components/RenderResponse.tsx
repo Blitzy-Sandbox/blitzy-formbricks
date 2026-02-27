@@ -177,6 +177,29 @@ export const RenderResponse: React.FC<RenderResponseProps> = ({
       }
       break;
 
+    case TSurveyElementTypeEnum.Payment:
+    case TSurveyElementTypeEnum.OpinionScale:
+      if (
+        typeof responseData === "string" ||
+        typeof responseData === "number" ||
+        Array.isArray(responseData)
+      ) {
+        return (
+          <p
+            className={cn(
+              "ph-no-capture my-1 truncate font-normal text-slate-700",
+              isExpanded ? "whitespace-pre-line" : "whitespace-nowrap"
+            )}>
+            {typeof responseData === "string"
+              ? renderHyperlinkedContent(responseData)
+              : Array.isArray(responseData)
+                ? handleArray(responseData)
+                : responseData}
+          </p>
+        );
+      }
+      break;
+
     default:
       if (
         typeof responseData === "string" ||

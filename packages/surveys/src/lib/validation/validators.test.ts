@@ -891,4 +891,30 @@ describe("validators", () => {
       expect(message).toBe("errors.file_extension_must_not_be");
     });
   });
+
+  describe("validators with Payment/OpinionScale elements", () => {
+    test("minLength should work with Payment element context", () => {
+      const paymentElement = { type: TSurveyElementTypeEnum.Payment } as TSurveyElement;
+      const result = validators.minLength.check("hello", { min: 3 }, paymentElement);
+      expect(result.valid).toBe(true);
+    });
+
+    test("minLength should fail with Payment element context when too short", () => {
+      const paymentElement = { type: TSurveyElementTypeEnum.Payment } as TSurveyElement;
+      const result = validators.minLength.check("hi", { min: 5 }, paymentElement);
+      expect(result.valid).toBe(false);
+    });
+
+    test("maxLength should work with OpinionScale element context", () => {
+      const opinionScaleElement = { type: TSurveyElementTypeEnum.OpinionScale } as TSurveyElement;
+      const result = validators.maxLength.check("hi", { max: 5 }, opinionScaleElement);
+      expect(result.valid).toBe(true);
+    });
+
+    test("maxLength should fail with OpinionScale element context when too long", () => {
+      const opinionScaleElement = { type: TSurveyElementTypeEnum.OpinionScale } as TSurveyElement;
+      const result = validators.maxLength.check("hello world", { max: 5 }, opinionScaleElement);
+      expect(result.valid).toBe(false);
+    });
+  });
 });

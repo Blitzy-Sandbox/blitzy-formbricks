@@ -120,6 +120,26 @@ describe("Survey Logic", () => {
             ],
             shuffleOption: "none",
           },
+          {
+            id: "qPayment",
+            type: TSurveyElementTypeEnum.Payment,
+            headline: { default: "Payment Question" },
+            required: false,
+            currency: "usd",
+            amount: 1000,
+            stripeIntegration: { publicKey: "pk_test", priceId: "price_test" },
+          },
+          {
+            id: "qOpinionScale",
+            type: TSurveyElementTypeEnum.OpinionScale,
+            headline: { default: "OpinionScale Question" },
+            required: false,
+            scaleRange: 5,
+            lowerLabel: { default: "Low" },
+            upperLabel: { default: "High" },
+            visualStyle: "number" as const,
+            isColorCodingEnabled: false,
+          },
         ],
       },
     ],
@@ -918,6 +938,82 @@ describe("Survey Logic", () => {
         ],
       };
       expect(evaluateLogic(mockSurvey, mockData, mockVariablesData, isBookedCondition, "default")).toBe(true);
+    });
+
+    test("evaluates isSubmitted for Payment element", () => {
+      const paymentSubmittedCondition: TConditionGroup = {
+        id: "groupPayment1",
+        connector: "and",
+        conditions: [
+          {
+            id: "condPayment1",
+            operator: "isSubmitted",
+            leftOperand: { type: "element", value: "qPayment" },
+          },
+        ],
+      };
+      const dataWithPayment = { ...mockData, qPayment: "completed" };
+      expect(
+        evaluateLogic(mockSurvey, dataWithPayment, mockVariablesData, paymentSubmittedCondition, "default")
+      ).toBe(true);
+    });
+
+    test("evaluates isSkipped for Payment element", () => {
+      const paymentSkippedCondition: TConditionGroup = {
+        id: "groupPayment2",
+        connector: "and",
+        conditions: [
+          {
+            id: "condPayment2",
+            operator: "isSkipped",
+            leftOperand: { type: "element", value: "qPayment" },
+          },
+        ],
+      };
+      expect(evaluateLogic(mockSurvey, mockData, mockVariablesData, paymentSkippedCondition, "default")).toBe(
+        true
+      );
+    });
+
+    test("evaluates isSubmitted for OpinionScale element", () => {
+      const opinionScaleSubmittedCondition: TConditionGroup = {
+        id: "groupOpinionScale1",
+        connector: "and",
+        conditions: [
+          {
+            id: "condOpinionScale1",
+            operator: "isSubmitted",
+            leftOperand: { type: "element", value: "qOpinionScale" },
+          },
+        ],
+      };
+      const dataWithOpinionScale = { ...mockData, qOpinionScale: 4 };
+      expect(
+        evaluateLogic(
+          mockSurvey,
+          dataWithOpinionScale,
+          mockVariablesData,
+          opinionScaleSubmittedCondition,
+          "default"
+        )
+      ).toBe(true);
+    });
+
+    test("evaluates isSkipped for OpinionScale element", () => {
+      const opinionScaleSkippedCondition: TConditionGroup = {
+        id: "groupOpinionScale2",
+        connector: "and",
+        conditions: [
+          {
+            id: "condOpinionScale2",
+            operator: "isSkipped",
+            leftOperand: { type: "element", value: "qOpinionScale" },
+          },
+        ],
+      };
+      expect(
+        evaluateLogic(mockSurvey, mockData, mockVariablesData, opinionScaleSkippedCondition, "default")
+      ).toBe(true);
     });
 
     test("evaluates isClicked and isNotClicked operators for CTA elements", () => {

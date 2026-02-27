@@ -2,7 +2,7 @@ import "@testing-library/jest-dom/vitest";
 import { TFunction } from "i18next";
 import { beforeEach, describe, expect, test, vi } from "vitest";
 import { type TI18nString } from "@formbricks/types/i18n";
-import { TSurveyElement } from "@formbricks/types/surveys/elements";
+import { TSurveyElement, TSurveyElementTypeEnum } from "@formbricks/types/surveys/elements";
 import { TSurvey, TSurveyQuestionTypeEnum } from "@formbricks/types/surveys/types";
 import { createI18nString } from "@/lib/i18n/utils";
 import * as i18nUtils from "@/lib/i18n/utils";
@@ -439,6 +439,83 @@ describe("utils", () => {
       const value: TI18nString = { default: "Test" };
       const result = isValueIncomplete("nonLabelId", true, ["en"], value);
       expect(result).toBe(false);
+    });
+  });
+
+  describe("Payment and OpinionScale element compatibility", () => {
+    test("determineImageUploaderVisibility returns true when Payment element has an image URL", () => {
+      const surveyLanguageCodes = ["en"];
+      const elements = [
+        {
+          id: "q1",
+          type: TSurveyElementTypeEnum.Payment,
+          headline: createI18nString("Payment Question?", surveyLanguageCodes),
+          required: true,
+          imageUrl: "https://example.com/image.jpg",
+          currency: "usd",
+          amount: 1000,
+          stripeIntegration: { publicKey: "pk_test", priceId: "price_test" },
+        },
+      ] as unknown as TSurveyElement[];
+      const result = determineImageUploaderVisibility(0, elements);
+      expect(result).toBe(true);
+    });
+
+    test("determineImageUploaderVisibility returns false when OpinionScale element has no media", () => {
+      const surveyLanguageCodes = ["en"];
+      const elements = [
+        {
+          id: "q1",
+          type: TSurveyElementTypeEnum.OpinionScale,
+          headline: createI18nString("OpinionScale Question?", surveyLanguageCodes),
+          required: true,
+          scaleRange: 5,
+          lowerLabel: createI18nString("Low", surveyLanguageCodes),
+          upperLabel: createI18nString("High", surveyLanguageCodes),
+        },
+      ] as unknown as TSurveyElement[];
+      const result = determineImageUploaderVisibility(0, elements);
+      expect(result).toBe(false);
+    });
+
+    test("determineImageUploaderVisibility returns true when Payment element has a video URL", () => {
+      const surveyLanguageCodes = ["en"];
+      const elements = [
+        {
+          id: "q1",
+          type: TSurveyElementTypeEnum.Payment,
+          headline: createI18nString("Payment Video Question?", surveyLanguageCodes),
+          required: true,
+          videoUrl: "https://example.com/video.mp4",
+          currency: "usd",
+          amount: 1000,
+          stripeIntegration: { publicKey: "pk_test", priceId: "price_test" },
+        },
+      ] as unknown as TSurveyElement[];
+      const result = determineImageUploaderVisibility(0, elements);
+      expect(result).toBe(true);
+    });
+
+    test("isValueIncomplete handles Payment element headline correctly", () => {
+      vi.mocked(i18nUtils.isLabelValidForAllLanguages).mockReturnValue(false);
+      const value: TI18nString = { default: "Test Payment" };
+      const result = isValueIncomplete("headline", true, ["en"], value);
+      expect(result).toBe(true);
+    });
+
+    test("isValueIncomplete handles OpinionScale element headline correctly", () => {
+      vi.mocked(i18nUtils.isLabelValidForAllLanguages).mockReturnValue(false);
+      const value: TI18nString = { default: "Test OpinionScale" };
+      const result = isValueIncomplete("headline", true, ["en"], value);
+      expect(result).toBe(true);
+    });
+
+    test("getIndex returns null for Payment non-choice elements", () => {
+      expect(getIndex("payment-field", false)).toBeNull();
+    });
+
+    test("getIndex returns null for OpinionScale non-choice elements", () => {
+      expect(getIndex("opinionScale-field", false)).toBeNull();
     });
   });
 });

@@ -45,8 +45,8 @@
     "i18n:validate": "pnpm scan-translations"
   },
   "dependencies": {
-    "react": "19.2.3",
-    "react-dom": "19.2.3",
+    "react": "19.2.4",
+    "react-dom": "19.2.4",
     "next": "16.1.6"
   },
   "devDependencies": {
@@ -85,20 +85,35 @@
   },
   "pnpm": {
     "overrides": {
-      "axios": ">=1.12.2",
+      "axios": ">=1.13.5",
       "uuid": "11.1.0",
       "node-forge": ">=1.3.2",
       "tar-fs": "2.1.4",
-      "tar": ">=7.5.7",
+      "tar": ">=7.5.8",
       "typeorm": ">=0.3.26",
       "systeminformation": "5.27.14",
-      "qs": ">=6.14.1",
+      "qs": ">=6.14.2",
       "preact": ">=10.26.10",
-      "fast-xml-parser": ">=5.3.4",
-      "diff": ">=8.0.3"
+      "fast-xml-parser": ">=5.3.6",
+      "diff": ">=8.0.3",
+      "@isaacs/brace-expansion": ">=5.0.1",
+      "rollup": ">=4.59.0",
+      "esbuild": ">=0.25.0",
+      "lodash": ">=4.17.23",
+      "next": "16.1.6",
+      "webpack": ">=5.104.1",
+      "markdown-it": ">=14.1.1",
+      "minimatch@<4": "3.1.3",
+      "minimatch@>=9 <10": "9.0.6",
+      "minimatch@>=10 <11": "10.2.1",
+      "eslint>ajv": "6.14.0",
+      "conf>ajv": "8.18.0",
+      "schema-utils>ajv": "8.18.0",
+      "@microsoft/tsdoc-config>ajv": "8.18.0",
+      "@rushstack/node-core-library>ajv": "8.18.0"
     },
     "comments": {
-      "overrides": "Security fixes for transitive dependencies. Remove when upstream packages update: axios (CVE-2025-58754) - awaiting @boxyhq/saml-jackson update | node-forge (Dependabot #230) - awaiting @boxyhq/saml-jackson update | tar-fs (Dependabot #205) - awaiting upstream dependency updates | tar (Dependabot #249/#264) - awaiting @boxyhq/saml-jackson/sqlite3 dependency updates | typeorm (Dependabot #223) - awaiting @boxyhq/saml-jackson update | systeminformation (Dependabot #241) - awaiting @opentelemetry/host-metrics update | qs (Dependabot #245) - awaiting googleapis-common and stripe updates | preact (Dependabot #247) - awaiting next-auth update | fast-xml-parser (Dependabot #270) - awaiting @boxyhq/saml-jackson update | diff (Dependabot #269) - awaiting @microsoft/api-extractor update"
+      "overrides": "Security fixes for transitive dependencies. Remove when upstream packages update: axios (CVE-2026-25639) - awaiting @boxyhq/saml-jackson update | node-forge (Dependabot #230) - awaiting @boxyhq/saml-jackson update | tar-fs (Dependabot #205) - awaiting upstream dependency updates | tar (CVE-2026-26960) - awaiting @boxyhq/saml-jackson/sqlite3 dependency updates | typeorm (Dependabot #223) - awaiting @boxyhq/saml-jackson update | systeminformation (Dependabot #241) - awaiting @opentelemetry/host-metrics update | qs (CVE-2026-2391) - awaiting googleapis-common and stripe updates | preact (Dependabot #247) - awaiting next-auth update | fast-xml-parser (CVE-2026-25896, CVE-2026-26278) - awaiting @aws-sdk update | diff (Dependabot #269) - awaiting @microsoft/api-extractor update | @isaacs/brace-expansion (CVE-2026-25547) - awaiting glob update | rollup (CVE-2026-27606) - awaiting storybook update | esbuild (GHSA-67mh-4wv8-2f99) - awaiting tsx update | lodash (CVE-2025-13465) - awaiting @boxyhq/saml-jackson update | next (GHSA-h25m-26qc-wcjf) - override for transitive @react-email/preview-server dependency | webpack (CVE-2025-68458, CVE-2025-68157) - security patch | markdown-it (CVE-2026-2327) - security patch | minimatch (CVE-2026-26996) - parent-specific overrides for eslint/glob/typescript-estree/api-extractor | ajv (CVE-2025-69873) - parent-specific overrides for eslint/schema-utils/tsdoc-config/node-core-library"
     },
     "patchedDependencies": {
       "next-auth@4.24.12": "patches/next-auth@4.24.12.patch"

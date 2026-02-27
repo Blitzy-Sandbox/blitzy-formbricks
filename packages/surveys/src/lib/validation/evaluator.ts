@@ -157,6 +157,10 @@ const checkRequiredField = (
   return null;
 };
 
+// Note: Payment elements use the default isEmpty check (string "completed").
+// OpinionScale elements use the default isEmpty check (numeric value).
+// No type-specific required field handling is needed for these simple element types.
+
 /**
  * Add implicit validation rules for OpenText elements based on inputType
  */

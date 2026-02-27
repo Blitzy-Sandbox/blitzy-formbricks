@@ -28,6 +28,8 @@ export const convertResponseValue = (
           .filter((url): url is string => url !== undefined);
       } else return [];
 
+    case "payment":
+    case "opinionScale":
     default:
       return processResponseData(answer);
   }

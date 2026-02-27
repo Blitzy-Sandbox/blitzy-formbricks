@@ -183,6 +183,31 @@ const mockQuestion = {
   },
 };
 
+export const mockPaymentElement = {
+  id: mockId,
+  type: TSurveyElementTypeEnum.Payment as typeof TSurveyElementTypeEnum.Payment,
+  headline: { default: "Payment Question Text", de: "Zahlungsfrage" },
+  required: false,
+  currency: "usd" as const,
+  amount: 1000,
+  stripeIntegration: {
+    publicKey: "pk_test_mock",
+    priceId: "price_mock",
+  },
+};
+
+export const mockOpinionScaleElement = {
+  id: mockId,
+  type: TSurveyElementTypeEnum.OpinionScale as typeof TSurveyElementTypeEnum.OpinionScale,
+  headline: { default: "OpinionScale Question Text", de: "Meinungsskala Fragetext" },
+  required: false,
+  scaleRange: 5,
+  lowerLabel: { default: "Not at all likely", de: "Überhaupt nicht wahrscheinlich" },
+  upperLabel: { default: "Extremely likely", de: "Sehr wahrscheinlich" },
+  visualStyle: "number" as const,
+  isColorCodingEnabled: false,
+};
+
 const mockWelcomeCard: TSurveyWelcomeCard = {
   enabled: false,
   headline: { default: "My welcome card", de: "Meine Willkommenskarte" },
@@ -418,6 +443,26 @@ export const mockSurveyWithLogic: TSurvey = {
             { id: "sojc5wwxc5gxrnuib30w7t6s", label: { default: "hehe" } },
           ],
           shuffleOption: "none" as const,
+        },
+        {
+          id: "q7",
+          type: TSurveyElementTypeEnum.Payment,
+          headline: { default: "Payment question in logic survey" },
+          currency: "usd" as const,
+          amount: 1000,
+          stripeIntegration: { publicKey: "pk_test", priceId: "price_test" },
+          required: false,
+        },
+        {
+          id: "q8",
+          type: TSurveyElementTypeEnum.OpinionScale,
+          headline: { default: "OpinionScale question in logic survey" },
+          scaleRange: 5,
+          lowerLabel: { default: "Low" },
+          upperLabel: { default: "High" },
+          visualStyle: "number" as const,
+          isColorCodingEnabled: false,
+          required: false,
         },
       ],
       logic: [

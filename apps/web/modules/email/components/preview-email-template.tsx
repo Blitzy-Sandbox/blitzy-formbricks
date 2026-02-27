@@ -424,6 +424,17 @@ export async function PreviewEmailTemplate({
           <EmailFooter />
         </EmailTemplateWrapper>
       );
+
+    // Payment and OpinionScale: generic text-input style preview (Sprint 1 Foundation)
+    case TSurveyElementTypeEnum.Payment:
+    case TSurveyElementTypeEnum.OpinionScale:
+      return (
+        <EmailTemplateWrapper styling={styling} surveyUrl={url}>
+          <ElementHeader headline={headline} subheader={subheader} className="mr-8" />
+          <Section className="border-input-border-color rounded-custom mt-4 block h-12 w-full border border-solid bg-slate-50" />
+          <EmailFooter />
+        </EmailTemplateWrapper>
+      );
   }
 }
 

@@ -406,6 +406,54 @@ export const getLogicRules = (t: TFunction) => {
           },
         ],
       },
+      [TSurveyElementTypeEnum.Payment]: {
+        options: [
+          {
+            label: t("environments.surveys.edit.is_submitted"),
+            value: ZSurveyLogicConditionsOperator.Enum.isSubmitted,
+          },
+          {
+            label: t("environments.surveys.edit.is_skipped"),
+            value: ZSurveyLogicConditionsOperator.Enum.isSkipped,
+          },
+        ],
+      },
+      [TSurveyElementTypeEnum.OpinionScale]: {
+        options: [
+          {
+            label: t("environments.surveys.edit.is_submitted"),
+            value: ZSurveyLogicConditionsOperator.Enum.isSubmitted,
+          },
+          {
+            label: t("environments.surveys.edit.is_skipped"),
+            value: ZSurveyLogicConditionsOperator.Enum.isSkipped,
+          },
+          {
+            label: t("environments.surveys.edit.equals"),
+            value: ZSurveyLogicConditionsOperator.Enum.equals,
+          },
+          {
+            label: t("environments.surveys.edit.does_not_equal"),
+            value: ZSurveyLogicConditionsOperator.Enum.doesNotEqual,
+          },
+          {
+            label: t("environments.surveys.edit.is_greater_than"),
+            value: ZSurveyLogicConditionsOperator.Enum.isGreaterThan,
+          },
+          {
+            label: t("environments.surveys.edit.is_less_than"),
+            value: ZSurveyLogicConditionsOperator.Enum.isLessThan,
+          },
+          {
+            label: t("environments.surveys.edit.is_greater_than_or_equal"),
+            value: ZSurveyLogicConditionsOperator.Enum.isGreaterThanOrEqual,
+          },
+          {
+            label: t("environments.surveys.edit.is_less_than_or_equal"),
+            value: ZSurveyLogicConditionsOperator.Enum.isLessThanOrEqual,
+          },
+        ],
+      },
     },
     ["variable.text"]: {
       options: [

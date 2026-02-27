@@ -296,6 +296,8 @@ export const APPLICABLE_RULES: Record<string, TValidationRuleType[]> = {
   pictureSelection: [...PICTURE_SELECTION_RULES],
   address: [...ADDRESS_RULES],
   contactInfo: [...CONTACT_INFO_RULES],
+  payment: ["minValue", "maxValue"] as TValidationRuleType[],
+  opinionScale: [] as TValidationRuleType[],
 };
 
 // Type helper to filter validation rules by allowed types

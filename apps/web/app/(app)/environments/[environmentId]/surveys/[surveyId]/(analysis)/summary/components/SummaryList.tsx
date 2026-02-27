@@ -25,6 +25,8 @@ import { MatrixElementSummary } from "@/app/(app)/environments/[environmentId]/s
 import { MultipleChoiceSummary } from "@/app/(app)/environments/[environmentId]/surveys/[surveyId]/(analysis)/summary/components/MultipleChoiceSummary";
 import { NPSSummary } from "@/app/(app)/environments/[environmentId]/surveys/[surveyId]/(analysis)/summary/components/NPSSummary";
 import { OpenTextSummary } from "@/app/(app)/environments/[environmentId]/surveys/[surveyId]/(analysis)/summary/components/OpenTextSummary";
+import { OpinionScaleSummary } from "@/app/(app)/environments/[environmentId]/surveys/[surveyId]/(analysis)/summary/components/OpinionScaleSummary";
+import { PaymentSummary } from "@/app/(app)/environments/[environmentId]/surveys/[surveyId]/(analysis)/summary/components/PaymentSummary";
 import { PictureChoiceSummary } from "@/app/(app)/environments/[environmentId]/surveys/[surveyId]/(analysis)/summary/components/PictureChoiceSummary";
 import { RankingSummary } from "@/app/(app)/environments/[environmentId]/surveys/[surveyId]/(analysis)/summary/components/RankingSummary";
 import { RatingSummary } from "@/app/(app)/environments/[environmentId]/surveys/[surveyId]/(analysis)/summary/components/RatingSummary";
@@ -254,6 +256,28 @@ export const SummaryList = ({ summary, environment, responseCount, survey, local
           if (elementSummary.type === TSurveyElementTypeEnum.ContactInfo) {
             return (
               <ContactInfoSummary
+                key={elementSummary.element.id}
+                elementSummary={elementSummary}
+                environmentId={environment.id}
+                survey={survey}
+                locale={locale}
+              />
+            );
+          }
+          if (elementSummary.type === TSurveyElementTypeEnum.Payment) {
+            return (
+              <PaymentSummary
+                key={elementSummary.element.id}
+                elementSummary={elementSummary}
+                environmentId={environment.id}
+                survey={survey}
+                locale={locale}
+              />
+            );
+          }
+          if (elementSummary.type === TSurveyElementTypeEnum.OpinionScale) {
+            return (
+              <OpinionScaleSummary
                 key={elementSummary.element.id}
                 elementSummary={elementSummary}
                 environmentId={environment.id}

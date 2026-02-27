@@ -430,6 +430,60 @@ describe("getLogicRules", () => {
         },
       ]);
     });
+
+    test("Payment", () => {
+      const rules = logicRules.element[TSurveyQuestionTypeEnum.Payment];
+      expect(rules).toBeDefined();
+      expect(rules.options).toEqual([
+        {
+          label: "mockTranslate(environments.surveys.edit.is_submitted)",
+          value: ZSurveyLogicConditionsOperator.Enum.isSubmitted,
+        },
+        {
+          label: "mockTranslate(environments.surveys.edit.is_skipped)",
+          value: ZSurveyLogicConditionsOperator.Enum.isSkipped,
+        },
+      ]);
+    });
+
+    test("OpinionScale", () => {
+      const rules = logicRules.element[TSurveyQuestionTypeEnum.OpinionScale];
+      expect(rules).toBeDefined();
+      expect(rules.options).toEqual([
+        {
+          label: "mockTranslate(environments.surveys.edit.is_submitted)",
+          value: ZSurveyLogicConditionsOperator.Enum.isSubmitted,
+        },
+        {
+          label: "mockTranslate(environments.surveys.edit.is_skipped)",
+          value: ZSurveyLogicConditionsOperator.Enum.isSkipped,
+        },
+        {
+          label: "mockTranslate(environments.surveys.edit.equals)",
+          value: ZSurveyLogicConditionsOperator.Enum.equals,
+        },
+        {
+          label: "mockTranslate(environments.surveys.edit.does_not_equal)",
+          value: ZSurveyLogicConditionsOperator.Enum.doesNotEqual,
+        },
+        {
+          label: "mockTranslate(environments.surveys.edit.is_greater_than)",
+          value: ZSurveyLogicConditionsOperator.Enum.isGreaterThan,
+        },
+        {
+          label: "mockTranslate(environments.surveys.edit.is_less_than)",
+          value: ZSurveyLogicConditionsOperator.Enum.isLessThan,
+        },
+        {
+          label: "mockTranslate(environments.surveys.edit.is_greater_than_or_equal)",
+          value: ZSurveyLogicConditionsOperator.Enum.isGreaterThanOrEqual,
+        },
+        {
+          label: "mockTranslate(environments.surveys.edit.is_less_than_or_equal)",
+          value: ZSurveyLogicConditionsOperator.Enum.isLessThanOrEqual,
+        },
+      ]);
+    });
   });
 
   describe("Variable Specific Rules", () => {

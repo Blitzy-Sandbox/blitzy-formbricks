@@ -24,6 +24,8 @@ import {
   ZSurveyMultipleChoiceElement,
   ZSurveyNPSElement,
   ZSurveyOpenTextElement,
+  ZSurveyOpinionScaleElement,
+  ZSurveyPaymentElement,
   ZSurveyPictureSelectionElement,
   ZSurveyRankingElement,
   ZSurveyRatingElement,
@@ -104,6 +106,8 @@ export enum TSurveyQuestionTypeEnum {
   Address = "address",
   Ranking = "ranking",
   ContactInfo = "contactInfo",
+  Payment = "payment",
+  OpinionScale = "opinionScale",
 }
 
 /**
@@ -698,6 +702,47 @@ export const ZSurveyRankingQuestion = ZSurveyQuestionBase.extend({
 export type TSurveyRankingQuestion = z.infer<typeof ZSurveyRankingQuestion>;
 
 /**
+ * @deprecated Use ZSurveyPaymentElement instead. Kept for v1 API backward compatibility only.
+ */
+export const ZSurveyPaymentQuestion = ZSurveyQuestionBase.extend({
+  type: z.literal(TSurveyQuestionTypeEnum.Payment),
+  currency: z.enum(["usd", "eur", "gbp"]),
+  amount: z.number().int().positive().min(1),
+  stripeIntegration: z.object({
+    publicKey: z.string(),
+    priceId: z.string(),
+  }),
+  buttonLabel: ZI18nString.optional(),
+});
+
+/**
+ * @deprecated Use TSurveyPaymentElement instead. Kept for v1 API backward compatibility only.
+ */
+export type TSurveyPaymentQuestion = z.infer<typeof ZSurveyPaymentQuestion>;
+
+/**
+ * @deprecated Use ZSurveyOpinionScaleElement instead. Kept for v1 API backward compatibility only.
+ */
+export const ZSurveyOpinionScaleQuestion = ZSurveyQuestionBase.extend({
+  type: z.literal(TSurveyQuestionTypeEnum.OpinionScale),
+  scaleRange: z
+    .number()
+    .int()
+    .refine((v) => [5, 7, 10].includes(v), {
+      message: "Scale range must be 5, 7, or 10",
+    }),
+  lowerLabel: ZI18nString,
+  upperLabel: ZI18nString,
+  visualStyle: z.enum(["number", "smiley", "star"]).default("number"),
+  isColorCodingEnabled: z.boolean().default(false),
+});
+
+/**
+ * @deprecated Use TSurveyOpinionScaleElement instead. Kept for v1 API backward compatibility only.
+ */
+export type TSurveyOpinionScaleQuestion = z.infer<typeof ZSurveyOpinionScaleQuestion>;
+
+/**
  * @deprecated Use TSurveyElement instead. Kept for v1 API backward compatibility only.
  */
 export const ZSurveyQuestion = z.union([
@@ -715,6 +760,8 @@ export const ZSurveyQuestion = z.union([
   ZSurveyAddressQuestion,
   ZSurveyRankingQuestion,
   ZSurveyContactInfoQuestion,
+  ZSurveyPaymentQuestion,
+  ZSurveyOpinionScaleQuestion,
 ]);
 
 /**
@@ -751,6 +798,8 @@ export const ZSurveyQuestionType = z.enum([
   TSurveyQuestionTypeEnum.Cal,
   TSurveyQuestionTypeEnum.Ranking,
   TSurveyQuestionTypeEnum.ContactInfo,
+  TSurveyQuestionTypeEnum.Payment,
+  TSurveyQuestionTypeEnum.OpinionScale,
 ]);
 
 /**
@@ -2015,6 +2064,27 @@ const isInvalidOperatorsForQuestionType = (
         isInvalidOperator = true;
       }
       break;
+    case TSurveyQuestionTypeEnum.Payment:
+      if (!["isSubmitted", "isSkipped"].includes(operator)) {
+        isInvalidOperator = true;
+      }
+      break;
+    case TSurveyQuestionTypeEnum.OpinionScale:
+      if (
+        ![
+          "isSubmitted",
+          "isSkipped",
+          "equals",
+          "doesNotEqual",
+          "isGreaterThan",
+          "isLessThan",
+          "isGreaterThanOrEqual",
+          "isLessThanOrEqual",
+        ].includes(operator)
+      ) {
+        isInvalidOperator = true;
+      }
+      break;
     default:
       isInvalidOperator = true;
   }
@@ -3040,6 +3110,27 @@ const isInvalidOperatorsForElementType = (
     case TSurveyElementTypeEnum.Address:
     case TSurveyElementTypeEnum.ContactInfo:
       if (!["isSubmitted", "isSkipped"].includes(operator)) {
+        isInvalidOperator = true;
+      }
+      break;
+    case TSurveyElementTypeEnum.Payment:
+      if (!["isSubmitted", "isSkipped"].includes(operator)) {
+        isInvalidOperator = true;
+      }
+      break;
+    case TSurveyElementTypeEnum.OpinionScale:
+      if (
+        ![
+          "isSubmitted",
+          "isSkipped",
+          "equals",
+          "doesNotEqual",
+          "isGreaterThan",
+          "isLessThan",
+          "isGreaterThanOrEqual",
+          "isLessThanOrEqual",
+        ].includes(operator)
+      ) {
         isInvalidOperator = true;
       }
       break;
@@ -4201,6 +4292,53 @@ export const ZSurveyElementSummaryRanking = z.object({
 });
 export type TSurveyElementSummaryRanking = z.infer<typeof ZSurveyElementSummaryRanking>;
 
+export const ZSurveyElementSummaryPayment = z.object({
+  type: z.literal(TSurveyElementTypeEnum.Payment),
+  element: ZSurveyPaymentElement,
+  responseCount: z.number(),
+  samples: z.array(
+    z.object({
+      id: z.string(),
+      updatedAt: z.date(),
+      value: z.string(),
+      contact: z
+        .object({
+          id: ZId,
+          userId: z.string().optional(),
+        })
+        .nullable(),
+      contactAttributes: ZContactAttributes.nullable(),
+    })
+  ),
+});
+export type TSurveyElementSummaryPayment = z.infer<typeof ZSurveyElementSummaryPayment>;
+
+export const ZSurveyElementSummaryOpinionScale = z.object({
+  type: z.literal(TSurveyElementTypeEnum.OpinionScale),
+  element: ZSurveyOpinionScaleElement,
+  responseCount: z.number(),
+  overall: z.object({
+    mean: z.number(),
+    median: z.number(),
+    distribution: z.record(z.string(), z.number()),
+  }),
+  samples: z.array(
+    z.object({
+      id: z.string(),
+      updatedAt: z.date(),
+      value: z.number(),
+      contact: z
+        .object({
+          id: ZId,
+          userId: z.string().optional(),
+        })
+        .nullable(),
+      contactAttributes: ZContactAttributes.nullable(),
+    })
+  ),
+});
+export type TSurveyElementSummaryOpinionScale = z.infer<typeof ZSurveyElementSummaryOpinionScale>;
+
 export const ZSurveyElementSummary = z.union([
   ZSurveyElementSummaryOpenText,
   ZSurveyElementSummaryMultipleChoice,
@@ -4216,6 +4354,8 @@ export const ZSurveyElementSummary = z.union([
   ZSurveyElementSummaryAddress,
   ZSurveyElementSummaryRanking,
   ZSurveyElementSummaryContactInfo,
+  ZSurveyElementSummaryPayment,
+  ZSurveyElementSummaryOpinionScale,
 ]);
 
 export type TSurveyElementSummary = z.infer<typeof ZSurveyElementSummary>;

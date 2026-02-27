@@ -243,6 +243,36 @@ export const getElementTypes = (t: TFunction): TElement[] => [
       company: { show: true, required: true, placeholder: { default: "Company" } },
     },
   },
+  {
+    id: TSurveyElementTypeEnum.Payment,
+    label: t("templates.payment"),
+    description: t("templates.payment_description"),
+    icon: FileType2Icon,
+    preset: {
+      headline: createI18nString("", []),
+      currency: "usd",
+      amount: 1000,
+      stripeIntegration: {
+        publicKey: "",
+        priceId: "",
+      },
+      buttonLabel: createI18nString("Pay now", []),
+    },
+  },
+  {
+    id: TSurveyElementTypeEnum.OpinionScale,
+    label: t("templates.opinion_scale"),
+    description: t("templates.opinion_scale_description"),
+    icon: FileDigitIcon,
+    preset: {
+      headline: createI18nString("", []),
+      scaleRange: 5,
+      lowerLabel: createI18nString("Not at all likely", []),
+      upperLabel: createI18nString("Extremely likely", []),
+      visualStyle: "number",
+      isColorCodingEnabled: false,
+    },
+  },
 ];
 
 export const getCXElementTypes = (t: TFunction) =>

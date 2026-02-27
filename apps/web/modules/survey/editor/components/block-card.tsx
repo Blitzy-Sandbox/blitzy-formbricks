@@ -6,7 +6,7 @@ import { useAutoAnimate } from "@formkit/auto-animate/react";
 import { Project } from "@prisma/client";
 import * as Collapsible from "@radix-ui/react-collapsible";
 import { ChevronDownIcon, ChevronRightIcon, GripIcon } from "lucide-react";
-import { useState } from "react";
+import { type ComponentType, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { TI18nString } from "@formbricks/types/i18n";
 import { TSurveyBlock, TSurveyBlockLogic } from "@formbricks/types/surveys/blocks";
@@ -32,6 +32,8 @@ import { MatrixElementForm } from "@/modules/survey/editor/components/matrix-ele
 import { MultipleChoiceElementForm } from "@/modules/survey/editor/components/multiple-choice-element-form";
 import { NPSElementForm } from "@/modules/survey/editor/components/nps-element-form";
 import { OpenElementForm } from "@/modules/survey/editor/components/open-element-form";
+import { OpinionScaleElementForm } from "@/modules/survey/editor/components/opinion-scale-element-form";
+import { PaymentElementForm } from "@/modules/survey/editor/components/payment-element-form";
 import { PictureSelectionForm } from "@/modules/survey/editor/components/picture-selection-form";
 import { RankingElementForm } from "@/modules/survey/editor/components/ranking-element-form";
 import { RatingElementForm } from "@/modules/survey/editor/components/rating-element-form";
@@ -193,6 +195,8 @@ export const BlockCard = ({
     [TSurveyElementTypeEnum.Address]: AddressElementForm,
     [TSurveyElementTypeEnum.Ranking]: RankingElementForm,
     [TSurveyElementTypeEnum.ContactInfo]: ContactInfoElementForm,
+    [TSurveyElementTypeEnum.Payment]: PaymentElementForm,
+    [TSurveyElementTypeEnum.OpinionScale]: OpinionScaleElementForm,
   };
 
   // Elements that need lastElement prop
@@ -205,7 +209,9 @@ export const BlockCard = ({
   ]);
 
   const renderElementForm = (element: TSurveyElement, elementIdx: number) => {
-    const FormComponent = elementFormMap[element.type];
+    // Cast to broad ComponentType — props are built dynamically and conditionally per element type
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const FormComponent = elementFormMap[element.type] as ComponentType<any> | undefined;
     if (!FormComponent) return null;
 
     const commonProps = getCommonFormProps(element, elementIdx);
@@ -222,7 +228,6 @@ export const BlockCard = ({
       additionalProps.isFormbricksCloud = isFormbricksCloud;
     }
 
-    // @ts-expect-error - These props should cover everything
     return <FormComponent {...commonProps} {...additionalProps} />;
   };
 
@@ -265,7 +270,7 @@ export const BlockCard = ({
         </div>
 
         <button
-          className="opacity-0 group-hover:opacity-100 hover:cursor-move"
+          className="opacity-0 hover:cursor-move group-hover:opacity-100"
           aria-label="Drag to reorder block">
           <GripIcon className="h-4 w-4" />
         </button>

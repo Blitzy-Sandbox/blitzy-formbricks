@@ -17,6 +17,8 @@ import { MultipleChoiceMultiElement } from "@/components/elements/multiple-choic
 import { MultipleChoiceSingleElement } from "@/components/elements/multiple-choice-single-element";
 import { NPSElement } from "@/components/elements/nps-element";
 import { OpenTextElement } from "@/components/elements/open-text-element";
+import { OpinionScaleElement } from "@/components/elements/opinion-scale-element";
+import { PaymentElement } from "@/components/elements/payment-element";
 import { PictureSelectionElement } from "@/components/elements/picture-selection-element";
 import { RankingElement } from "@/components/elements/ranking-element";
 import { RatingElement } from "@/components/elements/rating-element";
@@ -342,6 +344,36 @@ export function ElementConditional({
             setTtc={wrappedSetTtc}
             currentElementId={currentElementId}
             autoFocusEnabled={autoFocusEnabled}
+            dir={dir}
+            errorMessage={errorMessage}
+          />
+        );
+      case TSurveyElementTypeEnum.Payment:
+        return (
+          <PaymentElement
+            key={element.id}
+            element={element}
+            value={typeof value === "string" ? value : ""}
+            onChange={onChange}
+            languageCode={languageCode}
+            ttc={ttc}
+            setTtc={wrappedSetTtc}
+            currentElementId={currentElementId}
+            dir={dir}
+            errorMessage={errorMessage}
+          />
+        );
+      case TSurveyElementTypeEnum.OpinionScale:
+        return (
+          <OpinionScaleElement
+            key={element.id}
+            element={element}
+            value={typeof value === "number" ? value : undefined}
+            onChange={onChange}
+            languageCode={languageCode}
+            ttc={ttc}
+            setTtc={wrappedSetTtc}
+            currentElementId={currentElementId}
             dir={dir}
             errorMessage={errorMessage}
           />

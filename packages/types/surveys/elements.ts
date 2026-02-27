@@ -350,6 +350,48 @@ export const ZSurveyContactInfoElement = ZSurveyElementBase.extend({
 
 export type TSurveyContactInfoElement = z.infer<typeof ZSurveyContactInfoElement>;
 
+// Payment Element
+/**
+ * Payment survey element — collects payment via Stripe integration during the survey flow.
+ * Respondents enter payment details inline, the charge is processed, and the survey continues.
+ * Configuration includes currency, amount, Stripe product/price references, and optional button label.
+ */
+export const ZSurveyPaymentElement = ZSurveyElementBase.extend({
+  type: z.literal(TSurveyElementTypeEnum.Payment),
+  currency: z.enum(["usd", "eur", "gbp"]),
+  amount: z.number().int().positive().min(1),
+  stripeIntegration: z.object({
+    publicKey: z.string(),
+    priceId: z.string(),
+  }),
+  buttonLabel: ZI18nString.optional(),
+});
+
+export type TSurveyPaymentElement = z.infer<typeof ZSurveyPaymentElement>;
+
+// Opinion Scale Element
+/**
+ * Opinion Scale survey element — presents respondents with a numeric scale where they select
+ * a single value. The scale range is configurable (5, 7, or 10 points starting from 1).
+ * Endpoint labels describe the meaning of low and high values.
+ * Visual style supports number, smiley, or star presentation.
+ */
+export const ZSurveyOpinionScaleElement = ZSurveyElementBase.extend({
+  type: z.literal(TSurveyElementTypeEnum.OpinionScale),
+  scaleRange: z
+    .number()
+    .int()
+    .refine((v) => [5, 7, 10].includes(v), {
+      message: "Scale range must be 5, 7, or 10",
+    }),
+  lowerLabel: ZI18nString,
+  upperLabel: ZI18nString,
+  visualStyle: z.enum(["number", "smiley", "star"]).default("number"),
+  isColorCodingEnabled: z.boolean().default(false),
+});
+
+export type TSurveyOpinionScaleElement = z.infer<typeof ZSurveyOpinionScaleElement>;
+
 // Union of all element types
 export const ZSurveyElement = z.union([
   ZSurveyOpenTextElement,
@@ -367,6 +409,8 @@ export const ZSurveyElement = z.union([
   ZSurveyAddressElement,
   ZSurveyRankingElement,
   ZSurveyContactInfoElement,
+  ZSurveyPaymentElement,
+  ZSurveyOpinionScaleElement,
 ]);
 
 export type TSurveyElement = z.infer<typeof ZSurveyElement>;

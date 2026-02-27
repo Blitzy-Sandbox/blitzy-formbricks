@@ -14,31 +14,50 @@ You can recall data from the following sources:
 
 - From a [Variable](/xm-and-surveys/surveys/general-features/variables)
 
-## Recalling from a previous question
+## Supported Question Types
+
+Not all question types can serve as recall sources. The following question types support recall:
+
+- **Free Text** (Open Text)
+- **Single Select** (Multiple Choice Single)
+- **Multi Select** (Multiple Choice Multi)
+- **Rating**
+- **Net Promoter Score (NPS)**
+- **Date**
+- **Address**
+- **Contact Info**
+- **Ranking**
+
+<Note>
+  The following question types do **not** support recall: File Upload, Statement/CTA, Consent, Picture Selection, Schedule a Meeting (Cal.com), and Matrix.
+</Note>
+
+You can insert recalled data into the **title** or **description** field of any question in your survey.
+
+## Recalling from a Previous Question
 
 <Note>
   The recall functionality is disabled on the first question of the survey since
   there’s no preceding question to recall data from.
 </Note>
 
-### **Pre-requisite**
+### Pre-Requisite
 
 Ensure the answer you wish to recall precedes the question in which it will be recalled. Here’s an example of setting up the first question:
 
 ![Survey setup example with link survey template](/images/xm-and-surveys/surveys/general-features/recall/step-three.webp)
 
-### **Step 1: Recall Data**
+### Step 1: Recall Data
 
-Type **`@`** in the question or description field where you want to insert a recall. This triggers a dropdown menu listing all preceding questions. Select the question you want to recall data from.
+Type **`@`** in the question or description field where you want to insert a recall. This triggers a dropdown menu listing all preceding questions, hidden fields, and variables. Select the item you want to recall data from.
 
 ![Dropdown menu for recalling data in survey](/images/xm-and-surveys/surveys/general-features/recall/step-two.webp)
 
-### **Step 2: Set a Fallback**
+### Step 2: Set a Fallback
 
-To ensure the survey remains coherent when a response is missing (or the question is optional), you should set a fallback option.
+To ensure the survey remains coherent when a response is missing (or the question is optional), you should set a fallback value. The fallback text is displayed to the respondent whenever the recalled data is unavailable.
 
 ![Setting fallback option in survey question](/images/xm-and-surveys/surveys/general-features/recall/step-one.webp)
-
 
 ## Recalling from the URL
 
@@ -74,6 +93,6 @@ To ensure the survey remains coherent when a response is missing (or the questio
   }}
 />
 
-## **Conclusion**
+## Conclusion
 
 Recall Data in Formbricks surveys allows for a conversational and customized survey experience that enhances engagement and improves the quality of feedback. By integrating previous responses into new questions, you create a more interactive and relevant environment for respondents.

@@ -1,12 +1,19 @@
 ---
 title: "REST API"
 icon: "code"
-description: "
-Formbricks provides two APIs: the Public Client API for frontend survey interactions and the Management API for backend management tasks."
+description: "Formbricks provides a Public Client API for frontend survey interactions and a Management API for backend management tasks, available in v1 (stable) and v2 (beta)."
 ---
 
 Formbricks offers two types of APIs: the **Public Client API** and the **Management API**. Each API serves a different purpose, has *different* authentication requirements, and provides access to different data and settings.
 
+## API Versions
+
+Formbricks maintains two API versions:
+
+- **API v1 (Stable)**: The current production API documented on this page. Fully supported with all client and management endpoints.
+- **API v2 (Beta)**: A next-generation management API with improved authentication, standardized error responses using the Result pattern, and expanded endpoint coverage. See the [API v2 Reference](/api-v2-reference/introduction) for details.
+
+Both API versions use the `x-api-key` header for management API authentication. The v1 API will continue to be supported alongside v2 during the transition period.
 
 ## Public Client API
 
@@ -22,23 +29,35 @@ We currently have the following Client API methods exposed and below is their do
 
 The **Management API** gives full access to all data and settings available in your Formbricks account. It requires a personal API Key for authentication, which you can generate and manage in the Settings section of the Formbricks app.
 
-We currently have the following Management API methods exposed and below is their documentation attached in Postman:
+The following Management API endpoints are available:
 
-- [Action Class API](/api-reference/management-api--action-class/get-all-action-classes) - Create, List, and Delete Action Classes
+- [Action Class API](/api-reference/management-api--action-class/get-all-action-classes) — List, Get, Create, and Delete Action Classes
 
-- [Attribute Class API ](/api-reference/management-api--attribute-class/get-all-attribute-classes)- Create, List, and Delete Attribute Classes
+- [Attribute Class API](/api-reference/management-api--attribute-class/get-all-attribute-classes) — List, Get, Create, and Delete Attribute Classes
 
-- [Me API](/api-reference/management-api--me/me) - Retrieve Account Information
+- [Contact Attribute Keys API](/api-reference/management-api--contact-attribute-keys/get-all-contact-attribute-keys) — List and Get Contact Attribute Keys
 
-- [People API](/api-reference/management-api--people/get-all-persons) - List and Delete People
+- [Contact Attributes API](/api-reference/management-api--contact-attributes/get-all-contact-attributes) — List Contact Attributes
 
-- [Response API](/api-reference/management-api--response/get-survey-responses) - List, List by Survey, Update, and Delete Responses
+- [Contacts API](/api-reference/management-api--contacts/get-all-contacts) — List and Get Contacts
 
-- [Survey API](/api-reference/management-api--survey/get-all-surveys) - List, Create, Update, generate multiple suId, and Delete Surveys
+- [Me API](/api-reference/management-api--me/me) — Retrieve Account Information
 
-- [Webhook API](/api-reference/management-api--webhook/get-all-webhooks) - List, Create, and Delete Webhooks
+- [People API](/api-reference/management-api--people/get-all-persons) — List, Get, and Delete People
 
+- [Response API](/api-reference/management-api--response/get-survey-responses) — List, Get, Create, Update, and Delete Responses
 
+- [Storage API](/api-reference/management-api--storage/upload-public-file) — Upload Public Files
+
+- [Survey API](/api-reference/management-api--survey/get-all-surveys) — List, Get, Create, Update, Delete Surveys, and Generate Single-Use Links
+
+- [Webhook API](/api-reference/management-api--webhook/get-all-webhooks) — List, Get, Create, and Delete Webhooks
+
+## Authentication
+
+The **Public Client API** does not require authentication — it uses the environment ID in the URL path.
+
+The **Management API** requires an API key passed in the `x-api-key` header. API keys can be generated in the Formbricks app with granular project and environment permissions. See [Generate API Key](/api-reference/generate-key) for setup instructions.
 
 ---
 

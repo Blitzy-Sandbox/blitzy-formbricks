@@ -12,7 +12,11 @@ Formbricks supports SAML Single Sign-On (SSO) to enable secure, centralized auth
 
 To learn more about SAML Jackson, please refer to the [BoxyHQ SAML Jackson documentation](https://boxyhq.com/docs/jackson/deploy).
 
-## How SAML works in Formbricks
+<Note>
+  Formbricks uses BoxyHQ SAML Jackson v1.52.2 for SAML connection management.
+</Note>
+
+## How SAML Works In Formbricks
 
 SAML (Security Assertion Markup Language) is an XML-based standard for exchanging authentication and authorization data between an Identity Provider (IdP) and Formbricks. Here's how the integration works with BoxyHQ Jackson embedded into the flow:
 
@@ -70,10 +74,14 @@ To configure SAML SSO in Formbricks, follow these steps:
 <Steps>
   <Step title="Database Setup">
     Configure a dedicated database for SAML by setting the `SAML_DATABASE_URL` environment variable in your `docker-compose.yml` file (e.g., `postgres://postgres:postgres@postgres:5432/formbricks-saml`). If you're using a self-signed certificate for Postgres, include the `sslmode=disable` parameter.
+
+    <Note>
+      SAML SSO requires a **dedicated PostgreSQL database** separate from your main Formbricks database. This database is used exclusively by BoxyHQ Jackson to store SAML connection configurations.
+    </Note>
   </Step>
   
   <Step title="IdP Application">
-    Create a SAML application in your IdP by following your provider's instructions([SAML Setup](/development/guides/auth-and-provision/setup-saml-with-identity-providers))
+    Create a SAML application in your IdP by following your provider's instructions. See the [SAML Setup Guide](/development/guides/auth-and-provision/setup-saml-with-identity-providers) for detailed configuration steps with specific identity providers.
   </Step>
 
   <Step title="User Provisioning">
@@ -86,6 +94,10 @@ To configure SAML SSO in Formbricks, follow these steps:
 
   <Step title="Metadata Setup">
     Create a file called `connection.xml` in your self-hosted Formbricks instance's `formbricks/saml-connection` (use `formbricks/apps/web/saml-connection` for development) directory and paste the XML metadata from your IdP into it. Please create the directory if it doesn't exist. Your metadata file should start with a tag like this: `<?xml version="1.0" encoding="UTF-8"?><...>` or `<md:EntityDescriptor entityID="...">`. Please remove any extra text from the metadata.
+
+    <Note>
+      Only the first `.xml` file found in the `saml-connection` directory is used. If multiple XML files are present, only the first one (sorted alphabetically) will be loaded as the SAML connection metadata.
+    </Note>
   </Step>
 
   <Step title="Restart Formbricks">
@@ -97,3 +109,23 @@ To configure SAML SSO in Formbricks, follow these steps:
   We don't support multiple SAML connections yet. You can only have one SAML connection at a time. If you
   change the `connection.xml` file, your existing SAML connection will be overwritten.
 </Note>
+
+## SAML Configuration Constants
+
+The following internal constants are used by the SAML integration. These values are hardcoded in the Formbricks server and are not user-configurable, but are useful for understanding and debugging your SAML configuration:
+
+| Constant | Value | Description |
+|----------|-------|-------------|
+| SAML Tenant | `formbricks.com` | SAML tenant identifier used by BoxyHQ Jackson |
+| SAML Product | `formbricks` | SAML product identifier used by BoxyHQ Jackson |
+| SAML Audience | `https://saml.formbricks.com` | SAML audience URI expected in assertions (SP Entity ID) |
+| SAML Callback Path | `/api/auth/saml/callback` | Callback path for SAML assertions from the IdP |
+| SAML XML Directory | `./saml-connection` | Directory for SAML metadata XML files |
+
+<Note>
+  The SAML Audience URI (`https://saml.formbricks.com`) is the SP Entity ID. It is hardcoded and must be configured exactly as shown in your Identity Provider — do not replace it with your instance URL.
+</Note>
+
+---
+
+*Source: `apps/web/modules/ee/auth/saml/lib/jackson.ts`, `apps/web/modules/ee/auth/saml/lib/preload-connection.ts`, `apps/web/modules/ee/sso/lib/providers.ts`, `apps/web/lib/constants.ts`*

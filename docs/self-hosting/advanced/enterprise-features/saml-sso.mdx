@@ -4,4 +4,166 @@ description: "Configure Single Sign-On with SAML for your Formbricks instance."
 icon: "key"
 ---
 
-Implement enterprise-grade authentication for your survey platform using [SAML SSO](/self-hosting/configuration/auth-sso/saml-sso#saml-sso).
+<Note>
+  This feature requires an active Formbricks Enterprise License. [Learn more about licensing](/self-hosting/advanced/license).
+</Note>
+
+SAML (Security Assertion Markup Language) enables enterprise-grade Single Sign-On, allowing your organization's users to authenticate with Formbricks using their existing Identity Provider (IdP) credentials. Formbricks uses the **BoxyHQ saml-jackson** library (v1.52.2) for its SAML SSO implementation. This integration supports popular identity providers including Okta, Azure AD, OneLogin, and any other SAML 2.0-compliant IdP.
+
+<!-- Source: apps/web/modules/ee/sso/lib/providers.ts — SAML provider configuration (id: "saml", name: "BoxyHQ SAML") -->
+
+## How SAML SSO Works
+
+The following sequence diagram illustrates the SAML authentication flow in Formbricks with BoxyHQ Jackson handling assertion validation:
+
+```mermaid
+sequenceDiagram
+    participant User
+    participant Formbricks
+    participant Jackson as BoxyHQ saml-jackson
+    participant IdP as Identity Provider
+
+    User->>Formbricks: Click "Sign in with SAML"
+    Formbricks->>Jackson: Request SAML connection details
+    Jackson->>Formbricks: Return IdP configuration
+    Formbricks->>IdP: SAML AuthnRequest (redirect)
+    IdP->>User: Login prompt
+    User->>IdP: Enter credentials
+    IdP->>Formbricks: SAML Response (assertion via callback)
+    Formbricks->>Jackson: Validate assertion & extract user info
+    Jackson->>Formbricks: Return validated user data
+    Formbricks->>User: Authenticated session
+```
+
+Key details of the SAML authentication flow:
+
+- **Assertion Validation** — The BoxyHQ saml-jackson library handles all SAML assertion validation, including signature verification and user attribute extraction.
+- **Security Checks** — SAML uses PKCE (Proof Key for Code Exchange) and state checks for additional security during the OAuth-wrapped SAML flow. (Source: `apps/web/modules/ee/sso/lib/providers.ts`, line 62: `checks: ["pkce", "state"]`)
+- **Profile Attributes** — User profile attributes (`id`, `email`, `firstName`, `lastName`) are extracted from the SAML assertion and used to create or update the user account in Formbricks. The display name is composed from `firstName` and `lastName`. (Source: `apps/web/modules/ee/sso/lib/providers.ts`, lines 74–78)
+
+## Dedicated Database Requirement
+
+SAML SSO requires a **separate PostgreSQL database** dedicated to the BoxyHQ saml-jackson library. This database stores SAML provider configurations, connection metadata, and session data independently from the main Formbricks database.
+
+The `SAML_DATABASE_URL` environment variable must be configured to point to this dedicated database. When `SAML_DATABASE_URL` is set, the SAML SSO feature is automatically enabled. (Source: `apps/web/lib/constants.ts` — `SAML_OAUTH_ENABLED = !!env.SAML_DATABASE_URL`)
+
+<Warning>
+  The SAML database must be a separate PostgreSQL database from your main Formbricks database. The saml-jackson library manages its own schema in this database. Do not use the same database as your primary `DATABASE_URL`.
+</Warning>
+
+## Setting Up SAML SSO
+
+<Steps>
+  <Step title="Create A Dedicated SAML Database">
+    Create a new PostgreSQL database for the saml-jackson library. This database will be used exclusively for SAML connection management.
+
+    ```sql
+    CREATE DATABASE formbricks_saml;
+    ```
+
+    Ensure the database user has full permissions on this new database.
+  </Step>
+
+  <Step title="Set The SAML Database URL">
+    Add the `SAML_DATABASE_URL` environment variable to your Formbricks configuration, pointing to the newly created database.
+
+    ```bash
+    SAML_DATABASE_URL=postgresql://user:password@host:5432/formbricks_saml
+    ```
+
+    If you are using a self-signed certificate for PostgreSQL, include the `sslmode=disable` parameter:
+
+    ```bash
+    SAML_DATABASE_URL=postgresql://user:password@host:5432/formbricks_saml?sslmode=disable
+    ```
+  </Step>
+
+  <Step title="Configure Your Identity Provider">
+    In your Identity Provider (Okta, Azure AD, OneLogin, etc.), create a new SAML application with the following settings:
+
+    | Setting | Value |
+    |---------|-------|
+    | **ACS (Assertion Consumer Service) URL** | `{WEBAPP_URL}/api/auth/saml/callback` |
+    | **Entity ID / Audience** | `https://saml.formbricks.com` |
+    | **Name ID Format** | `urn:oasis:names:tc:SAML:1.1:nameid-format:emailAddress` |
+
+    Map the following required user attributes in your IdP:
+
+    | Attribute | Description |
+    |-----------|-------------|
+    | `email` | User's email address |
+    | `firstName` | User's first name |
+    | `lastName` | User's last name |
+
+    <!-- Source: apps/web/lib/constants.ts — SAML_AUDIENCE = "https://saml.formbricks.com", SAML_PATH = "/api/auth/saml/callback" -->
+  </Step>
+
+  <Step title="Set Additional Environment Variables">
+    Add any additional SAML-related environment variables as needed for your IdP configuration. The core variables are:
+
+    | Variable | Description |
+    |----------|-------------|
+    | `SAML_DATABASE_URL` | Connection string for the dedicated SAML database (required) |
+
+    No additional SAML-specific environment variables are needed beyond `SAML_DATABASE_URL`. The SAML connection metadata is loaded from a `connection.xml` file placed in the `saml-connection` directory of your Formbricks instance.
+  </Step>
+
+  <Step title="Restart Formbricks">
+    Restart your Formbricks instance to apply the new configuration. For Docker deployments:
+
+    ```bash
+    docker compose down
+    docker compose up -d
+    ```
+
+    The saml-jackson library will automatically initialize its schema in the dedicated SAML database on startup. (Source: `apps/web/modules/ee/auth/saml/lib/jackson.ts`)
+  </Step>
+
+  <Step title="Test SSO Login">
+    Verify the SAML SSO integration is working correctly:
+
+    1. Navigate to the Formbricks login page.
+    2. Click **"Continue with SAML SSO"** — this button appears when `SAML_DATABASE_URL` is configured and the Enterprise License is active.
+    3. Confirm you are redirected to your Identity Provider's login page.
+    4. Enter your IdP credentials and authenticate.
+    5. Verify you are redirected back to Formbricks and successfully logged in.
+  </Step>
+</Steps>
+
+<Note>
+  Formbricks currently supports a single SAML connection at a time. If you update the `connection.xml` file, the existing SAML connection will be overwritten. The connection metadata file should be placed in the `saml-connection` directory at the root of your Formbricks deployment (or `apps/web/saml-connection` for local development).
+</Note>
+
+## Detailed Configuration Guide
+
+For detailed SAML configuration instructions including IdP-specific setup guides and XML metadata preparation, see the [SAML SSO Configuration Guide](/self-hosting/configuration/auth-sso/saml-sso).
+
+For a step-by-step walkthrough of setting up SAML with specific identity providers (Okta, Azure AD, OneLogin), see the [SAML Identity Provider Setup Guide](/development/guides/auth-and-provision/setup-saml-with-identity-providers).
+
+## Troubleshooting
+
+Below are common issues encountered when configuring SAML SSO and their resolutions:
+
+**SAML Authentication Fails**
+
+- Verify that `SAML_DATABASE_URL` is correctly set and the dedicated PostgreSQL database is accessible from your Formbricks instance.
+- Confirm the `connection.xml` file contains valid SAML metadata from your IdP and is placed in the correct directory (`saml-connection/`).
+- Check that the ACS URL configured in your IdP exactly matches `{WEBAPP_URL}/api/auth/saml/callback`.
+
+**User Attributes Not Mapping Correctly**
+
+- Ensure your Identity Provider's attribute mapping includes `email`, `firstName`, and `lastName`.
+- Verify the SAML assertion contains the expected attribute values by checking your IdP's SAML response preview or logs.
+- The user's display name in Formbricks is composed by joining `firstName` and `lastName` from the SAML assertion.
+
+**SAML Button Not Appearing On Login Page**
+
+- Confirm that the Formbricks Enterprise License is active and valid.
+- Verify that `SAML_DATABASE_URL` is set in your environment variables — the SAML SSO feature is enabled only when this variable is configured.
+- Restart Formbricks after setting the environment variable to ensure the configuration is loaded.
+
+**Database Connection Errors**
+
+- Ensure the `SAML_DATABASE_URL` points to a valid PostgreSQL database that is separate from your main Formbricks database.
+- If using SSL, verify your certificate configuration or add `?sslmode=disable` for self-signed certificates.
+- Check that the database user specified in the connection string has permission to create tables (saml-jackson manages its own schema).

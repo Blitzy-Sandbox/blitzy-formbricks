@@ -1,7 +1,7 @@
 ---
 title: "Slack"
-description:
-  "The slack integration allows you to automatically send responses to a Slack channel of your choice."
+description: "The slack integration allows you to automatically send responses to a Slack channel of your choice."
+icon: "slack"
 ---
 
 <Note>
@@ -55,7 +55,27 @@ description:
 
 Congratulations! You have successfully linked a Slack channel with Formbricks. Now whenever a response is submitted for the linked survey, it will be automatically sent to the linked Slack channel.
 
-## Setup in self-hosted Formbricks
+## Slack OAuth Scopes
+
+Formbricks requires the following **Bot Token Scopes** to interact with your Slack workspace:
+
+| Scope | Purpose |
+|-------|---------|
+| `channels:read` | Read public channel information so they appear in the channel dropdown |
+| `groups:read` | Read private channel information so they appear in the channel dropdown |
+| `chat:write` | Post survey response messages to channels the bot has been added to |
+| `chat:write.public` | Post messages to public channels the bot is not a member of |
+| `chat:write.customize` | Customize the bot message appearance (name and icon) |
+
+Internally, Formbricks uses the Slack `users.conversations` API with `types=private_channel,public_channel` to fetch available channels. Channels are retrieved using cursor-based pagination with a limit of 200 channels per page.
+
+<Note>
+  The Formbricks bot uses `users.conversations` to list both private and public channels. For a channel to appear in the channel dropdown, the Formbricks bot must be added to that channel first. You can add it via **Channel Settings → Integrations → Add Apps** and searching for your Formbricks app.
+</Note>
+
+Source: `apps/web/lib/slack/service.ts`
+
+## Setup In Self-Hosted Formbricks
 
 Enabling the Slack Integration in a self-hosted environment requires a setup using slack workspace account and changing the environment variables of your Formbricks instance.
 
@@ -133,5 +153,67 @@ To remove the integration with Slack Workspace,
 4. It will now ask for a confirmation to remove the integration. Click on the "Delete" button to remove the integration. You can always come back and connect again with the same Slack Workspace.
 
 ![Delete Slack Integration with Formbricks](/images/xm-and-surveys/core-features/integrations/slack/delete-connection.webp)
+
+## Message Limits And Formatting
+
+Slack imposes character limits on messages. Formbricks enforces a **2,995 character limit** per response field value (`SLACK_MESSAGE_LIMIT = 2995` in `apps/web/lib/constants.ts`). When an individual response text exceeds this limit, it is automatically truncated using the `truncateText()` utility, which appends `...` to the shortened text.
+
+Survey responses are posted to Slack using the [Block Kit](https://api.slack.com/block-kit) format. Each message is structured as follows:
+
+- A **header section** displaying the survey name
+- A **divider** separating the header from the responses
+- A **question-response pair** for each selected survey question, where the question label is formatted as bold text (`*Question Label*`) and the response value is displayed below it
+
+Below is an approximate example of the Slack message structure:
+
+```text
+My Customer Feedback Survey
+────────────────────────────
+*How satisfied are you with our product?*
+Very satisfied
+
+*What could we improve?*
+The onboarding experience could be smoother...
+
+*Any additional comments?*
+I really enjoy using the product overall. The interface is clean and intuitive.
+```
+
+<Note>
+  Each question-response pair is individually checked against the 2,995 character limit. If a single response exceeds this limit, only that response is truncated — other responses in the same message are unaffected.
+</Note>
+
+Source: `apps/web/lib/slack/service.ts`, `apps/web/lib/constants.ts`
+
+## Token Expiry Handling
+
+Formbricks automatically handles expired Slack tokens. When the Slack API returns a `token_expired` error during channel fetching, the integration is automatically **deleted** via `deleteIntegration()`. This is a security measure designed to handle Slack's token rotation feature.
+
+After an automatic disconnection, users must re-authenticate and reconnect the Slack integration from the Integrations tab.
+
+<Warning>
+  If Slack's token rotation is enabled for your workspace, your Formbricks-Slack integration may be automatically disconnected when the token expires. You will need to reconnect the integration by clicking "Connect with Slack" again on the Integrations page.
+</Warning>
+
+Source: `apps/web/lib/slack/service.ts`
+
+## Troubleshooting
+
+Below are common issues you may encounter with the Slack integration and their solutions:
+
+| Issue | Cause | Solution |
+|-------|-------|----------|
+| Channel not appearing in dropdown | Bot not added to channel | Add the Formbricks bot to the channel via **Channel Settings → Integrations → Add Apps** |
+| Integration suddenly disconnected | Token rotation enabled in Slack | Re-authenticate and reconnect the integration from the Integrations tab |
+| Messages truncated | Response exceeds 2,995 characters | This is expected behavior; long responses are automatically truncated with `...` |
+| `token_expired` error | Slack token rotation | Re-connect the integration from the Integrations tab |
+| Missing permissions | Incorrect bot scopes | Verify all 5 required scopes (`channels:read`, `groups:read`, `chat:write`, `chat:write.public`, `chat:write.customize`) are configured in your Slack app settings |
+| Bot cannot post to channel | Bot not a member of private channel | Invite the Formbricks bot to the private channel, or use `chat:write.public` scope for public channels |
+
+<Note>
+  For self-hosted instances, ensure your Slack app's OAuth redirect URL matches your Formbricks instance URL. See the [self-hosted Slack configuration guide](/self-hosting/configuration/integrations/slack) for detailed setup instructions.
+</Note>
+
+Source: `apps/web/lib/slack/service.ts`
 
 Still struggling or something not working as expected? [Join our Github Discussions](https://github.com/formbricks/formbricks/discussions) and we'd be glad to assist you!

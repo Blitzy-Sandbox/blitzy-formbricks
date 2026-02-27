@@ -6,7 +6,13 @@ icon: "rocket"
 
 <Note>This only works with an Ubuntu machine, so ensure the underlying OS is verified beforehand!</Note>
 
-If you’re looking to quickly set up a production instance of Formbricks on an Ubuntu server, this guide is for you. Using a convenient shell script, you can install everything—including Docker, Postgres DB, and an SSL certificate—in just a few steps. The script takes care of all the dependencies and configuration for your server, making the process smooth and simple.
+If you’re looking to quickly set up a production instance of Formbricks on an Ubuntu server, this guide is for you. Using a convenient shell script, you can install Docker and set up a complete, production-ready Formbricks deployment in just a few steps. The script takes care of all the dependencies and configuration for your server, including:
+
+- **Formbricks** application container
+- **PostgreSQL** database (pgvector:pg17 with vector search support)
+- **Valkey** (Redis-compatible cache for sessions, rate limiting, and audit logging)
+- **MinIO** (S3-compatible object storage for file uploads — configured automatically with a Traefik subdomain)
+- **Traefik** reverse proxy with automatic SSL via Let’s Encrypt
 
 <Note>
   This setup uses **Traefik** as a **reverse proxy**, essential for directing incoming traffic to the correct
@@ -15,6 +21,34 @@ If you’re looking to quickly set up a production instance of Formbricks on an 
 </Note>
 
 For other operating systems or a more customized installation, please refer to the advanced installation guide with [Docker](/self-hosting/setup/docker).
+
+## What Gets Deployed
+
+The one-click script provisions the following services via Docker Compose:
+
+<CardGroup cols={2}>
+  <Card title="Formbricks" icon="browser">
+    Survey and feedback application (`ghcr.io/formbricks/formbricks:latest`)
+  </Card>
+  <Card title="PostgreSQL" icon="database">
+    Database with pgvector extension for vector search (`pgvector/pgvector:pg17`)
+  </Card>
+  <Card title="Valkey" icon="bolt">
+    Redis-compatible cache for sessions, rate limiting, and audit logging
+  </Card>
+  <Card title="MinIO" icon="hard-drive">
+    S3-compatible object storage for file uploads (optional, with automatic Traefik configuration)
+  </Card>
+  <Card title="Traefik" icon="shield-halved">
+    Reverse proxy with automatic Let’s Encrypt SSL certificates
+  </Card>
+</CardGroup>
+
+<Note>
+  The script sources its Docker Compose configuration from
+  [`docker/docker-compose.yml`](https://github.com/formbricks/formbricks/blob/stable/docker/docker-compose.yml)
+  in the Formbricks repository. Source: `docker/formbricks.sh`
+</Note>
 
 ### Requirements
 
@@ -228,6 +262,40 @@ Y
 
 ```
 
+- **File Upload Configuration**:
+  The script will ask if you want to configure file uploads. If you skip this step, features like adding images to surveys, file upload question types, project logos, and custom organization logos in emails will be disabled.
+
+```
+📁 Do you want to configure file uploads?
+   If you skip this, the following features will be disabled:
+   - Adding images to surveys (e.g., in questions or as background)
+   - 'File Upload' and 'Picture Selection' question types
+   - Project logos
+   - Custom organization logo in emails
+Configure file uploads now? [Y/n]
+```
+
+  If you choose `Y` (default), the script then asks whether to use an external S3-compatible storage or the bundled MinIO:
+
+```
+🗄️  Do you want to use an external S3-compatible storage (AWS S3/DO Spaces/etc.)? [y/N]
+```
+
+  - **External S3 (`Y`)**: You will be prompted for your S3 Access Key, Secret Key, Region, Bucket Name, and Endpoint URL (leave the endpoint empty for AWS S3).
+  - **Bundled MinIO (`N`, default)**: The script automatically configures a local MinIO instance with:
+    - Auto-generated root and least-privilege service credentials
+    - A dedicated `formbricks-uploads` bucket
+    - A Traefik subdomain for MinIO access (e.g., `files.yourdomain.com`)
+    - CORS configuration for your domain
+
+  <Note>
+    If you chose bundled MinIO, the script creates a `minio-init` service that runs once to configure the
+    bucket and service user. See the [Cleanup MinIO Init](#cleanup-minio-init-optional) section below to
+    optionally remove it after setup.
+  </Note>
+
+  If you decline file upload configuration entirely (`N` at the first prompt), file uploads are disabled and no S3/MinIO configuration is created.
+
 **That's it**! After running the command and providing the required information, visit the domain name you entered, and you should see the Formbricks home wizard!
 
 ```
@@ -312,7 +380,7 @@ To restart Formbricks, simply run the following command:
 
 The script will automatically restart all the Formbricks related containers and brings the entire stack up with the previous configuration.
 
-## Cleanup MinIO init (optional)
+## Cleanup MinIO Init (Optional)
 
 During the one-click setup, a temporary `minio-init` service configures MinIO (bucket, policy, service user). It is idempotent and safe to leave in place; it will do nothing on subsequent starts once configuration exists.
 
@@ -354,5 +422,4 @@ If you encounter any issues, consider the following steps:
 
 - **Check Formbricks Logs**: Run `cd formbricks && docker compose logs` to check the logs of the Formbricks stack.
 
-If you have any questions or require help, feel free to reach out to us on [**GitHub Discussions**](https://github.com/formbricks/formbricks/discussions). 😃[
-](https://formbricks.com/docs/developer-docs/rest-api)
+If you have any questions or require help, feel free to reach out to us on [**GitHub Discussions**](https://github.com/formbricks/formbricks/discussions). 😃

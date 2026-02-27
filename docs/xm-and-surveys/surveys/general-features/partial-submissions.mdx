@@ -4,21 +4,32 @@ description: "Capture and analyze partial submissions, providing detailed insigh
 icon: "circle-half"
 ---
 
-## **Understanding Partial Submissions**
+## Understanding Partial Submissions
 
 Partial submissions occur when respondents start a survey but do not complete it. These can include instances where the survey is opened but no questions are answered, or where only some questions are addressed before the survey is exited.
 
-## **Enabling and Accessing Partial Submissions Tracking**
+Every response in Formbricks carries a `finished` field that indicates whether the respondent completed the survey:
+
+- **`finished: false`** — The respondent started the survey but did not submit the final question. The response is stored with all data captured up to the point of exit.
+- **`finished: true`** — The respondent completed the entire survey and submitted their final answer.
+
+When a survey is first opened, a response record is created with `finished` set to `false` by default. As the respondent progresses through questions, partial answer data is captured incrementally. Only when the respondent submits the last question (or reaches a survey ending) is `finished` updated to `true`.
+
+<Note>
+  Once a response is marked as `finished: true`, it cannot be updated further through the API. Any subsequent update attempts will return a `400 Bad Request` error.
+</Note>
+
+## Enabling and Accessing Partial Submissions Tracking
 
 Tracking of partial submissions is automatically enabled for all Formbricks surveys, capturing every interaction from the moment a respondent begins the survey.
 
-### **Types of Data Captured**
+### Types of Data Captured
 
 1. **Display Created**: Tracks when a survey is initially opened.
 
 2. **Questions Partially Answered**: Records after every question & the data is handled, noting which questions were last interacted with before the survey was exited.
 
-### **Benefits of Tracking Partial Submissions**
+### Benefits of Tracking Partial Submissions
 
 - **Identifies Drop-Off Points**: Pinpoints specific questions where respondents are likely to stop answering, providing critical insights into potential issues within the survey.
 
@@ -26,13 +37,13 @@ Tracking of partial submissions is automatically enabled for all Formbricks surv
 
 - **Enhances Completion Rates**: Understanding where and why respondents are dropping off allows for targeted interventions to improve overall engagement and completion rates.
 
-## **Analyzing Partial Submission Data**
+## Analyzing Partial Submission Data
 
 Formbricks provides detailed analytics for partial submissions, including a per-question analysis of respondent behavior.
 
 ![Partial Submissions](/images/xm-and-surveys/surveys/general-features/partial-submissions/step-one.webp)
 
-### **Survey Summary Analytics**
+### Survey Summary Analytics
 
 The "Analyze Drop-Offs" toggle in the survey summary reveals a comprehensive table with detailed metrics, enabling a deep dive into how respondents interact with each question:
 
@@ -48,7 +59,7 @@ The "Analyze Drop-Offs" toggle in the survey summary reveals a comprehensive tab
 
   - **Time to Complete**: Average time taken by respondents to complete the survey.
 
-### **Detailed Question Analysis**
+### Detailed Question Analysis
 
 Each question is analyzed for:
 
@@ -60,7 +71,61 @@ Each question is analyzed for:
 
 This data is invaluable for pinpointing problems with specific questions and understanding the overall flow and engagement levels within the survey.
 
-## **Use Cases**
+## Partial Submissions in the API
+
+When you retrieve responses via the Formbricks API, you can distinguish partial from completed submissions using the `finished` field. A partial submission appears as follows:
+
+```json
+{
+  "id": "clxy1abc2000008l5d3e4f5g6",
+  "createdAt": "2025-01-15T10:30:00.000Z",
+  "updatedAt": "2025-01-15T10:32:15.000Z",
+  "surveyId": "clxy1def3000108l5h7i8j9k0",
+  "finished": false,
+  "data": {
+    "question_1": "Very satisfied",
+    "question_2": "Great onboarding experience"
+  },
+  "ttc": {
+    "question_1": 4500,
+    "question_2": 8200
+  },
+  "meta": {
+    "source": "web",
+    "url": "https://example.com/app"
+  }
+}
+```
+
+A completed response has the same structure but with `finished` set to `true`:
+
+```json
+{
+  "id": "clxy1lmn4000208l5o1p2q3r4",
+  "finished": true,
+  "data": {
+    "question_1": "Satisfied",
+    "question_2": "Smooth process",
+    "question_3": "Yes, I would recommend"
+  }
+}
+```
+
+### Filtering by Completion Status
+
+You can filter responses by their completion status using the `finished` parameter in the API filter criteria:
+
+- **Retrieve only completed responses**: Filter with `finished: true`
+- **Retrieve only partial submissions**: Filter with `finished: false`
+- **Retrieve all responses**: Omit the `finished` filter
+
+This is especially useful for building custom analytics dashboards or exporting data where you need to separate complete responses from partial submissions.
+
+## Partial Submissions and Quotas
+
+When [Quota Management](/xm-and-surveys/surveys/general-features/quota-management) is configured for a survey, it is important to understand how partial submissions interact with response quotas. Only responses with `finished: true` are evaluated against quota limits. Partial submissions (`finished: false`) do not count toward quota thresholds, ensuring that incomplete responses do not prematurely close survey collection.
+
+## Use Cases
 
 Partial submissions tracking is particularly valuable for:
 
@@ -68,6 +133,8 @@ Partial submissions tracking is particularly valuable for:
 
 - Studies requiring in-depth engagement metrics for each survey question to optimize content and survey structure.
 
-## **Conclusion**
+- API-driven workflows where programmatic access to partial response data enables real-time monitoring and automated follow-up actions.
 
-By leveraging the partial submissions tracking feature in Formbricks, you gain comprehensive insights into respondent behaviors and survey interactions. This information is vital for enhancing survey design, improving response rates, and ensuring more reliable and meaningful data collection.
+## Conclusion
+
+By leveraging the partial submissions tracking feature in Formbricks, you gain comprehensive insights into respondent behaviors and survey interactions. The `finished` field provides a reliable indicator for distinguishing partial from completed responses, both in the dashboard analytics and through the API. This information is vital for enhancing survey design, improving response rates, and ensuring more reliable and meaningful data collection.

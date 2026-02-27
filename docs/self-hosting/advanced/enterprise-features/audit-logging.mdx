@@ -14,7 +14,7 @@ Audit logs record **who** did **what**, **when**, **from where**, and **with wha
 
 ---
 
-## Benefits of audit logging
+## Benefits Of Audit Logging
 
 - **Compliance readiness** — Many regulatory frameworks such as GDPR and SOC 2 require immutable records of user activity.
 - **Security investigation support** — Audit logs provide clear visibility into user and system actions, helping teams respond quickly and confidently during security incidents.
@@ -22,7 +22,7 @@ Audit logs record **who** did **what**, **when**, **from where**, and **with wha
 
 ---
 
-## Enabling audit logging
+## Enabling Audit Logging
 
 1. Set the following environment variables in your deployment (Docker Compose, Kubernetes, etc.):
 
@@ -166,7 +166,7 @@ Each audit event identifies the **actor** — the entity responsible for trigger
 
 ---
 
-## Understanding the log format
+## Understanding The Log Format
 
 Audit logs are **JSON Lines** (one JSON object per line). A typical entry looks like this:
 
@@ -196,7 +196,7 @@ Key fields:
 
 ---
 
-## Centralized logging and compliance
+## Centralized Logging And Compliance
 
 Formbricks audit logs are designed to work with modern centralized logging architectures:
 
@@ -205,7 +205,7 @@ Formbricks audit logs are designed to work with modern centralized logging archi
 - **Platform-level security**: Access controls and tamper detection are provided by your logging infrastructure
 - **SOC2 compliance**: Most SOC2 auditors accept centralized logging without application-level integrity mechanisms
 
-## Additional details
+## Additional Details
 
 - **Redacted secrets:** Sensitive fields (e‑mails, access tokens, passwords…) are replaced with `"********"` before being written.
 - **Failure events count:** Both successful *and* failed operations are logged.

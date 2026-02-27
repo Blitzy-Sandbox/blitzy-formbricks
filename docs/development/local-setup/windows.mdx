@@ -4,67 +4,165 @@ description: How to set up Formbricks on a Windows machine
 icon: "windows"
 ---
 
-### Local Machine Setup - Windows
+<Warning>
+  This guide is intended for **Windows** users. Pure Windows is not fully supported — **WSL2 (Windows Subsystem for Linux 2)** is required for the best development experience.
+</Warning>
 
-<Info>
-  This guide is intended for **Windows** users. For the best experience, use **WSL2** since pure Windows is
-  not fully supported.
-</Info>
+## Requirements
 
-**Requirements:**
+The following tools must be installed to develop Formbricks on Windows via WSL2:
 
-- Node.JS (v20 recommended) via WSL2
-- [pnpm](https://pnpm.io/)
-- [Docker](https://www.docker.com/) (ensure Docker Desktop is installed with WSL2 integration enabled)
+| Tool | Version | Notes |
+|------|---------|-------|
+| WSL2 | Latest | Windows Subsystem for Linux 2 — required for development |
+| Node.js | ≥20.0.0 | LTS recommended; `.nvmrc` specifies 22.1.0; install inside WSL2 (source: `package.json` engines) |
+| pnpm | 10.28.2 | Install inside WSL2; managed via `packageManager` field (source: `package.json`) |
+| Turborepo | 2.5.3 | Build orchestration devDependency (source: `package.json`) |
+| Docker Desktop | Latest | Must have WSL2 integration enabled in Docker Desktop settings |
+| Git | Latest | Install inside WSL2 |
 
-**Steps (Using WSL2):**
+<Note>
+  All commands in this guide should be run inside the **WSL2 terminal** (Ubuntu recommended). Clone the repository inside the WSL2 filesystem (`/home/user/...`), **NOT** on the Windows filesystem (`/mnt/c/...`) — this is critical for performance. Docker Desktop must have **"Use WSL 2 based engine"** enabled and the WSL2 distro must be enabled in **Docker Desktop → Resources → WSL Integration**.
+</Note>
 
-1. **Open your WSL2 terminal and clone the project:**
+## Docker Development Services
 
-   ```bash
-   git clone https://github.com/formbricks/formbricks && cd formbricks
-   ```
+The development environment uses Docker Compose to run the following backing services (source: `docker-compose.dev.yml`):
 
-2. **Setup NodeJS with nvm in WSL2:**
+| Service | Image | Port(s) | Purpose |
+|---------|-------|---------|---------|
+| PostgreSQL | `pgvector/pgvector:pg17` | 5432 | Database with pgvector extension on PostgreSQL 17 |
+| Valkey | `valkey/valkey` | 6379 | Redis-compatible cache (replaces Redis) |
+| MinIO | `minio/minio:RELEASE.2025-09-07T16-13-09Z` | 9000 (S3 API), 9001 (Console) | S3-compatible object storage |
+| MailHog | `arjenz/mailhog` | 1025 (SMTP), 8025 (Web UI) | Local email testing |
 
-   ```bash
-   nvm install && nvm use
-   ```
+These services are started automatically by `pnpm go` (which runs `pnpm db:up` → `docker compose -f docker-compose.dev.yml up -d`).
 
-3. **Install packages using pnpm:**
+## Setup Steps
 
-   ```bash
-   pnpm install
-   ```
+<Steps>
+  <Step title="Open WSL2 Terminal">
+    Open a WSL2 terminal (Ubuntu recommended). All subsequent commands are run inside this terminal.
+  </Step>
 
-4. **Create a `.env` file:**
+  <Step title="Clone The Repository">
+    ```bash
+    git clone https://github.com/formbricks/formbricks && cd formbricks
+    ```
 
-   ```bash
-   cp .env.example .env
-   ```
+    <Warning>
+      Clone inside the WSL2 filesystem (e.g., `~/formbricks`), **NOT** on the Windows mount (`/mnt/c/...`). File system operations on the Windows mount are significantly slower.
+    </Warning>
+  </Step>
 
-5. **Generate & set secret values (Linux commands work in WSL2):**
+  <Step title="Setup Node.js With nvm">
+    ```bash
+    nvm install && nvm use
+    ```
 
-   ```bash
-   sed -i '/^ENCRYPTION_KEY=/c\ENCRYPTION_KEY='$(openssl rand -hex 32) .env
-   sed -i '/^NEXTAUTH_SECRET=/c\NEXTAUTH_SECRET='$(openssl rand -hex 32) .env
-   sed -i '/^CRON_SECRET=/c\CRON_SECRET='$(openssl rand -hex 32) .env
+    The `.nvmrc` file pins Node.js to version 22.1.0.
+  </Step>
 
-   ```
+  <Step title="Install Dependencies With pnpm">
+    ```bash
+    pnpm install
+    ```
+  </Step>
 
-6. **Generate the Next.js AGENTS.md file (optional, for AI-assisted development):**
+  <Step title="Create Environment File">
+    ```bash
+    cp .env.example .env
+    ```
+  </Step>
 
-   This step generates an `AGENTS.md` file at the repository root that provides Next.js documentation context for AI coding assistants (e.g. Cursor, GitHub Copilot). It runs `npx @next/codemod agents-md` under the hood. Re-run it whenever you upgrade Next.js.
+  <Step title="Generate And Set Secret Values">
+    Linux/GNU `sed` commands work natively in WSL2:
 
-   ```bash
-   pnpm agents:update
-   ```
+    ```bash
+    sed -i '/^ENCRYPTION_KEY=/c\ENCRYPTION_KEY='$(openssl rand -hex 32) .env
+    sed -i '/^NEXTAUTH_SECRET=/c\NEXTAUTH_SECRET='$(openssl rand -hex 32) .env
+    sed -i '/^CRON_SECRET=/c\CRON_SECRET='$(openssl rand -hex 32) .env
+    ```
 
-7. **Start the development setup:**
-   ```bash
-   pnpm go
-   ```
+    Three secrets are required: `ENCRYPTION_KEY`, `NEXTAUTH_SECRET`, and `CRON_SECRET` (source: `.env.example`).
+  </Step>
+
+  <Step title="Run Database Migrations">
+    ```bash
+    pnpm db:migrate:dev
+    ```
+
+    This applies Prisma migrations to the PostgreSQL database.
+  </Step>
+
+  <Step title="Generate AGENTS.md File (Optional)">
+    For AI-assisted development, generate an `AGENTS.md` file at the repository root:
+
+    ```bash
+    pnpm agents:update
+    ```
+
+    This provides Next.js documentation context for AI coding assistants (e.g., Cursor, GitHub Copilot). Re-run it whenever you upgrade Next.js.
+  </Step>
+
+  <Step title="Start Development Setup">
+    ```bash
+    pnpm go
+    ```
+
+    This starts Docker services and all dev servers concurrently.
+  </Step>
+</Steps>
+
+## Windows-Specific Considerations
+
+### File System Performance
+
+Always work within the WSL2 filesystem (`/home/user/...`), not the Windows mount. Cross-filesystem access via `/mnt/c/` is very slow and will significantly degrade build and hot-reload times.
+
+### Line Endings
+
+Configure Git to use LF line endings inside WSL2 to avoid issues with CRLF line endings:
+
+```bash
+git config --global core.autocrlf input
+```
+
+### Port Conflicts
+
+Ensure no Windows services are occupying the following ports before starting the development environment: **3000**, **5432**, **6379**, **9000**, **9001**, **1025**, **8025**. Use the following command from PowerShell to check:
+
+```bash
+netstat -an | findstr :<port>
+```
+
+### Docker Desktop WSL2 Integration
+
+Docker Desktop must have the WSL2 backend enabled and the Linux distro must be selected in **Resources → WSL Integration** settings. Without this, Docker commands will not be available inside the WSL2 terminal.
+
+### Memory Allocation
+
+WSL2 may consume significant memory. Configure a `.wslconfig` file in the Windows user directory (`C:\Users\<username>\.wslconfig`) to limit memory if needed:
+
+```ini
+[wsl2]
+memory=8GB
+processors=4
+```
+
+## Accessing The Application
 
 Access Formbricks at [http://localhost:3000](http://localhost:3000).
 
-<Tip>If you run into conflicts, ensure any local services (like PostgreSQL) are stopped.</Tip>
+Additional services are available at:
+
+- **MailHog Web UI**: [http://localhost:8025](http://localhost:8025) — view emails sent during development
+- **MinIO Console**: [http://localhost:9001](http://localhost:9001) — manage local S3-compatible object storage
+
+<Warning>
+  If you run into port conflicts, ensure any local Windows services (such as PostgreSQL, Redis, or other web servers) are stopped before running `pnpm go`. Check all service ports: 3000, 5432, 6379, 9000, 9001, 1025, and 8025.
+</Warning>
+
+<Note>
+  On first login, create a new account — no default credentials are provided.
+</Note>

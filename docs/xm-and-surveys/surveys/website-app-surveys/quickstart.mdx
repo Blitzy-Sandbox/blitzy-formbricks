@@ -5,6 +5,32 @@ icon: "rocket"
 sidebarTitle: "Quickstart"
 ---
 
+<Note>
+  The Formbricks browser SDK is only **~7KB** in size, ensuring minimal impact on your application's load time and performance.
+</Note>
+
+## How The SDK Works
+
+The following diagram illustrates the SDK initialization and survey display flow:
+
+```mermaid
+flowchart TD
+    A[Load Formbricks SDK] --> B[Call formbricks.setup]
+    B --> C{Valid Config?}
+    C -->|Yes| D[Fetch Environment State]
+    C -->|No| E[Error: Missing Fields]
+    D --> F[Filter Surveys for User]
+    F --> G[Add Event Listeners]
+    G --> H[Check Page URL]
+    H --> I{Matching Survey?}
+    I -->|Yes| J[Display Survey]
+    I -->|No| K[Wait for Trigger]
+    K --> L[User Performs Action]
+    L --> I
+```
+
+After calling `formbricks.setup()`, the SDK fetches the current environment state from the server, filters available surveys for the user, and adds event listeners. It then checks the current page URL for matching surveys. If a match is found, the survey is displayed immediately. Otherwise, the SDK waits for a user action (such as a click or page navigation) to trigger a matching survey.
+
 <Steps>
   <Step title="Create a Formbricks cloud account">
     While you can [self-host](/self-hosting) Formbricks, the fastest and easiest way to get started is with the free Cloud plan. Simply [sign up](https://app.formbricks.com/auth/signup) here, follow the onboarding steps, and choose the "Formbricks Surveys" option.
@@ -19,9 +45,61 @@ sidebarTitle: "Quickstart"
 
   </Step>
 
-<Step title="Connect your App/Website">
-  Follow the instructions to connect your app or website: ![connect product to
-  formbricks](https://res.cloudinary.com/dwdb9tvii/image/upload/v1738114328/image_tv0jmj.png)
+  <Step title="Install The Formbricks SDK">
+    Install the Formbricks SDK in your project using your preferred package manager. Note that **`zod`** is a required peer dependency and must also be installed.
+
+    ```bash npm
+    npm install @formbricks/js zod
+    ```
+
+    ```bash pnpm
+    pnpm add @formbricks/js zod
+    ```
+
+    ```bash yarn
+    yarn add @formbricks/js zod
+    ```
+
+    Alternatively, you can load the SDK via a CDN script tag in your HTML `<head>`:
+
+    ```html
+    <!-- START Formbricks Surveys -->
+    <script type="text/javascript">
+    !function(){
+        var appUrl = "https://app.formbricks.com";
+        var environmentId = "<your-environment-id>";
+    var t=document.createElement("script");t.type="text/javascript",t.async=!0,t.src=appUrl+"/js/formbricks.umd.cjs";var e=document.getElementsByTagName("script")[0];e.parentNode.insertBefore(t,e),setTimeout(function(){window.formbricks.setup({environmentId: environmentId, appUrl: appUrl})},500)}();
+    </script>
+    <!-- END Formbricks Surveys -->
+    ```
+
+    For framework-specific installation guides (React, Next.js, Vue.js, React Native, Swift, Android), see the [Framework Guides](/xm-and-surveys/surveys/website-app-surveys/framework-guides).
+  </Step>
+
+<Step title="Connect Your App/Website With formbricks.setup()">
+  After installing the SDK, initialize it by calling `formbricks.setup()` with your environment configuration. The `setup()` function accepts a `TConfigInput` object with two required fields:
+
+  | Parameter | Type | Description |
+  | :--- | :--- | :--- |
+  | `environmentId` | `string` | Your Formbricks Environment ID, found in **Settings → Setup Checklist**. |
+  | `appUrl` | `string` | The URL of your Formbricks instance. Use `PUBLIC_URL` for multi-domain setups, or `WEBAPP_URL` for single-domain setups. |
+
+  ```typescript
+  import formbricks from "@formbricks/js";
+
+  formbricks.setup({
+    environmentId: "<your-environment-id>",
+    appUrl: "<your-app-url>", // use PUBLIC_URL for multi-domain, WEBAPP_URL for single-domain
+  });
+  ```
+
+  <Note>
+    The legacy `formbricks.init()` method is deprecated. Please use `formbricks.setup()` for all new integrations. If you are migrating from an older version, the legacy `apiHost` parameter is automatically mapped to `appUrl` for backward compatibility.
+  </Note>
+
+  Follow the on-screen instructions in the Formbricks onboarding to confirm your connection:
+
+  ![connect product to formbricks](https://res.cloudinary.com/dwdb9tvii/image/upload/v1738114328/image_tv0jmj.png)
 </Step>
 
   <Step title="Confirm setup">
@@ -93,3 +171,7 @@ sidebarTitle: "Quickstart"
 </Steps>
 
 Need help? Join us in [**GitHub Discussions**](https://github.com/formbricks/formbricks/discussions), and we'll be happy to assist!
+
+---
+
+*Source: `packages/js-core/src/index.ts` (SDK API), `packages/js-core/src/types/config.ts` (`TConfigInput` interface)*

@@ -6,7 +6,7 @@ icon: "triangle-exclamation"
 
 ## Overview
 
-At Formbricks, we follow consistent error handling patterns to ensure reliability, debuggability, and maintainability across our codebase. This document outlines our standard approaches to error handling.
+At Formbricks, we follow consistent error handling patterns to ensure reliability, debuggability, and maintainability across our codebase. This document outlines our standard approaches to error handling, including the Result pattern for server actions, Zod-based input validation, and context-specific patterns for API routes, server actions, and client components.
 
 ## Core Principles
 
@@ -16,7 +16,68 @@ At Formbricks, we follow consistent error handling patterns to ensure reliabilit
 4. **Logging**: Ensure errors are properly logged for debugging
 5. **Recovery**: Implement graceful fallbacks where possible
 
+## Result Pattern
 
+Server actions wrap service calls and return `{ data }` or `{ error }` consistently. This convention ensures that callers never need to catch thrown exceptions — every operation returns a predictable result shape.
+
+_Source: `AGENTS.md` — Architecture & Patterns_
+
+<Note>
+  Server actions **always** return `{ data }` or `{ error }` — they never throw errors directly. This is a strict convention across the Formbricks codebase.
+</Note>
+
+### Success And Error Wrappers
+
+The codebase provides `ok(data)` and `err(error)` helper functions that produce the consistent result envelope:
+
+```typescript
+// ok() wraps a successful result
+function ok<T>(data: T): { ok: true; data: T } {
+  return { ok: true, data };
+}
+
+// err() wraps a failure result
+function err<E>(error: E): { ok: false; error: E } {
+  return { ok: false, error };
+}
+```
+
+### Server Action Implementation
+
+Server actions call into service functions and catch any exceptions, returning a structured result rather than letting errors propagate:
+
+```typescript
+// Server action implementation using the Result pattern
+export const createSurveyAction = async (data: TSurveyInput) => {
+  try {
+    const survey = await createSurvey(data);
+    return { data: survey }; // Success result
+  } catch (error) {
+    return { error: "Failed to create survey" }; // Error result
+  }
+};
+```
+
+### Client-Side Consumption
+
+On the client, every call to a server action is followed by an `ok` check on the returned result:
+
+```typescript
+// Consuming a server action result on the client
+const result = await someServerAction();
+if (result.ok) {
+  // Access result.data safely
+  processResult(result.data);
+} else {
+  // Handle result.error
+  logger.error(`Operation failed: ${result.error.message}`);
+  toast.error("Something went wrong. Please try again.");
+}
+```
+
+<Warning>
+  Never bypass the Result pattern by throwing exceptions from server actions. Thrown errors cannot be typed or inspected by the caller, breaking the contract that all callers depend on.
+</Warning>
 
 ## Standard Error Types
 
@@ -24,64 +85,157 @@ We maintain a set of standardized error types for different scenarios:
 
 ```typescript
 export interface ApiErrorResponse {
-code:
-| "not_found"
-| "gone"
-| "bad_request"
-| "internal_server_error"
-| "unauthorized"
-| "method_not_allowed"
-| "not_authenticated"
-| "forbidden"
-| "network_error";
-message: string;
-status: number;
-url: URL;
-details?: Record<string, string | string[] | number | number[] | boolean | boolean[]>;
-responseMessage?: string;
+  code:
+    | "not_found"
+    | "gone"
+    | "bad_request"
+    | "internal_server_error"
+    | "unauthorized"
+    | "method_not_allowed"
+    | "not_authenticated"
+    | "forbidden"
+    | "network_error";
+  message: string;
+  status: number;
+  url: URL;
+  details?: Record<string, string | string[] | number | number[] | boolean | boolean[]>;
+  responseMessage?: string;
 }
 ```
 
+All API error responses use this interface, ensuring every consumer can pattern-match on the `code` field and access a predictable set of properties.
+
+## Zod Validation
+
+Formbricks uses a **schema-first** approach for input validation. Zod schemas serve as the single source of truth for request shapes, database entity constraints, and shared types throughout the codebase.
+
+_Source: `packages/types/surveys/` and `packages/database/zod/`_
+
+### Schema-First Approach
+
+Use `z.safeParse()` for controlled validation that returns a result without throwing. Use `z.parse()` only when an invalid input should immediately halt execution (for example, at a trusted internal boundary):
+
+```typescript
+import { z } from "zod";
+
+const surveySchema = z.object({
+  name: z.string().min(1),
+  type: z.enum(["link", "app"]),
+});
+
+// Using safeParse for controlled validation
+const result = surveySchema.safeParse(input);
+if (!result.success) {
+  return { error: result.error.flatten() };
+}
+
+// result.data is fully typed from this point forward
+const validSurvey = result.data;
+```
+
+### Survey Type Schemas
+
+Zod schemas in `packages/types/surveys/` define the canonical shapes for all survey-related types. Key schema files include:
+
+- `types.ts` — core survey and question type definitions
+- `validation.ts` — survey-level validation schemas
+- `validation-rules.ts` — per-question validation rule schemas
+- `blocks-validation.ts` — survey block and logic schemas
+- `elements-validation.ts` — survey element schemas
+
+### Database Validation Schemas
+
+Zod schemas in `packages/database/zod/` mirror Prisma models and enforce constraints before data reaches the database. Key schema files include:
+
+- `surveys.ts` — survey entity validation
+- `responses.ts` — response entity validation
+- `contact.ts` — contact entity validation
+- `contact-attribute-keys.ts` — contact attribute key validation
+- `contact-attributes.ts` — contact attribute validation
+- `organizations.ts` — organization entity validation
+- `users.ts` — user entity validation
+- `teams.ts` — team entity validation
+- `project-teams.ts` — project-team association validation
+- `roles.ts` — role entity validation
+- `webhooks.ts` — webhook entity validation
+- `invites.ts` — invite entity validation
+- `api-keys.ts` — API key entity validation
+
+### API Boundary Validation
+
+The v2 API uses Zod schemas via `zod-openapi` for automatic request validation at the API boundary. Each route handler declares its expected input and output schemas, and the framework validates incoming requests before the handler executes. Invalid requests receive a structured error response without any manual parsing code.
+
+<Note>
+  Always validate external input at the boundary (API routes, server actions) using Zod schemas. Internal service-to-service calls can trust already-validated data.
+</Note>
 
 ## Error Handling Patterns
 
-### API Error Handling
+### API Routes
 
-For API endpoints:
+API route handlers use `try/catch` blocks and return typed responses from the `responses` helper module. Errors are matched by type to produce the correct HTTP status code and `ApiErrorResponse` body:
 
 ```typescript
 export const GET = async (request: Request) => {
-try {
-const authentication = await authenticateRequest(request);
-if (!authentication) return responses.notAuthenticatedResponse();
-const data = await fetchData(authentication.environmentId!);
-return responses.successResponse(data);
-} catch (error) {
-if (error instanceof DatabaseError) {
-return responses.badRequestResponse(error.message);
-}
-throw error;
-}
+  try {
+    const authentication = await authenticateRequest(request);
+    if (!authentication) return responses.notAuthenticatedResponse();
+    const data = await fetchData(authentication.environmentId!);
+    return responses.successResponse(data);
+  } catch (error) {
+    if (error instanceof DatabaseError) {
+      return responses.badRequestResponse(error.message);
+    }
+    throw error;
+  }
 };
 ```
 
+<Note>
+  API routes return `ApiErrorResponse`-shaped JSON bodies so that SDK consumers and external integrations can programmatically handle specific error codes like `"not_found"` or `"forbidden"`.
+</Note>
 
-### Client-Side Error Handling
+### Server Actions
 
-For client-side operations:
+Server actions follow the Result pattern described above. They wrap service calls in `try/catch` and always return `{ data }` on success or `{ error }` on failure — never throwing:
+
+```typescript
+export const updateSurveyAction = async (
+  surveyId: string,
+  data: TSurveyUpdateInput
+) => {
+  try {
+    const updatedSurvey = await updateSurvey(surveyId, data);
+    return { data: updatedSurvey };
+  } catch (error) {
+    if (error instanceof AuthorizationError) {
+      return { error: "You do not have permission to update this survey" };
+    }
+    return { error: "Failed to update survey" };
+  }
+};
+```
+
+### Client Components
+
+Client-side code consumes server action results and provides user feedback through toast notifications. React error boundaries act as a safety net for unhandled rendering errors:
 
 ```typescript
 const handleOperation = async () => {
-const result = await performAction();
-if (!result.ok) {
-logger.error(`Operation failed: ${result.error.message}`);
-toast.error("Operation failed. Please try again.");
-return;
-}
-// Process successful result
-processResult(result.data);
+  const result = await performAction();
+  if (!result.ok) {
+    logger.error(`Operation failed: ${result.error.message}`);
+    toast.error("Operation failed. Please try again.");
+    return;
+  }
+  // Process successful result
+  processResult(result.data);
 };
 ```
+
+<Note>
+  Use React error boundaries at layout-level route segments to catch unexpected rendering errors and display a fallback UI. Toast notifications should be reserved for user-initiated action feedback.
+</Note>
 
 ## Best Practices
 
@@ -90,8 +244,12 @@ processResult(result.data);
    - Log errors appropriately for debugging
    - Use error boundaries in React components
 
+<Warning>
+  Never use empty `catch` blocks or log-and-ignore patterns. Every caught error must be either re-thrown, returned as part of the Result pattern, or explicitly handled with a recovery strategy.
+</Warning>
+
 2. **Type Safety**
-   - Use typed error responses
+   - Use typed error responses (`ApiErrorResponse`)
    - Leverage TypeScript for compile-time error checking
    - Define clear error interfaces
 
@@ -110,28 +268,49 @@ processResult(result.data);
    - Include error handling in code examples
    - Keep error handling documentation up to date
 
+6. **Result Pattern Consistency**
+   - Server actions must return `{ data }` or `{ error }` — never throw
+   - Client code must check `result.ok` before accessing `result.data`
+   - Validate inputs with Zod schemas before calling service functions
+   - Return user-friendly error messages in the `error` field; log technical details separately
+
 ## Testing Error Scenarios
 
 Always include error case testing:
 
 ```typescript
 describe("fetchEnvironmentState()", () => {
-test("returns err(...) on network error", async () => {
-const mockNetworkError = {
-code: "network_error",
-message: "Timeout",
-responseMessage: "Network fail",
-};
-const result = await fetchEnvironmentState();
-expect(result.ok).toBe(false);
-if (!result.ok) {
-expect(result.error.code).toBe(mockNetworkError.code);
-expect(result.error.message).toBe(mockNetworkError.message);
-}
+  test("returns err(...) on network error", async () => {
+    const mockNetworkError = {
+      code: "network_error",
+      message: "Timeout",
+      responseMessage: "Network fail",
+    };
+    const result = await fetchEnvironmentState();
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.error.code).toBe(mockNetworkError.code);
+      expect(result.error.message).toBe(mockNetworkError.message);
+    }
+  });
 });
-});
-
 ```
 
+When testing server actions, verify both the success and error paths return the expected result shape:
+
+```typescript
+describe("createSurveyAction()", () => {
+  test("returns data on success", async () => {
+    const result = await createSurveyAction(validInput);
+    expect(result).toHaveProperty("data");
+    expect(result.data.name).toBe(validInput.name);
+  });
+
+  test("returns error on invalid input", async () => {
+    const result = await createSurveyAction(invalidInput);
+    expect(result).toHaveProperty("error");
+  });
+});
+```
 
 These standards ensure consistent, reliable error handling across the Formbricks codebase while maintaining good developer experience and system reliability.

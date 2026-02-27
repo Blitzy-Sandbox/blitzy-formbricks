@@ -1,3 +1,61 @@
 ---
 openapi: put /api/v1/management/responses/{responseId}
 ---
+
+<Note>
+  This endpoint requires a valid `x-api-key` header with **write** permission for the environment containing the response's survey. See [Generate API Key](/api-reference/generate-key) for setup instructions.
+</Note>
+
+## Update Payload
+
+The update request body accepts the same fields as the create request, allowing you to modify an existing response:
+
+- **`data`** (object): Updated answer data keyed by question IDs. Provide only the fields you want to update — existing data for other question IDs is preserved.
+- **`finished`** (boolean): Set to `true` to mark a partial submission as complete. Setting `finished: true` triggers follow-up emails and completion-based webhooks.
+- **`language`** (string): Update the response language code
+
+Source: `apps/web/app/api/v1/management/responses/[responseId]/route.ts`
+
+### Completing A Partial Submission
+
+To complete a previously partial response:
+
+```json
+{
+  "data": {
+    "clx1234abcdef": "Updated answer"
+  },
+  "finished": true
+}
+```
+
+<Warning>
+  Updating a response triggers the response pipeline. If `finished` is set to `true` (and was previously `false`), this triggers the `responseFinished` webhook event, follow-up emails, and integration dispatches. The `responseUpdated` webhook event is triggered on every update regardless of the `finished` flag.
+</Warning>
+
+## Authorization
+
+The API key must have `PUT` permission for the environment where the response's survey belongs. The endpoint performs a two-step authorization:
+1. Fetches the response by ID
+2. Looks up the survey to determine the environment
+3. Validates the API key has `PUT` permission for that environment
+
+If authorization fails at any step, a `401 Unauthorized` response is returned.
+
+## Error Responses
+
+The following error scenarios may be returned by this endpoint:
+
+| Status Code | Error              | Description                                                                                              |
+| ----------- | ------------------ | -------------------------------------------------------------------------------------------------------- |
+| `404`       | Not Found          | No response exists with the given `responseId`.                                                          |
+| `401`       | Unauthorized       | The API key does not have `PUT` permission for the environment associated with the response's survey.     |
+| `422`       | Validation Error   | The request body failed validation (e.g., invalid data format, unknown question IDs, file upload errors). |
+
+Source: `apps/web/app/api/v1/management/responses/[responseId]/route.ts`
+
+## Quota Evaluation
+
+<Note>
+  Response updates that mark a response as `finished: true` may be subject to quota evaluation, similar to response creation. If the project has exceeded its monthly response quota, marking a response as finished may be rejected.
+</Note>

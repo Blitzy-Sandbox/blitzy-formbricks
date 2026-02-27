@@ -4,34 +4,68 @@ icon: "code"
 description: "Each project on Formbricks has two environments: a test environment and a production environment. The test environment is used to test your surveys through before they are sent out to your customers."
 ---
 
-To clearly separate between test and production data, Formbricks provides two different environments for each project. These environments are completely independent of each other **incl. API keys, project configuration and environment Id's** used for connecting Formbricks to run in-product surveys.
+To clearly separate between test and production data, Formbricks provides two different environments for each project. These environments are completely independent of each other **incl. API keys, project configuration, and environment IDs** used for connecting Formbricks to run in-product surveys. This architecture supports safe testing before deploying surveys to production — each environment has its own unique environment ID used for SDK connections, and all survey data (responses, contacts) are completely separated between environments.
 
-## Toggle between environments
+## Toggle Between Environments
 
 You can switch between environments from the Website & App Connection settings (Configuration > Website & App Connection). At the top, you'll see a toggle button that says "Switch to development" (when in production) or "Switch to production" (when in development).
 
+<Note>
+  Switching environments changes the visible surveys, responses, and API keys. Each environment has its own
+  unique environment ID needed for SDK integration. Make sure you are using the correct environment ID when
+  connecting the Formbricks SDK to your application.
+</Note>
 
 ### Dev Environment (Testing)
 
 The development environment is used to test your surveys and project configuration before deploying to production. When you're in development mode, you'll see a dark red breadcrumb labeled "development" at the top.
 
+<Warning>
+  Responses collected in the development environment are completely separate from production and cannot be
+  merged. Use the development environment exclusively for testing purposes.
+</Warning>
 
 ### Production Environment
 
 The production environment is used to serve your surveys to your respondents.
 
-## Copy surveys between environments
+## Copy Surveys Between Environments
 
 <Steps>
   <Step title="Click More Actions">
     Click on the "More actions" button of a survey in the survey list
-    
+
     ![More actions](/images/xm-and-surveys/core-features/test-environment/more-actions.webp)
   </Step>
 
   <Step title="Select Target Environment">
     Choose which environment you want to copy the survey to
-    
+
     ![Copy survey](/images/xm-and-surveys/core-features/test-environment/modal.webp)
   </Step>
 </Steps>
+
+<Note>
+  Copied surveys do not carry over their response data — only the survey configuration is duplicated.
+  Specifically, the following **is copied**: survey questions, conditional logic, and styling settings. The
+  following **is not copied**: responses, contacts, and integration connections.
+</Note>
+
+## Environment-Specific Configuration
+
+Each environment maintains its own independent configuration. Understanding what is environment-specific helps you set up both environments correctly:
+
+- **API Keys**: Each environment has unique API keys. Use the development API key for testing and the production API key for your live application.
+- **Environment IDs**: Development and production environments have different environment IDs. Ensure you pass the correct environment ID when initializing the [Formbricks SDK](/xm-and-surveys/surveys/website-app-surveys/quickstart).
+- **Webhook Configurations**: [Webhooks](/xm-and-surveys/core-features/integrations/webhooks) are configured per environment. Set up separate webhooks for development and production as needed.
+- **Integration Connections**: Native integrations (such as [Slack](/xm-and-surveys/core-features/integrations/slack), [Google Sheets](/xm-and-surveys/core-features/integrations/google-sheets), [Notion](/xm-and-surveys/core-features/integrations/notion), and [Airtable](/xm-and-surveys/core-features/integrations/airtable)) may need to be configured separately for each environment.
+
+## Best Practices
+
+Follow these guidelines to make the most of the dual-environment setup:
+
+- **Test before publishing**: Always test your surveys in the development environment before publishing them to production. This helps catch issues with question flow, conditional logic, and styling.
+- **SDK integration testing**: Use the development environment when integrating the Formbricks SDK into your application. Switch to the production environment ID only after verifying that surveys display and behave correctly.
+- **Verify conditional logic**: Test all conditional logic branches and question branching paths in the development environment to ensure respondents see the correct questions based on their answers.
+- **Validate integrations**: Configure and test [webhook](/xm-and-surveys/core-features/integrations/webhooks) and [native integration](/xm-and-surveys/core-features/integrations/overview) connections in the development environment before replicating the setup in production.
+- **Keep environments in sync**: When making changes to survey design or project configuration, remember to copy or replicate those changes to the other environment as needed.

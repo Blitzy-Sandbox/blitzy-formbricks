@@ -6,17 +6,17 @@ icon: "google"
 
 <Note>Google OAuth is part of the Formbricks [Enterprise Edition](/self-hosting/advanced/license)</Note>
 
-### Google OAuth
+## Google OAuth
 
 Integrating Google OAuth with your Formbricks instance allows users to log in using their Google credentials, ensuring a secure and streamlined user experience. This guide will walk you through the process of setting up Google OAuth for your Formbricks instance.
 
-### Requirements
+## Requirements
 
 - A Google Cloud Platform (GCP) account
 
 - A Formbricks instance running
 
-### How to connect your Formbricks instance to Google
+## How To Connect Your Formbricks Instance To Google
 
 <Steps>
   <Step title="Create a GCP Project">
@@ -39,7 +39,7 @@ Integrating Google OAuth with your Formbricks instance allows users to log in us
     - Select the application type **Web application** for your project and enter any additional information required.
     - Ensure to specify authorized JavaScript origins and authorized redirect URIs.
 
-    ```
+    ```sh
     Authorized JavaScript origins: {WEBAPP_URL}
     Authorized redirect URIs: {WEBAPP_URL}/api/auth/callback/google
     ```
@@ -75,5 +75,11 @@ Integrating Google OAuth with your Formbricks instance allows users to log in us
     - Navigate to your Docker setup directory where your `docker-compose.yml` file is located.
     
     - Run the following command to bring down your current Docker containers and then bring them back up with the updated environment configuration.
+
+    ```sh
+    docker compose down && docker compose up -d
+    ```
   </Step>
 </Steps>
+
+Source: `apps/web/modules/ee/sso/lib/providers.ts`, `apps/web/lib/constants.ts`

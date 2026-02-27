@@ -7,55 +7,81 @@ icon: "envelope"
 
 To ensure the credibility of your survey participants and maintain high-quality data, you can require respondents to verify their email before they can view and respond to your Formbricks link surveys. This verification process helps confirm that only participants with valid email addresses can access the survey, enhancing data integrity.
 
-## **Enabling Email Verification**
+## Enabling Email Verification
 
 This feature, designed for link surveys, can be enabled or disabled directly from the survey editor. Here’s how to activate it:
 
-### **Steps to Enable Email Verification**
+### Steps To Enable Email Verification
 
-1. **Open Survey Editor**: Navigate to your link survey in the survey editor where you wish to enable email verification.
-2. **Access Settings**: Click on the **`Settings`** tab next to the Questions & Styling tab.
-3. **Select Response Options**: Find and select **`Response Options`** to access settings related to survey responses.
+<Steps>
+  <Step title="Open Survey Editor">
+    Navigate to your link survey in the survey editor where you wish to enable email verification.
+  </Step>
 
-   ![Choose a link survey template](/images/xm-and-surveys/surveys/link-surveys/verify-email-before-survey/step-one.webp)
+  <Step title="Access Settings">
+    Click on the **Settings** tab next to the Questions & Styling tab.
+  </Step>
 
-4. **Activate Email Verification**: Find the "Verify Email Before Accessing Survey" option and use the toggle to activate email verification. Specify what details should be visible to the public when they access the survey.
+  <Step title="Select Response Options">
+    Find and select **Response Options** to access settings related to survey responses.
 
-   ![Choose a link survey template](/images/xm-and-surveys/surveys/link-surveys/verify-email-before-survey/step-two.webp)
+    ![Settings tab with Response Options in survey editor](/images/xm-and-surveys/surveys/link-surveys/verify-email-before-survey/step-one.webp)
+  </Step>
 
-### **User Experience Upon Accessing the Survey**
+  <Step title="Activate Email Verification">
+    Find the "Verify Email Before Accessing Survey" option and use the toggle to activate email verification. Specify what details should be visible to the public when they access the survey.
+
+    ![Email verification toggle in Response Options settings](/images/xm-and-surveys/surveys/link-surveys/verify-email-before-survey/step-two.webp)
+  </Step>
+</Steps>
+
+### User Experience Upon Accessing The Survey
 
 When email verification is enabled, the following process unfolds for the user:
 
-1. **Email Entry Prompt**: Upon accessing the survey link, the user is prompted to verify their email before they can proceed.
+<Steps>
+  <Step title="Email Entry Prompt">
+    Upon accessing the survey link, the user is prompted to verify their email before they can proceed.
 
-   ![Choose a link survey template](/images/xm-and-surveys/surveys/link-surveys/verify-email-before-survey/step-three.webp)
+    ![Email entry prompt shown to survey respondents](/images/xm-and-surveys/surveys/link-surveys/verify-email-before-survey/step-three.webp)
+  </Step>
 
-2. **Preview Option**: A "Preview survey questions" option is available for those who are just browsing or curious about the survey content without completing it. This allows a non-interactive view of the survey.
+  <Step title="Preview Option">
+    A "Preview survey questions" option is available for those who are just browsing or curious about the survey content without completing it. This allows a non-interactive view of the survey.
 
-   ![Choose a link survey template](/images/xm-and-surveys/surveys/link-surveys/verify-email-before-survey/step-four.webp)
+    ![Preview survey questions option for browsing](/images/xm-and-surveys/surveys/link-surveys/verify-email-before-survey/step-four.webp)
+  </Step>
 
-3. **Verification Process**: After entering their email, respondents receive an email containing a survey link, which they can use to access the survey.
+  <Step title="Verification Process">
+    After entering their email, respondents receive a verification email containing a unique survey link. The email includes the survey name and a direct link to proceed. The verification link remains active as long as the survey itself is open and accepting responses.
 
-   ![Choose a link survey template](/images/xm-and-surveys/surveys/link-surveys/verify-email-before-survey/step-five.webp)
+    ![Verification email received by respondent with survey link](/images/xm-and-surveys/surveys/link-surveys/verify-email-before-survey/step-five.webp)
+  </Step>
 
-4. **Survey Access**: After verifying their email, respondents can access and respond to the survey.
+  <Step title="Survey Access">
+    After clicking the verification link in the email, respondents can access and respond to the survey.
 
-![Choose a link survey template](/images/xm-and-surveys/surveys/link-surveys/verify-email-before-survey/step-six.webp)
+    ![Survey displayed after successful email verification](/images/xm-and-surveys/surveys/link-surveys/verify-email-before-survey/step-six.webp)
+  </Step>
+</Steps>
 
-### **Benefits of Email Verification**
+<Note>
+  When combined with the **Single Response Per Email** option (also found under Response Options), respondents who have already submitted a response will be notified that a response for their email address already exists. This prevents duplicate submissions from the same verified email.
+</Note>
+
+### Benefits Of Email Verification
 
 - **Authenticity of Respondents**: Ensures that each respondent is verified, adding an extra layer of authenticity to your data collection.
-- **Reduction in Spam and Fraudulent Responses**: Helps reduce unwanted or spam entries by confirming the legitimacy of each respondent’s email address.
+- **Reduction in Spam and Fraudulent Responses**: Helps reduce unwanted or spam entries by confirming the legitimacy of each respondent's email address.
 - **Enhanced Data Quality**: Increases the reliability and quality of the data collected by confirming the identity of participants.
 
-### **Visibility of Verified Emails**
+### Visibility Of Verified Emails
 
 In the Formbricks dashboard, the survey response card displays the verified email along with the responses attached to it, ensuring traceability and authenticity of the data collected.
 
-![Choose a link survey template](/images/xm-and-surveys/surveys/link-surveys/verify-email-before-survey/step-seven.webp)
+![Verified email displayed in survey response card on dashboard](/images/xm-and-surveys/surveys/link-surveys/verify-email-before-survey/step-seven.webp)
 
-## **Use Cases**
+## Use Cases
 
 Email verification is particularly beneficial in scenarios where:
 
@@ -63,6 +89,10 @@ Email verification is particularly beneficial in scenarios where:
 - Surveys are intended for a selected audience with gated content.
 - Academic or professional studies necessitate authenticated data for accuracy.
 
-## **Conclusion**
+## Conclusion
 
 Implementing the Email Verification feature is an effective strategy to ensure the authenticity of your survey respondents. By requiring email verification before survey access, you safeguard the integrity of your survey data and ensure that only verified individuals can contribute responses.
+
+---
+
+_Source: The email verification UI is implemented in `apps/web/modules/survey/link/components/verify-email.tsx`. The server action that dispatches the verification email is defined in `apps/web/modules/survey/link/actions.ts` (using the `isVerifyEmailEnabled` survey property). The verification email template is located at `packages/email/emails/survey/link-survey-email.tsx`._

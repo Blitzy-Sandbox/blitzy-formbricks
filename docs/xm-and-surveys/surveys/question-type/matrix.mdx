@@ -4,7 +4,7 @@ description: "Matrix questions allow respondents to select a value for each opti
 icon: "table"
 ---
 
-The values range from 0 to a user-defined maximum (e.g., 0 to X). The selection is made using radio buttons, and users can choose any value within the defined range, including 0.
+Matrix questions present a grid of rows and columns where respondents select one value per row using radio buttons. Rows represent the items or statements being evaluated, and columns represent the scale options or response values — both are fully customizable with user-defined labels.
 
 <iframe
   title="Survey Embed"
@@ -34,13 +34,49 @@ Provide an optional description with further instructions.
 
 ### Rows
 
-Define the options shown on the left side of the matrix. These represent the items for which users will select a value.
+Define the options shown on the left side of the matrix. Each row represents an item or statement that the respondent evaluates by selecting one of the column values. Rows are stored as an array of internationalized (I18n) string labels, so they support multi-language surveys.
 
 ### Columns
 
-Represent the range of values from 0 to X (right side of the screen). Users can choose any value, including 0, using radio buttons.
+Define the scale options displayed along the top of the matrix. Each column represents a response value that respondents can select for any row. Columns are user-defined labels (not limited to numeric ranges) and are stored as an array of internationalized (I18n) strings, allowing full customization for any rating scale, agreement level, frequency, or other evaluation criteria.
 
-### Select ordering
+### Select Ordering
 
-- Keep current order: This will keep the order of options the same for all respondents.
-- Randomize all: This will randomize the options for each respondent.
+Control how rows are presented to each respondent using the `shuffleOption` setting:
+
+- **Keep current order** (`none`): Rows appear in the order they were added. This is the default behavior.
+- **Randomize all** (`all`): All rows are randomized for each respondent, reducing order bias.
+- **Randomize except last** (`exceptLast`): All rows are randomized except the last one, which remains in its fixed position. This is useful when the last row serves as a summary or "other" option.
+
+## Validation Rules
+
+Matrix elements support validation rules to ensure data completeness. You can configure these in the survey editor to require respondents to answer a specific number of rows before proceeding.
+
+| Rule | Description | Parameters |
+| --- | --- | --- |
+| **Answer All Rows** (`answerAllRows`) | Requires respondents to provide an answer for every row in the matrix. | None |
+| **Minimum Rows Answered** (`minRowsAnswered`) | Requires a minimum number of rows to be answered before the respondent can proceed. | `min` (number, must be ≥ 1) |
+
+<Note>
+  When multiple validation rules are applied, they are combined using the configured logic operator (`and` or `or`). By default, rules are combined with `and`, meaning all conditions must be satisfied.
+</Note>
+
+## Response Data Format
+
+Matrix responses are stored as a JSON object where each key is the row label and each value is the selected column label for that row.
+
+```json
+{
+  "Customer Service": "Satisfied",
+  "Product Quality": "Very Satisfied",
+  "Delivery Speed": "Neutral"
+}
+```
+
+Rows that the respondent did not answer are omitted from the response object. If validation rules require all rows to be answered, every row label will appear as a key in the response.
+
+---
+
+<Note>
+  Source: `packages/types/surveys/elements.ts` (ZSurveyMatrixElement), `packages/types/surveys/validation-rules.ts` (MATRIX_RULES)
+</Note>

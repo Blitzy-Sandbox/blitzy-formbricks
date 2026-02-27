@@ -4,4 +4,70 @@ description: "Survey respondents in multiple-languages."
 icon: "language"
 ---
 
-If you'd like to survey users in multiple languages while keeping all results in the same survey, you can make use of [Multi-language Surveys](/xm-and-surveys/surveys/general-features/multi-language-surveys#multi-language-surveys)
+<Note>
+  This feature requires an active Formbricks Enterprise License. [Learn more about licensing](/self-hosting/advanced/license).
+</Note>
+
+Multi-language surveys allow you to create a single survey that supports multiple languages. All responses from different languages are collected in the same survey, making analysis seamless. This is essential for organizations operating across multiple regions and language groups — you build one survey, translate it, and gather unified results regardless of each respondent's language.
+
+## Supported Locales
+
+The Formbricks admin interface supports 14 locales for managing translations. These locales determine the languages available in the admin UI when configuring and translating survey content.
+
+Source: `packages/i18n-utils/src/utils.ts` — the `TIso639Language` interface defines the following 14 locale labels:
+
+| Locale Code | Language |
+| ----------- | -------- |
+| `en-US` | English (US) |
+| `de-DE` | German |
+| `pt-BR` | Portuguese (Brazil) |
+| `fr-FR` | French |
+| `zh-Hant-TW` | Chinese Traditional (Taiwan) |
+| `pt-PT` | Portuguese (Portugal) |
+| `ro-RO` | Romanian |
+| `ja-JP` | Japanese |
+| `zh-Hans-CN` | Chinese Simplified |
+| `nl-NL` | Dutch |
+| `es-ES` | Spanish |
+| `sv-SE` | Swedish |
+| `ru-RU` | Russian |
+| `hu-HU` | Hungarian |
+
+<Note>
+  The admin interface supports these 14 locales for managing translations. However, survey content can be translated into any language — you are not limited to these 14 locales for the survey-facing content itself. The iso639 language code list in `packages/i18n-utils` includes hundreds of language options for survey translations.
+</Note>
+
+## Translation Workflow
+
+<Steps>
+  <Step title="Create Your Survey">
+    Build your survey in the default language first. Set up all questions, answer options, conditional logic, and any other configuration before adding translations.
+  </Step>
+
+  <Step title="Add Languages">
+    In the survey editor, navigate to the language settings. Add the additional languages you want to support by selecting them from the available language list.
+  </Step>
+
+  <Step title="Translate Content">
+    For each added language, translate the survey questions, answer options, and other text content. All translatable fields will be displayed for each language, allowing you to provide complete translations inline.
+  </Step>
+
+  <Step title="Preview Each Language">
+    Use the preview feature to verify translations for each language before publishing. This ensures that all content displays correctly and that no fields are left untranslated.
+  </Step>
+
+  <Step title="Publish">
+    When published, respondents will see the survey in their appropriate language. For app surveys, the language is determined by the user's `language` attribute. For link surveys, append a `lang` query parameter to the survey URL.
+  </Step>
+</Steps>
+
+## Benefits
+
+- **Unified Data Collection** — All responses from different languages are stored in a single survey, simplifying analysis and reporting.
+- **Consistent Survey Logic** — Conditional logic, question flow, and validations work identically across all languages.
+- **Easy Maintenance** — Update survey structure once, then just update translations. No need to duplicate surveys for each language.
+- **Regional Compliance** — Deliver surveys in local languages to meet regional requirements and improve response rates.
+
+## Detailed Guide
+
+For step-by-step instructions on creating and managing multi-language surveys, including app survey SDK configuration and link survey URL parameters, see the [Multi-Language Surveys Guide](/xm-and-surveys/surveys/general-features/multi-language-surveys).

@@ -1,7 +1,7 @@
 ---
 title: "Make"
-description:
-  "Discover how to seamlessly integrate Formbricks with Make.com. Dive into our comprehensive guide to set up scenarios, connect with a plethora of apps, and send your survey data to more than 1000 platforms."
+description: "Discover how to seamlessly integrate Formbricks with Make.com. Dive into our comprehensive guide to set up scenarios, connect with a plethora of apps, and send your survey data to more than 1000 platforms."
+icon: "wand-magic-sparkles"
 ---
 
 Make is a powerful tool to send information between Formbricks and thousands of apps. Here's how to set it up.
@@ -10,7 +10,7 @@ Make is a powerful tool to send information between Formbricks and thousands of 
   Nailed down your survey?? Any changes in the survey cause additional work in the *Scenario*. It makes sense to first settle on the survey you want to run and then get to setting up Make.
 </Note>
 
-## Step 1: Setup your survey incl. `questionId` for every question
+## Step 1: Setup Your Survey Incl. `questionId` For Every Question
 
 Set up the `questionId`s of your survey questions before publishing.
 
@@ -38,13 +38,13 @@ Choose the event to trigger the Scenario:
 
 ![Select Triggers](/images/xm-and-surveys/core-features/integrations/make/select-trigger.webp)
 
-## Step 3: Connect Formbricks with Make
+## Step 3: Connect Formbricks With Make
 
 Click "Create a webhook":
 
 ![Create Webhook](/images/xm-and-surveys/core-features/integrations/make/create-webhook.webp)
 
-Enter the Formbricks API Host and API Key. API Host is by default set to [https://app.formbricks.com](https://app.formbricks.com) but can be modified for self hosting instances. Learn how to get an API Key from the [API Key tutorial](/api-reference/rest-api#how-to-generate-an-api-key).
+Enter the Formbricks API Host and API Key. API Host is by default set to [https://app.formbricks.com](https://app.formbricks.com) but can be modified for self-hosting instances. Learn how to get an API Key from the [API Key tutorial](/api-reference/generate-key).
 
 ![Enter API Key](/images/xm-and-surveys/core-features/integrations/make/enter-api-key-and-host.webp)
 
@@ -54,13 +54,13 @@ Choose from your created surveys:
 
 ![Select Survey](/images/xm-and-surveys/core-features/integrations/make/select-survey.webp)
 
-## Step 5: Send a test response
+## Step 5: Send A Test Response
 
 You need a test response for Make setup.
 
 ![Submit Test Response](/images/xm-and-surveys/core-features/integrations/make/submit-test-response.webp)
 
-## Step 6: Set up Google Sheet
+## Step 6: Set Up Google Sheet
 
 Decide on the desired action for the data. Here, we'll send submissions to a Google Sheet:
 
@@ -77,3 +77,17 @@ Specify the spreadsheet details and match the Formbricks data:
 A new row gets added to the spreadsheet for every response:
 
 ![Result](/images/xm-and-surveys/core-features/integrations/make/result.webp)
+
+## Data Mapping
+
+When a survey response triggers your Make scenario, the Formbricks module delivers the full webhook payload. Response data is keyed by each question's `questionId`, making it straightforward to map individual answers to fields in downstream modules.
+
+The payload contains the following top-level field groups:
+
+| Field Group | Description |
+|------------|-------------|
+| `data.*` | Survey response values keyed by `questionId` (e.g., `data.satisfaction`, `data.feedback`) |
+| `meta.*` | Response metadata such as browser, operating system, and URL where the survey was displayed |
+| `survey.*` | Survey configuration details including the survey name, status, and question definitions |
+
+Use these fields in subsequent Make modules to route and transform data for connected services such as Google Sheets, Slack, CRMs, or any of the 1000+ platforms available on Make.

@@ -1,3 +1,48 @@
 ---
 openapi: post /api/v1/management/responses
 ---
+
+<Note>
+  This endpoint requires a valid `x-api-key` header with **write** permission for the target survey's environment. See [Generate API Key](/api-reference/generate-key) for setup instructions.
+</Note>
+
+## Request Body Details
+
+### Required Fields
+
+- **`surveyId`** (string, required): The ID of the survey this response belongs to
+
+### Optional Fields
+
+- **`data`** (object): Answer data keyed by question IDs. Each key is a question ID and the value is the respondent's answer:
+  ```json
+  {
+    "data": {
+      "clx1234abcdef": "Free text answer",
+      "clx5678ghijkl": ["Option A", "Option B"],
+      "clx9012mnopqr": 8
+    }
+  }
+  ```
+- **`finished`** (boolean): Set to `true` if the response is complete, `false` for partial submissions. Defaults to `false` if not provided.
+- **`language`** (string): Language code for multi-language surveys (e.g., `"en"`, `"de"`, `"fr"`)
+- **`createdAt`** (datetime): Override the creation timestamp (ISO 8601 format)
+- **`updatedAt`** (datetime): Override the update timestamp (ISO 8601 format)
+
+Source: `apps/web/app/api/v1/management/responses/route.ts`
+
+## Pipeline Triggers
+
+<Warning>
+  Creating a response via the Management API triggers the full response pipeline. This includes webhook notifications (`responseCreated` event), integration dispatches (Slack, Google Sheets, etc.), follow-up emails (if configured and `finished` is `true`), and other configured actions.
+</Warning>
+
+## Quota Evaluation
+
+Response creation is subject to quota evaluation. If the project's response quota has been reached (e.g., Free plan: 1,500 responses/month, Startup plan: 5,000 responses/month), the creation will be rejected with an appropriate error response.
+
+## File Upload Validation
+
+If the survey contains file upload questions, the response data must reference valid uploaded file URLs. File uploads are validated against configured size limits (5MB for Free, 10MB for Startup, 1GB for Enterprise).
+
+Source: `apps/web/app/api/v1/management/responses/route.ts`

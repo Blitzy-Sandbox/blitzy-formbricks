@@ -4,7 +4,7 @@ description: "Actions are predefined events within your app that prompt Formbric
 icon: "code"
 ---
 
-## **How Do Actions Work?**
+## How Do Actions Work
 
 <Steps>
   <Step title="User performs action">
@@ -35,8 +35,8 @@ icon: "code"
 
 <Tip>
   Tying surveys to specific user actions enables **context-aware surveying**: You make sure that your user
-  research is relevant to the current user context which leads to sign**ificantly higher response and
-  completions rates** as well as lower survey fatigue.
+  research is relevant to the current user context which leads to **significantly higher response and
+  completion rates** as well as lower survey fatigue.
 </Tip>
 
 <Note>
@@ -45,7 +45,7 @@ icon: "code"
   configurations, and survey trigger updates.
 </Note>
 
-## **Setting Up No-Code Actions**
+## Setting Up No-Code Actions
 
 Formbricks offers an intuitive No-Code interface that allows you to configure actions without needing to write any code.
 
@@ -68,7 +68,7 @@ Formbricks offers an intuitive No-Code interface that allows you to configure ac
 
 There are four types of No-Code actions:
 
-### **1. Click Action**
+### Click Action
 
 ![Add click action to open source in app survey](/images/xm-and-surveys/surveys/website-app-surveys/actions/click-action.webp "Add click action to open source in app survey")
 
@@ -80,19 +80,19 @@ A Click Action is triggered when a user clicks on a specific element within your
 
 - **Both**: Only if both is true, the action is triggered
 
-### **2. Page View Action**
+### Page View Action
 
 ![Add page view action to open source in app survey](/images/xm-and-surveys/surveys/website-app-surveys/actions/page-view.webp "Add page view action to open source in app survey")
 
 This action is triggered when a user visits a page within your application.
 
-### **3. Exit Intent Action**
+### Exit Intent Action
 
 ![Add exit intent action to open source in app survey](/images/xm-and-surveys/surveys/website-app-surveys/actions/exit-intent.webp "Add exit intent action to open source in app survey")
 
 This action is triggered when a user is about to leave your application. It helps capture user feedback before they exit, providing valuable insights into user experiences and potential improvements.
 
-### **4. 50% Scroll Action**
+### 50% Scroll Action
 
 ![Add 50% scroll action to open source in app survey](/images/xm-and-surveys/surveys/website-app-surveys/actions/scroll.webp "Add 50% scroll action to open source in app survey")
 
@@ -102,7 +102,7 @@ This action is triggered when a user visits a specific page within your applicat
 
 You can combine the url filters with any of the no-code actions to trigger the survey based on the URL match conditions.
 
-### **Page Filter**
+### Page Filter
 
 You can limit action tracking to specific subpages of your website or web app by using the Page Filter. Here you can use a variety of URL filter settings:
 
@@ -120,9 +120,22 @@ You can limit action tracking to specific subpages of your website or web app by
 
 - **matchesRegex**: Activates when the URL matches the pattern from the specified string.
 
-## **Setting Up Code Actions**
+## Setting Up Code Actions
 
-For more granular control, you can implement actions directly in your code:
+For more granular control, you can implement actions directly in your code. Code actions use the `formbricks.track()` method to programmatically send action events to the Formbricks SDK.
+
+The `track` method has the following TypeScript signature:
+
+```typescript
+track(code: string, properties?: TTrackProperties): Promise<void>
+```
+
+- **`code`**: A unique string identifier for the action (e.g., `"Button Clicked"`, `"Plan Upgraded"`).
+- **`properties`** *(optional, deprecated)*: An object containing `hiddenFields` to pass additional data. Hidden fields support will be removed in a future version.
+
+The method returns a `Promise`, so it can be awaited to ensure the action has been processed before continuing.
+
+<!-- Source: packages/js-core/src/index.ts (track function), apps/web/modules/survey/editor/lib/action-class.ts -->
 
 <Steps>
   <Step title="Configure action in Formbricks">
@@ -133,20 +146,28 @@ For more granular control, you can implement actions directly in your code:
   </Step>
 
   <Step title="Add action tracking to your code">
-    Use formbricks.track() to send an action event to Formbricks:
+    Use `formbricks.track()` to send an action event to Formbricks:
 
-    ```
+    ```typescript
     formbricks.track("action");
     ```
 
     Here is an example of how to fire an action when a user clicks a button:
 
-    ```javascript
+    ```typescript
     const handleClick = () => {
       formbricks.track("Button Clicked");
     };
 
     return <button onClick={handleClick}>Click Me</button>;
+    ```
+
+    You can also use `async`/`await` to ensure the action is tracked before continuing:
+
+    ```typescript
+    const handleClick = async () => {
+      await formbricks.track("Button Clicked");
+    };
     ```
 
   </Step>

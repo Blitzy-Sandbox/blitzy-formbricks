@@ -32,11 +32,11 @@ import { MatrixElementForm } from "@/modules/survey/editor/components/matrix-ele
 import { MultipleChoiceElementForm } from "@/modules/survey/editor/components/multiple-choice-element-form";
 import { NPSElementForm } from "@/modules/survey/editor/components/nps-element-form";
 import { OpenElementForm } from "@/modules/survey/editor/components/open-element-form";
+import { OpinionScaleElementForm } from "@/modules/survey/editor/components/opinion-scale-element-form";
+import { PaymentElementForm } from "@/modules/survey/editor/components/payment-element-form";
 import { PictureSelectionForm } from "@/modules/survey/editor/components/picture-selection-form";
 import { RankingElementForm } from "@/modules/survey/editor/components/ranking-element-form";
 import { RatingElementForm } from "@/modules/survey/editor/components/rating-element-form";
-import { TypeAElementForm } from "@/modules/survey/editor/components/type-a-element-form";
-import { TypeBElementForm } from "@/modules/survey/editor/components/type-b-element-form";
 import { formatTextWithSlashes } from "@/modules/survey/editor/lib/utils";
 import { getElementIconMap, getTSurveyElementTypeEnumName } from "@/modules/survey/lib/elements";
 import { Alert, AlertButton, AlertTitle } from "@/modules/ui/components/alert";
@@ -195,8 +195,8 @@ export const BlockCard = ({
     [TSurveyElementTypeEnum.Address]: AddressElementForm,
     [TSurveyElementTypeEnum.Ranking]: RankingElementForm,
     [TSurveyElementTypeEnum.ContactInfo]: ContactInfoElementForm,
-    [TSurveyElementTypeEnum.TypeA]: TypeAElementForm,
-    [TSurveyElementTypeEnum.TypeB]: TypeBElementForm,
+    [TSurveyElementTypeEnum.Payment]: PaymentElementForm,
+    [TSurveyElementTypeEnum.OpinionScale]: OpinionScaleElementForm,
   };
 
   // Elements that need lastElement prop

@@ -183,18 +183,29 @@ const mockQuestion = {
   },
 };
 
-export const mockTypeAElement = {
+export const mockPaymentElement = {
   id: mockId,
-  type: TSurveyElementTypeEnum.TypeA as typeof TSurveyElementTypeEnum.TypeA,
-  headline: { default: "TypeA Question Text", de: "TypeA Fragetext" },
+  type: TSurveyElementTypeEnum.Payment as typeof TSurveyElementTypeEnum.Payment,
+  headline: { default: "Payment Question Text", de: "Zahlungsfrage" },
   required: false,
+  currency: "usd" as const,
+  amount: 1000,
+  stripeIntegration: {
+    publicKey: "pk_test_mock",
+    priceId: "price_mock",
+  },
 };
 
-export const mockTypeBElement = {
+export const mockOpinionScaleElement = {
   id: mockId,
-  type: TSurveyElementTypeEnum.TypeB as typeof TSurveyElementTypeEnum.TypeB,
-  headline: { default: "TypeB Question Text", de: "TypeB Fragetext" },
+  type: TSurveyElementTypeEnum.OpinionScale as typeof TSurveyElementTypeEnum.OpinionScale,
+  headline: { default: "OpinionScale Question Text", de: "Meinungsskala Fragetext" },
   required: false,
+  scaleRange: 5,
+  lowerLabel: { default: "Not at all likely", de: "Überhaupt nicht wahrscheinlich" },
+  upperLabel: { default: "Extremely likely", de: "Sehr wahrscheinlich" },
+  visualStyle: "number" as const,
+  isColorCodingEnabled: false,
 };
 
 const mockWelcomeCard: TSurveyWelcomeCard = {
@@ -435,14 +446,22 @@ export const mockSurveyWithLogic: TSurvey = {
         },
         {
           id: "q7",
-          type: TSurveyElementTypeEnum.TypeA,
-          headline: { default: "TypeA question in logic survey" },
+          type: TSurveyElementTypeEnum.Payment,
+          headline: { default: "Payment question in logic survey" },
+          currency: "usd" as const,
+          amount: 1000,
+          stripeIntegration: { publicKey: "pk_test", priceId: "price_test" },
           required: false,
         },
         {
           id: "q8",
-          type: TSurveyElementTypeEnum.TypeB,
-          headline: { default: "TypeB question in logic survey" },
+          type: TSurveyElementTypeEnum.OpinionScale,
+          headline: { default: "OpinionScale question in logic survey" },
+          scaleRange: 5,
+          lowerLabel: { default: "Low" },
+          upperLabel: { default: "High" },
+          visualStyle: "number" as const,
+          isColorCodingEnabled: false,
           required: false,
         },
       ],

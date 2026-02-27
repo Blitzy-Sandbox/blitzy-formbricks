@@ -15,6 +15,6 @@ export enum TSurveyElementTypeEnum {
   Address = "address",
   Ranking = "ranking",
   ContactInfo = "contactInfo",
-  TypeA = "typeA",
-  TypeB = "typeB",
+  Payment = "payment",
+  OpinionScale = "opinionScale",
 }

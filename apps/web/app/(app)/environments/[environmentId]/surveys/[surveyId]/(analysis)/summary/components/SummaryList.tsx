@@ -25,11 +25,11 @@ import { MatrixElementSummary } from "@/app/(app)/environments/[environmentId]/s
 import { MultipleChoiceSummary } from "@/app/(app)/environments/[environmentId]/surveys/[surveyId]/(analysis)/summary/components/MultipleChoiceSummary";
 import { NPSSummary } from "@/app/(app)/environments/[environmentId]/surveys/[surveyId]/(analysis)/summary/components/NPSSummary";
 import { OpenTextSummary } from "@/app/(app)/environments/[environmentId]/surveys/[surveyId]/(analysis)/summary/components/OpenTextSummary";
+import { OpinionScaleSummary } from "@/app/(app)/environments/[environmentId]/surveys/[surveyId]/(analysis)/summary/components/OpinionScaleSummary";
+import { PaymentSummary } from "@/app/(app)/environments/[environmentId]/surveys/[surveyId]/(analysis)/summary/components/PaymentSummary";
 import { PictureChoiceSummary } from "@/app/(app)/environments/[environmentId]/surveys/[surveyId]/(analysis)/summary/components/PictureChoiceSummary";
 import { RankingSummary } from "@/app/(app)/environments/[environmentId]/surveys/[surveyId]/(analysis)/summary/components/RankingSummary";
 import { RatingSummary } from "@/app/(app)/environments/[environmentId]/surveys/[surveyId]/(analysis)/summary/components/RatingSummary";
-import { TypeASummary } from "@/app/(app)/environments/[environmentId]/surveys/[surveyId]/(analysis)/summary/components/TypeASummary";
-import { TypeBSummary } from "@/app/(app)/environments/[environmentId]/surveys/[surveyId]/(analysis)/summary/components/TypeBSummary";
 import { constructToastMessage } from "@/app/(app)/environments/[environmentId]/surveys/[surveyId]/(analysis)/summary/lib/utils";
 import { OptionsType } from "@/app/(app)/environments/[environmentId]/surveys/[surveyId]/components/ElementsComboBox";
 import { getLocalizedValue } from "@/lib/i18n/utils";
@@ -264,9 +264,9 @@ export const SummaryList = ({ summary, environment, responseCount, survey, local
               />
             );
           }
-          if (elementSummary.type === TSurveyElementTypeEnum.TypeA) {
+          if (elementSummary.type === TSurveyElementTypeEnum.Payment) {
             return (
-              <TypeASummary
+              <PaymentSummary
                 key={elementSummary.element.id}
                 elementSummary={elementSummary}
                 environmentId={environment.id}
@@ -275,9 +275,9 @@ export const SummaryList = ({ summary, environment, responseCount, survey, local
               />
             );
           }
-          if (elementSummary.type === TSurveyElementTypeEnum.TypeB) {
+          if (elementSummary.type === TSurveyElementTypeEnum.OpinionScale) {
             return (
-              <TypeBSummary
+              <OpinionScaleSummary
                 key={elementSummary.element.id}
                 elementSummary={elementSummary}
                 environmentId={environment.id}

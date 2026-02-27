@@ -267,9 +267,9 @@ const processElementResponse = (
       .join("; ");
   }
 
-  // TypeA and TypeB element types are simple string-response types that are
-  // intentionally handled by the default processResponseData path below,
-  // matching the behavior of other simple types (OpenText, Address, ContactInfo, etc.).
+  // Payment and OpinionScale element types are handled by the default
+  // processResponseData path below, matching the behavior of other simple types
+  // (OpenText, Address, ContactInfo, etc.).
   // Only PictureSelection and FileUpload require special handling above.
   return processResponseData(responseValue);
 };

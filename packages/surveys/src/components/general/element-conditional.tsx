@@ -17,11 +17,11 @@ import { MultipleChoiceMultiElement } from "@/components/elements/multiple-choic
 import { MultipleChoiceSingleElement } from "@/components/elements/multiple-choice-single-element";
 import { NPSElement } from "@/components/elements/nps-element";
 import { OpenTextElement } from "@/components/elements/open-text-element";
+import { OpinionScaleElement } from "@/components/elements/opinion-scale-element";
+import { PaymentElement } from "@/components/elements/payment-element";
 import { PictureSelectionElement } from "@/components/elements/picture-selection-element";
 import { RankingElement } from "@/components/elements/ranking-element";
 import { RatingElement } from "@/components/elements/rating-element";
-import { TypeAElement } from "@/components/elements/type-a-element";
-import { TypeBElement } from "@/components/elements/type-b-element";
 import { getLocalizedValue } from "@/lib/i18n";
 
 interface ElementConditionalProps {
@@ -348,9 +348,9 @@ export function ElementConditional({
             errorMessage={errorMessage}
           />
         );
-      case TSurveyElementTypeEnum.TypeA:
+      case TSurveyElementTypeEnum.Payment:
         return (
-          <TypeAElement
+          <PaymentElement
             key={element.id}
             element={element}
             value={typeof value === "string" ? value : ""}
@@ -358,23 +358,21 @@ export function ElementConditional({
             languageCode={languageCode}
             ttc={ttc}
             setTtc={wrappedSetTtc}
-            autoFocusEnabled={autoFocusEnabled}
             currentElementId={currentElementId}
             dir={dir}
             errorMessage={errorMessage}
           />
         );
-      case TSurveyElementTypeEnum.TypeB:
+      case TSurveyElementTypeEnum.OpinionScale:
         return (
-          <TypeBElement
+          <OpinionScaleElement
             key={element.id}
             element={element}
-            value={typeof value === "string" ? value : ""}
+            value={typeof value === "number" ? value : undefined}
             onChange={onChange}
             languageCode={languageCode}
             ttc={ttc}
             setTtc={wrappedSetTtc}
-            autoFocusEnabled={autoFocusEnabled}
             currentElementId={currentElementId}
             dir={dir}
             errorMessage={errorMessage}

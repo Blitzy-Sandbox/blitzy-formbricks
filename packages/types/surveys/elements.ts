@@ -350,31 +350,47 @@ export const ZSurveyContactInfoElement = ZSurveyElementBase.extend({
 
 export type TSurveyContactInfoElement = z.infer<typeof ZSurveyContactInfoElement>;
 
-// TypeA Element
+// Payment Element
 /**
- * TypeA survey element — a generic new element type added as part of Sprint 1 Foundation.
- * Follows the simple element pattern (no toggle fields or choices).
+ * Payment survey element — collects payment via Stripe integration during the survey flow.
+ * Respondents enter payment details inline, the charge is processed, and the survey continues.
+ * Configuration includes currency, amount, Stripe product/price references, and optional button label.
  */
-export const ZSurveyTypeAElement = ZSurveyElementBase.extend({
-  type: z.literal(TSurveyElementTypeEnum.TypeA),
-  placeholder: ZI18nString.optional(),
-  validation: ZValidation.optional(),
+export const ZSurveyPaymentElement = ZSurveyElementBase.extend({
+  type: z.literal(TSurveyElementTypeEnum.Payment),
+  currency: z.enum(["usd", "eur", "gbp"]),
+  amount: z.number().int().positive().min(1),
+  stripeIntegration: z.object({
+    publicKey: z.string(),
+    priceId: z.string(),
+  }),
+  buttonLabel: ZI18nString.optional(),
 });
 
-export type TSurveyTypeAElement = z.infer<typeof ZSurveyTypeAElement>;
+export type TSurveyPaymentElement = z.infer<typeof ZSurveyPaymentElement>;
 
-// TypeB Element
+// Opinion Scale Element
 /**
- * TypeB survey element — a generic new element type added as part of Sprint 1 Foundation.
- * Follows the simple element pattern (no toggle fields or choices).
+ * Opinion Scale survey element — presents respondents with a numeric scale where they select
+ * a single value. The scale range is configurable (5, 7, or 10 points starting from 1).
+ * Endpoint labels describe the meaning of low and high values.
+ * Visual style supports number, smiley, or star presentation.
  */
-export const ZSurveyTypeBElement = ZSurveyElementBase.extend({
-  type: z.literal(TSurveyElementTypeEnum.TypeB),
-  placeholder: ZI18nString.optional(),
-  validation: ZValidation.optional(),
+export const ZSurveyOpinionScaleElement = ZSurveyElementBase.extend({
+  type: z.literal(TSurveyElementTypeEnum.OpinionScale),
+  scaleRange: z
+    .number()
+    .int()
+    .refine((v) => [5, 7, 10].includes(v), {
+      message: "Scale range must be 5, 7, or 10",
+    }),
+  lowerLabel: ZI18nString,
+  upperLabel: ZI18nString,
+  visualStyle: z.enum(["number", "smiley", "star"]).default("number"),
+  isColorCodingEnabled: z.boolean().default(false),
 });
 
-export type TSurveyTypeBElement = z.infer<typeof ZSurveyTypeBElement>;
+export type TSurveyOpinionScaleElement = z.infer<typeof ZSurveyOpinionScaleElement>;
 
 // Union of all element types
 export const ZSurveyElement = z.union([
@@ -393,8 +409,8 @@ export const ZSurveyElement = z.union([
   ZSurveyAddressElement,
   ZSurveyRankingElement,
   ZSurveyContactInfoElement,
-  ZSurveyTypeAElement,
-  ZSurveyTypeBElement,
+  ZSurveyPaymentElement,
+  ZSurveyOpinionScaleElement,
 ]);
 
 export type TSurveyElement = z.infer<typeof ZSurveyElement>;

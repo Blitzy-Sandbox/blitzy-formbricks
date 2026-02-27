@@ -296,11 +296,9 @@ export const APPLICABLE_RULES: Record<string, TValidationRuleType[]> = {
   pictureSelection: [...PICTURE_SELECTION_RULES],
   address: [...ADDRESS_RULES],
   contactInfo: [...CONTACT_INFO_RULES],
+  payment: ["minValue", "maxValue"] as TValidationRuleType[],
+  opinionScale: [] as TValidationRuleType[],
 };
-
-// Note: TypeA ("typeA") and TypeB ("typeB") are simple element types
-// that do not require field-level validation rules and are intentionally
-// not included in APPLICABLE_RULES.
 
 // Type helper to filter validation rules by allowed types
 export type TValidationRuleForElementType<T extends TValidationRuleType> = Extract<

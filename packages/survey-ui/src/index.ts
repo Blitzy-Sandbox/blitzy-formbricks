@@ -47,5 +47,5 @@ export { NPS, type NPSProps } from "@/components/elements/nps";
 export { Ranking, type RankingProps, type RankingOption } from "@/components/elements/ranking";
 export { CTA, type CTAProps } from "@/components/elements/cta";
 export { Consent, type ConsentProps } from "@/components/elements/consent";
-export { TypeAElement, type TypeAElementProps } from "@/components/elements/type-a-element";
-export { TypeBElement, type TypeBElementProps } from "@/components/elements/type-b-element";
+export { PaymentElement } from "@/components/elements/payment";
+export { OpinionScaleElement } from "@/components/elements/opinion-scale";

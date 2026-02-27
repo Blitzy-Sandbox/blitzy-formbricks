@@ -28,11 +28,11 @@ import {
   TSurveyElementSummaryHiddenFields,
   TSurveyElementSummaryMultipleChoice,
   TSurveyElementSummaryOpenText,
+  TSurveyElementSummaryOpinionScale,
+  TSurveyElementSummaryPayment,
   TSurveyElementSummaryPictureSelection,
   TSurveyElementSummaryRanking,
   TSurveyElementSummaryRating,
-  TSurveyElementSummaryTypeA,
-  TSurveyElementSummaryTypeB,
   TSurveyLanguage,
   TSurveySummary,
 } from "@formbricks/types/surveys/types";
@@ -990,8 +990,8 @@ export const getElementSummary = async (
 
         break;
       }
-      case TSurveyElementTypeEnum.TypeA: {
-        let values: TSurveyElementSummaryTypeA["samples"] = [];
+      case TSurveyElementTypeEnum.Payment: {
+        let values: TSurveyElementSummaryPayment["samples"] = [];
         responses.forEach((response) => {
           const answer = response.data[element.id];
           if (answer && typeof answer === "string") {
@@ -1006,7 +1006,7 @@ export const getElementSummary = async (
         });
 
         summary.push({
-          type: TSurveyElementTypeEnum.TypeA,
+          type: TSurveyElementTypeEnum.Payment,
           element,
           responseCount: values.length,
           samples: values.slice(0, VALUES_LIMIT),
@@ -1015,12 +1015,17 @@ export const getElementSummary = async (
         values = [];
         break;
       }
-      case TSurveyElementTypeEnum.TypeB: {
-        let values: TSurveyElementSummaryTypeB["samples"] = [];
+      case TSurveyElementTypeEnum.OpinionScale: {
+        let samples: TSurveyElementSummaryOpinionScale["samples"] = [];
+        const numericValues: number[] = [];
+        const distribution: Record<string, number> = {};
         responses.forEach((response) => {
           const answer = response.data[element.id];
-          if (answer && typeof answer === "string") {
-            values.push({
+          if (answer != null && typeof answer === "number") {
+            numericValues.push(answer);
+            const key = String(answer);
+            distribution[key] = (distribution[key] ?? 0) + 1;
+            samples.push({
               id: response.id,
               updatedAt: response.updatedAt,
               value: answer,
@@ -1029,15 +1034,25 @@ export const getElementSummary = async (
             });
           }
         });
+        const mean =
+          numericValues.length > 0 ? numericValues.reduce((a, b) => a + b, 0) / numericValues.length : 0;
+        const sorted = [...numericValues].sort((a, b) => a - b);
+        const median =
+          sorted.length > 0
+            ? sorted.length % 2 === 0
+              ? (sorted[sorted.length / 2 - 1] + sorted[sorted.length / 2]) / 2
+              : sorted[Math.floor(sorted.length / 2)]
+            : 0;
 
         summary.push({
-          type: TSurveyElementTypeEnum.TypeB,
+          type: TSurveyElementTypeEnum.OpinionScale,
           element,
-          responseCount: values.length,
-          samples: values.slice(0, VALUES_LIMIT),
+          responseCount: samples.length,
+          overall: { mean, median, distribution },
+          samples: samples.slice(0, VALUES_LIMIT),
         });
 
-        values = [];
+        samples = [];
         break;
       }
     }

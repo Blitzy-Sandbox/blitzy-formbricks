@@ -8,9 +8,9 @@ import type {
   TSurveyElement,
   TSurveyMatrixElement,
   TSurveyOpenTextElement,
+  TSurveyOpinionScaleElement,
+  TSurveyPaymentElement,
   TSurveyRankingElement,
-  TSurveyTypeAElement,
-  TSurveyTypeBElement,
 } from "@formbricks/types/surveys/elements";
 import { getFirstErrorMessage, validateBlockResponses, validateElementResponse } from "./evaluator";
 
@@ -172,14 +172,17 @@ describe("validateElementResponse", () => {
     });
   });
 
-  describe("TypeA required field validation", () => {
-    test("should return error when required TypeA field is empty", () => {
+  describe("Payment required field validation", () => {
+    test("should return error when required Payment field is empty", () => {
       const element: TSurveyElement = {
-        id: "typeA1",
-        type: TSurveyElementTypeEnum.TypeA,
-        headline: { default: "TypeA Question" },
+        id: "payment1",
+        type: TSurveyElementTypeEnum.Payment,
+        headline: { default: "Payment Question" },
         required: true,
-      } as unknown as TSurveyTypeAElement;
+        currency: "usd",
+        amount: 1000,
+        stripeIntegration: { publicKey: "pk_test", priceId: "price_test" },
+      } as unknown as TSurveyPaymentElement;
 
       const result = validateElementResponse(element, "", "en");
       expect(result.valid).toBe(false);
@@ -187,39 +190,48 @@ describe("validateElementResponse", () => {
       expect(result.errors[0].ruleId).toBe("required");
     });
 
-    test("should return valid when required TypeA field has value", () => {
+    test("should return valid when required Payment field has value", () => {
       const element: TSurveyElement = {
-        id: "typeA1",
-        type: TSurveyElementTypeEnum.TypeA,
-        headline: { default: "TypeA Question" },
+        id: "payment1",
+        type: TSurveyElementTypeEnum.Payment,
+        headline: { default: "Payment Question" },
         required: true,
-      } as unknown as TSurveyTypeAElement;
+        currency: "usd",
+        amount: 1000,
+        stripeIntegration: { publicKey: "pk_test", priceId: "price_test" },
+      } as unknown as TSurveyPaymentElement;
 
-      const result = validateElementResponse(element, "some value", "en");
+      const result = validateElementResponse(element, "completed", "en");
       expect(result.valid).toBe(true);
     });
 
-    test("should return valid when TypeA field is not required and empty", () => {
+    test("should return valid when Payment field is not required and empty", () => {
       const element: TSurveyElement = {
-        id: "typeA1",
-        type: TSurveyElementTypeEnum.TypeA,
-        headline: { default: "TypeA Question" },
+        id: "payment1",
+        type: TSurveyElementTypeEnum.Payment,
+        headline: { default: "Payment Question" },
         required: false,
-      } as unknown as TSurveyTypeAElement;
+        currency: "usd",
+        amount: 1000,
+        stripeIntegration: { publicKey: "pk_test", priceId: "price_test" },
+      } as unknown as TSurveyPaymentElement;
 
       const result = validateElementResponse(element, "", "en");
       expect(result.valid).toBe(true);
     });
   });
 
-  describe("TypeB required field validation", () => {
-    test("should return error when required TypeB field is empty", () => {
+  describe("OpinionScale required field validation", () => {
+    test("should return error when required OpinionScale field is empty", () => {
       const element: TSurveyElement = {
-        id: "typeB1",
-        type: TSurveyElementTypeEnum.TypeB,
-        headline: { default: "TypeB Question" },
+        id: "opinionScale1",
+        type: TSurveyElementTypeEnum.OpinionScale,
+        headline: { default: "OpinionScale Question" },
         required: true,
-      } as unknown as TSurveyTypeBElement;
+        scaleRange: 5,
+        lowerLabel: { default: "Low" },
+        upperLabel: { default: "High" },
+      } as unknown as TSurveyOpinionScaleElement;
 
       const result = validateElementResponse(element, "", "en");
       expect(result.valid).toBe(false);
@@ -227,25 +239,31 @@ describe("validateElementResponse", () => {
       expect(result.errors[0].ruleId).toBe("required");
     });
 
-    test("should return valid when required TypeB field has value", () => {
+    test("should return valid when required OpinionScale field has value", () => {
       const element: TSurveyElement = {
-        id: "typeB1",
-        type: TSurveyElementTypeEnum.TypeB,
-        headline: { default: "TypeB Question" },
+        id: "opinionScale1",
+        type: TSurveyElementTypeEnum.OpinionScale,
+        headline: { default: "OpinionScale Question" },
         required: true,
-      } as unknown as TSurveyTypeBElement;
+        scaleRange: 5,
+        lowerLabel: { default: "Low" },
+        upperLabel: { default: "High" },
+      } as unknown as TSurveyOpinionScaleElement;
 
-      const result = validateElementResponse(element, "some value", "en");
+      const result = validateElementResponse(element, 3, "en");
       expect(result.valid).toBe(true);
     });
 
-    test("should return valid when TypeB field is not required and empty", () => {
+    test("should return valid when OpinionScale field is not required and empty", () => {
       const element: TSurveyElement = {
-        id: "typeB1",
-        type: TSurveyElementTypeEnum.TypeB,
-        headline: { default: "TypeB Question" },
+        id: "opinionScale1",
+        type: TSurveyElementTypeEnum.OpinionScale,
+        headline: { default: "OpinionScale Question" },
         required: false,
-      } as unknown as TSurveyTypeBElement;
+        scaleRange: 5,
+        lowerLabel: { default: "Low" },
+        upperLabel: { default: "High" },
+      } as unknown as TSurveyOpinionScaleElement;
 
       const result = validateElementResponse(element, "", "en");
       expect(result.valid).toBe(true);

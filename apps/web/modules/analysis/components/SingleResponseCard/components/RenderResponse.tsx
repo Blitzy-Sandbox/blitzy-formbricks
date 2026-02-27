@@ -177,8 +177,8 @@ export const RenderResponse: React.FC<RenderResponseProps> = ({
       }
       break;
 
-    case TSurveyElementTypeEnum.TypeA:
-    case TSurveyElementTypeEnum.TypeB:
+    case TSurveyElementTypeEnum.Payment:
+    case TSurveyElementTypeEnum.OpinionScale:
       if (
         typeof responseData === "string" ||
         typeof responseData === "number" ||

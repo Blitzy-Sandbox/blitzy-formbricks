@@ -157,7 +157,8 @@ const checkRequiredField = (
   return null;
 };
 
-// Note: TypeA and TypeB elements use the default isEmpty check above.
+// Note: Payment elements use the default isEmpty check (string "completed").
+// OpinionScale elements use the default isEmpty check (numeric value).
 // No type-specific required field handling is needed for these simple element types.
 
 /**

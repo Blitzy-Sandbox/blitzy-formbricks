@@ -121,16 +121,24 @@ describe("Survey Logic", () => {
             shuffleOption: "none",
           },
           {
-            id: "qTypeA",
-            type: TSurveyElementTypeEnum.TypeA,
-            headline: { default: "TypeA Question" },
+            id: "qPayment",
+            type: TSurveyElementTypeEnum.Payment,
+            headline: { default: "Payment Question" },
             required: false,
+            currency: "usd",
+            amount: 1000,
+            stripeIntegration: { publicKey: "pk_test", priceId: "price_test" },
           },
           {
-            id: "qTypeB",
-            type: TSurveyElementTypeEnum.TypeB,
-            headline: { default: "TypeB Question" },
+            id: "qOpinionScale",
+            type: TSurveyElementTypeEnum.OpinionScale,
+            headline: { default: "OpinionScale Question" },
             required: false,
+            scaleRange: 5,
+            lowerLabel: { default: "Low" },
+            upperLabel: { default: "High" },
+            visualStyle: "number" as const,
+            isColorCodingEnabled: false,
           },
         ],
       },
@@ -932,77 +940,80 @@ describe("Survey Logic", () => {
       expect(evaluateLogic(mockSurvey, mockData, mockVariablesData, isBookedCondition, "default")).toBe(true);
     });
 
-    test("evaluates isSubmitted for TypeA element", () => {
-      const typeASubmittedCondition: TConditionGroup = {
-        id: "groupTypeA1",
+    test("evaluates isSubmitted for Payment element", () => {
+      const paymentSubmittedCondition: TConditionGroup = {
+        id: "groupPayment1",
         connector: "and",
         conditions: [
           {
-            id: "condTypeA1",
+            id: "condPayment1",
             operator: "isSubmitted",
-            leftOperand: { type: "element", value: "qTypeA" },
+            leftOperand: { type: "element", value: "qPayment" },
           },
         ],
       };
-      // qTypeA has data in mockData so isSubmitted should be true
-      const dataWithTypeA = { ...mockData, qTypeA: "some TypeA response" };
+      const dataWithPayment = { ...mockData, qPayment: "completed" };
       expect(
-        evaluateLogic(mockSurvey, dataWithTypeA, mockVariablesData, typeASubmittedCondition, "default")
+        evaluateLogic(mockSurvey, dataWithPayment, mockVariablesData, paymentSubmittedCondition, "default")
       ).toBe(true);
     });
 
-    test("evaluates isSkipped for TypeA element", () => {
-      const typeASkippedCondition: TConditionGroup = {
-        id: "groupTypeA2",
+    test("evaluates isSkipped for Payment element", () => {
+      const paymentSkippedCondition: TConditionGroup = {
+        id: "groupPayment2",
         connector: "and",
         conditions: [
           {
-            id: "condTypeA2",
+            id: "condPayment2",
             operator: "isSkipped",
-            leftOperand: { type: "element", value: "qTypeA" },
+            leftOperand: { type: "element", value: "qPayment" },
           },
         ],
       };
-      // qTypeA is NOT in mockData so isSkipped should be true
-      expect(evaluateLogic(mockSurvey, mockData, mockVariablesData, typeASkippedCondition, "default")).toBe(
+      expect(evaluateLogic(mockSurvey, mockData, mockVariablesData, paymentSkippedCondition, "default")).toBe(
         true
       );
     });
 
-    test("evaluates isSubmitted for TypeB element", () => {
-      const typeBSubmittedCondition: TConditionGroup = {
-        id: "groupTypeB1",
+    test("evaluates isSubmitted for OpinionScale element", () => {
+      const opinionScaleSubmittedCondition: TConditionGroup = {
+        id: "groupOpinionScale1",
         connector: "and",
         conditions: [
           {
-            id: "condTypeB1",
+            id: "condOpinionScale1",
             operator: "isSubmitted",
-            leftOperand: { type: "element", value: "qTypeB" },
+            leftOperand: { type: "element", value: "qOpinionScale" },
           },
         ],
       };
-      const dataWithTypeB = { ...mockData, qTypeB: "some TypeB response" };
+      const dataWithOpinionScale = { ...mockData, qOpinionScale: 4 };
       expect(
-        evaluateLogic(mockSurvey, dataWithTypeB, mockVariablesData, typeBSubmittedCondition, "default")
+        evaluateLogic(
+          mockSurvey,
+          dataWithOpinionScale,
+          mockVariablesData,
+          opinionScaleSubmittedCondition,
+          "default"
+        )
       ).toBe(true);
     });
 
-    test("evaluates isSkipped for TypeB element", () => {
-      const typeBSkippedCondition: TConditionGroup = {
-        id: "groupTypeB2",
+    test("evaluates isSkipped for OpinionScale element", () => {
+      const opinionScaleSkippedCondition: TConditionGroup = {
+        id: "groupOpinionScale2",
         connector: "and",
         conditions: [
           {
-            id: "condTypeB2",
+            id: "condOpinionScale2",
             operator: "isSkipped",
-            leftOperand: { type: "element", value: "qTypeB" },
+            leftOperand: { type: "element", value: "qOpinionScale" },
           },
         ],
       };
-      // qTypeB is NOT in mockData so isSkipped should be true
-      expect(evaluateLogic(mockSurvey, mockData, mockVariablesData, typeBSkippedCondition, "default")).toBe(
-        true
-      );
+      expect(
+        evaluateLogic(mockSurvey, mockData, mockVariablesData, opinionScaleSkippedCondition, "default")
+      ).toBe(true);
     });
 
     test("evaluates isClicked and isNotClicked operators for CTA elements", () => {

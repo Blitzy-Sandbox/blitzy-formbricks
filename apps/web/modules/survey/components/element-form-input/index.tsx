@@ -377,7 +377,7 @@ export const ElementFormInput = ({
         .some((condition) => condition.required === true);
     }
 
-    // TypeA and TypeB are simple element types that use the default behavior
+    // Payment and OpinionScale are simple element types that use the default behavior
     // (required toggle is NOT disabled). No explicit case handling needed.
     return false;
   };

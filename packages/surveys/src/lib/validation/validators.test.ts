@@ -892,28 +892,28 @@ describe("validators", () => {
     });
   });
 
-  describe("validators with TypeA/TypeB elements", () => {
-    test("minLength should work with TypeA element context", () => {
-      const typeAElement = { type: TSurveyElementTypeEnum.TypeA } as TSurveyElement;
-      const result = validators.minLength.check("hello", { min: 3 }, typeAElement);
+  describe("validators with Payment/OpinionScale elements", () => {
+    test("minLength should work with Payment element context", () => {
+      const paymentElement = { type: TSurveyElementTypeEnum.Payment } as TSurveyElement;
+      const result = validators.minLength.check("hello", { min: 3 }, paymentElement);
       expect(result.valid).toBe(true);
     });
 
-    test("minLength should fail with TypeA element context when too short", () => {
-      const typeAElement = { type: TSurveyElementTypeEnum.TypeA } as TSurveyElement;
-      const result = validators.minLength.check("hi", { min: 5 }, typeAElement);
+    test("minLength should fail with Payment element context when too short", () => {
+      const paymentElement = { type: TSurveyElementTypeEnum.Payment } as TSurveyElement;
+      const result = validators.minLength.check("hi", { min: 5 }, paymentElement);
       expect(result.valid).toBe(false);
     });
 
-    test("maxLength should work with TypeB element context", () => {
-      const typeBElement = { type: TSurveyElementTypeEnum.TypeB } as TSurveyElement;
-      const result = validators.maxLength.check("hi", { max: 5 }, typeBElement);
+    test("maxLength should work with OpinionScale element context", () => {
+      const opinionScaleElement = { type: TSurveyElementTypeEnum.OpinionScale } as TSurveyElement;
+      const result = validators.maxLength.check("hi", { max: 5 }, opinionScaleElement);
       expect(result.valid).toBe(true);
     });
 
-    test("maxLength should fail with TypeB element context when too long", () => {
-      const typeBElement = { type: TSurveyElementTypeEnum.TypeB } as TSurveyElement;
-      const result = validators.maxLength.check("hello world", { max: 5 }, typeBElement);
+    test("maxLength should fail with OpinionScale element context when too long", () => {
+      const opinionScaleElement = { type: TSurveyElementTypeEnum.OpinionScale } as TSurveyElement;
+      const result = validators.maxLength.check("hello world", { max: 5 }, opinionScaleElement);
       expect(result.valid).toBe(false);
     });
   });

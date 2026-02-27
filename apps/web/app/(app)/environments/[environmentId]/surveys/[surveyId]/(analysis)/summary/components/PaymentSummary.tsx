@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useTranslation } from "react-i18next";
-import { TSurvey, TSurveyElementSummaryTypeA } from "@formbricks/types/surveys/types";
+import { TSurvey, TSurveyElementSummaryPayment } from "@formbricks/types/surveys/types";
 import { TUserLocale } from "@formbricks/types/user";
 import { timeSince } from "@/lib/time";
 import { getContactIdentifier } from "@/lib/utils/contact";
@@ -11,14 +11,14 @@ import { PersonAvatar } from "@/modules/ui/components/avatars";
 import { EmptyState } from "@/modules/ui/components/empty-state";
 import { ElementSummaryHeader } from "./ElementSummaryHeader";
 
-interface TypeASummaryProps {
-  elementSummary: TSurveyElementSummaryTypeA;
+interface PaymentSummaryProps {
+  elementSummary: TSurveyElementSummaryPayment;
   environmentId: string;
   survey: TSurvey;
   locale: TUserLocale;
 }
 
-export const TypeASummary = ({ elementSummary, environmentId, survey, locale }: TypeASummaryProps) => {
+export const PaymentSummary = ({ elementSummary, environmentId, survey, locale }: PaymentSummaryProps) => {
   const { t } = useTranslation();
   return (
     <div className="rounded-xl border border-slate-200 bg-white shadow-sm">

@@ -442,71 +442,80 @@ describe("utils", () => {
     });
   });
 
-  describe("TypeA and TypeB element compatibility", () => {
-    test("determineImageUploaderVisibility returns true when TypeA element has an image URL", () => {
+  describe("Payment and OpinionScale element compatibility", () => {
+    test("determineImageUploaderVisibility returns true when Payment element has an image URL", () => {
       const surveyLanguageCodes = ["en"];
       const elements = [
         {
           id: "q1",
-          type: TSurveyElementTypeEnum.TypeA,
-          headline: createI18nString("TypeA Question?", surveyLanguageCodes),
+          type: TSurveyElementTypeEnum.Payment,
+          headline: createI18nString("Payment Question?", surveyLanguageCodes),
           required: true,
           imageUrl: "https://example.com/image.jpg",
+          currency: "usd",
+          amount: 1000,
+          stripeIntegration: { publicKey: "pk_test", priceId: "price_test" },
         },
       ] as unknown as TSurveyElement[];
       const result = determineImageUploaderVisibility(0, elements);
       expect(result).toBe(true);
     });
 
-    test("determineImageUploaderVisibility returns false when TypeB element has no media", () => {
+    test("determineImageUploaderVisibility returns false when OpinionScale element has no media", () => {
       const surveyLanguageCodes = ["en"];
       const elements = [
         {
           id: "q1",
-          type: TSurveyElementTypeEnum.TypeB,
-          headline: createI18nString("TypeB Question?", surveyLanguageCodes),
+          type: TSurveyElementTypeEnum.OpinionScale,
+          headline: createI18nString("OpinionScale Question?", surveyLanguageCodes),
           required: true,
+          scaleRange: 5,
+          lowerLabel: createI18nString("Low", surveyLanguageCodes),
+          upperLabel: createI18nString("High", surveyLanguageCodes),
         },
       ] as unknown as TSurveyElement[];
       const result = determineImageUploaderVisibility(0, elements);
       expect(result).toBe(false);
     });
 
-    test("determineImageUploaderVisibility returns true when TypeA element has a video URL", () => {
+    test("determineImageUploaderVisibility returns true when Payment element has a video URL", () => {
       const surveyLanguageCodes = ["en"];
       const elements = [
         {
           id: "q1",
-          type: TSurveyElementTypeEnum.TypeA,
-          headline: createI18nString("TypeA Video Question?", surveyLanguageCodes),
+          type: TSurveyElementTypeEnum.Payment,
+          headline: createI18nString("Payment Video Question?", surveyLanguageCodes),
           required: true,
           videoUrl: "https://example.com/video.mp4",
+          currency: "usd",
+          amount: 1000,
+          stripeIntegration: { publicKey: "pk_test", priceId: "price_test" },
         },
       ] as unknown as TSurveyElement[];
       const result = determineImageUploaderVisibility(0, elements);
       expect(result).toBe(true);
     });
 
-    test("isValueIncomplete handles TypeA element headline correctly", () => {
+    test("isValueIncomplete handles Payment element headline correctly", () => {
       vi.mocked(i18nUtils.isLabelValidForAllLanguages).mockReturnValue(false);
-      const value: TI18nString = { default: "Test TypeA" };
+      const value: TI18nString = { default: "Test Payment" };
       const result = isValueIncomplete("headline", true, ["en"], value);
       expect(result).toBe(true);
     });
 
-    test("isValueIncomplete handles TypeB element headline correctly", () => {
+    test("isValueIncomplete handles OpinionScale element headline correctly", () => {
       vi.mocked(i18nUtils.isLabelValidForAllLanguages).mockReturnValue(false);
-      const value: TI18nString = { default: "Test TypeB" };
+      const value: TI18nString = { default: "Test OpinionScale" };
       const result = isValueIncomplete("headline", true, ["en"], value);
       expect(result).toBe(true);
     });
 
-    test("getIndex returns null for TypeA non-choice elements", () => {
-      expect(getIndex("typeA-field", false)).toBeNull();
+    test("getIndex returns null for Payment non-choice elements", () => {
+      expect(getIndex("payment-field", false)).toBeNull();
     });
 
-    test("getIndex returns null for TypeB non-choice elements", () => {
-      expect(getIndex("typeB-field", false)).toBeNull();
+    test("getIndex returns null for OpinionScale non-choice elements", () => {
+      expect(getIndex("opinionScale-field", false)).toBeNull();
     });
   });
 });

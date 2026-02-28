@@ -21,7 +21,7 @@ A successful request returns the webhook object wrapped in a `data` envelope. Th
 | `createdAt`     | string     | ISO 8601 timestamp of when the webhook was created.                                                        |
 | `updatedAt`     | string     | ISO 8601 timestamp of when the webhook was last updated.                                                   |
 | `url`           | string     | The destination URL that receives webhook payloads.                                                        |
-| `source`        | string     | The origin of the webhook. One of `user`, `zapier`, `make`, or `n8n`.                                      |
+| `source`        | string     | The origin of the webhook. One of `user`, `zapier`, `make`, `n8n`, or `activepieces`.                      |
 | `environmentId` | string     | The CUID2 identifier of the environment this webhook belongs to.                                           |
 | `triggers`      | string[]   | An array of event triggers. Possible values: `responseCreated`, `responseUpdated`, `responseFinished`.      |
 | `surveyIds`     | string[]   | An array of survey IDs (CUID2 format) the webhook is scoped to. An empty array means all surveys.          |

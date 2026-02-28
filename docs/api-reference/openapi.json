@@ -1317,7 +1317,7 @@
                 }
               }
             },
-            "description": "Bad Request \u2014 invalid request body or parameters"
+            "description": "Bad Request — invalid request body or parameters"
           },
           "500": {
             "content": {
@@ -3315,6 +3315,7 @@
     },
     "/api/v1/management/attribute-classes": {
       "get": {
+        "deprecated": true,
         "description": "Fetches all the available attribute classes",
         "parameters": [
           {
@@ -3456,6 +3457,7 @@
         "tags": ["Management API - Attribute Class"]
       },
       "post": {
+        "deprecated": true,
         "description": "Create a new Attribute Class by passing in its type as well as the name! Now just use them in your app and pass this value with a user & it'll be associated with it.",
         "parameters": [
           {
@@ -3634,6 +3636,7 @@
     },
     "/api/v1/management/attribute-classes/{attributeClassId}": {
       "delete": {
+        "deprecated": true,
         "description": "Delete an attribute class by its ID. Please note that you currently cannot delete the \"automatic\" type of attributes. Please ignore them if you do not wish to utilise them.",
         "parameters": [
           {
@@ -3846,6 +3849,7 @@
         "tags": ["Management API - Attribute Class"]
       },
       "get": {
+        "deprecated": true,
         "description": "Fetches an Attribute Class by its ID",
         "parameters": [
           {
@@ -4679,6 +4683,7 @@
     },
     "/api/v1/management/people": {
       "get": {
+        "deprecated": true,
         "description": "Get all the identified people from Formbricks",
         "parameters": [
           {
@@ -4811,6 +4816,7 @@
     },
     "/api/v1/management/people/{personId}": {
       "delete": {
+        "deprecated": true,
         "description": "Delete an identified person from Formbricks.",
         "parameters": [
           {
@@ -4963,6 +4969,7 @@
         "tags": ["Management API - People"]
       },
       "get": {
+        "deprecated": true,
         "description": "Get a person by their internal ID on Formbricks. This internal ID can be found from the Get All Person endpoint.",
         "parameters": [
           {
@@ -6574,19 +6581,19 @@
                             {
                               "id": "xpoxuu3sifk1ee8he67ctf5i",
                               "label": {
-                                "default": "Sun \u2600\ufe0f"
+                                "default": "Sun ☀️"
                               }
                             },
                             {
                               "id": "hnsovcdmxtcbly6tig1az3qc",
                               "label": {
-                                "default": "Ocean \ud83c\udf0a"
+                                "default": "Ocean 🌊"
                               }
                             },
                             {
                               "id": "kcnelzdxknvwo8fq20d3nrr5",
                               "label": {
-                                "default": "Palms \ud83c\udf34"
+                                "default": "Palms 🌴"
                               }
                             }
                           ],
@@ -6761,19 +6768,19 @@
                           {
                             "id": "xpoxuu3sifk1ee8he67ctf5i",
                             "label": {
-                              "default": "Sun \u2600\ufe0f"
+                              "default": "Sun ☀️"
                             }
                           },
                           {
                             "id": "hnsovcdmxtcbly6tig1az3qc",
                             "label": {
-                              "default": "Ocean \ud83c\udf0a"
+                              "default": "Ocean 🌊"
                             }
                           },
                           {
                             "id": "kcnelzdxknvwo8fq20d3nrr5",
                             "label": {
-                              "default": "Palms \ud83c\udf34"
+                              "default": "Palms 🌴"
                             }
                           }
                         ],
@@ -6983,19 +6990,19 @@
                           {
                             "id": "xpoxuu3sifk1ee8he67ctf5i",
                             "label": {
-                              "default": "Sun \u2600\ufe0f"
+                              "default": "Sun ☀️"
                             }
                           },
                           {
                             "id": "hnsovcdmxtcbly6tig1az3qc",
                             "label": {
-                              "default": "Ocean \ud83c\udf0a"
+                              "default": "Ocean 🌊"
                             }
                           },
                           {
                             "id": "kcnelzdxknvwo8fq20d3nrr5",
                             "label": {
-                              "default": "Palms \ud83c\udf34"
+                              "default": "Palms 🌴"
                             }
                           }
                         ],
@@ -7254,19 +7261,19 @@
                           {
                             "id": "xpoxuu3sifk1ee8he67ctf5i",
                             "label": {
-                              "default": "Sun \u2600\ufe0f"
+                              "default": "Sun ☀️"
                             }
                           },
                           {
                             "id": "hnsovcdmxtcbly6tig1az3qc",
                             "label": {
-                              "default": "Ocean \ud83c\udf0a"
+                              "default": "Ocean 🌊"
                             }
                           },
                           {
                             "id": "kcnelzdxknvwo8fq20d3nrr5",
                             "label": {
-                              "default": "Palms \ud83c\udf34"
+                              "default": "Palms 🌴"
                             }
                           }
                         ],
@@ -7512,19 +7519,19 @@
                           {
                             "id": "xpoxuu3sifk1ee8he67ctf5i",
                             "label": {
-                              "default": "Sun \u2600\ufe0f"
+                              "default": "Sun ☀️"
                             }
                           },
                           {
                             "id": "hnsovcdmxtcbly6tig1az3qc",
                             "label": {
-                              "default": "Ocean \ud83c\udf0a"
+                              "default": "Ocean 🌊"
                             }
                           },
                           {
                             "id": "kcnelzdxknvwo8fq20d3nrr5",
                             "label": {
-                              "default": "Palms \ud83c\udf34"
+                              "default": "Palms 🌴"
                             }
                           }
                         ],
@@ -7720,19 +7727,19 @@
                           {
                             "id": "xpoxuu3sifk1ee8he67ctf5i",
                             "label": {
-                              "default": "Sun \u2600\ufe0f"
+                              "default": "Sun ☀️"
                             }
                           },
                           {
                             "id": "hnsovcdmxtcbly6tig1az3qc",
                             "label": {
-                              "default": "Ocean \ud83c\udf0a"
+                              "default": "Ocean 🌊"
                             }
                           },
                           {
                             "id": "kcnelzdxknvwo8fq20d3nrr5",
                             "label": {
-                              "default": "Palms \ud83c\udf34"
+                              "default": "Palms 🌴"
                             }
                           }
                         ],
@@ -8616,7 +8623,7 @@
                 }
               }
             },
-            "description": "Internal Server Error \u2014 application or database connectivity issue"
+            "description": "Internal Server Error — application or database connectivity issue"
           }
         },
         "summary": "Health Check",
@@ -8624,6 +8631,11 @@
       }
     }
   },
+  "security": [
+    {
+      "apiKeyAuth": []
+    }
+  ],
   "servers": [
     {
       "description": "Formbricks API server. Use app.formbricks.com for cloud or your self-hosted domain.",

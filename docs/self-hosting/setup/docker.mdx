@@ -81,9 +81,24 @@ Make sure Docker and Docker Compose are installed on your system. These are usua
    sed -i '' "s/CRON_SECRET:.*/CRON_SECRET: $(openssl rand -hex 32)/" docker-compose.yml
    ```
 
+   The Docker Compose setup includes the following services:
+
+   | Service | Image | Purpose |
+   |---------|-------|---------|
+   | `postgres` | `pgvector/pgvector:pg17` | PostgreSQL 17 database with pgvector extension for vector similarity search |
+   | `redis` | `valkey/valkey` (pinned digest) | Valkey — Redis-compatible cache for session management, rate limiting, and audit logging |
+   | `formbricks` | `ghcr.io/formbricks/formbricks:latest` | Formbricks application |
+
+   <Note>
+     PostgreSQL uses the `pgvector/pgvector:pg17` image which includes the pgvector extension for vector
+     search capabilities. The `redis` service actually runs **Valkey**, a Redis-compatible open-source cache —
+     the service name remains `redis` for backward compatibility with the `REDIS_URL` environment variable. The
+     `formbricks` service depends on both `postgres` and `redis` being healthy before starting.
+   </Note>
+
 1. **Start the Docker Setup**
 
-   Now, you're ready to run Formbricks with Docker. Use the command below to start Formbricks along with a PostgreSQL database using Docker Compose:
+   Now, you're ready to run Formbricks with Docker. Use the command below to start Formbricks along with a PostgreSQL database and Valkey cache using Docker Compose:
 
    ```bash
    docker compose up -d
@@ -94,6 +109,26 @@ Make sure Docker and Docker Compose are installed on your system. These are usua
 1. **Open Formbricks in Your Browser**
 
    Once the setup is running, open [**http://localhost:3000**](http://localhost:3000) in your browser to access Formbricks. The first time you visit, you'll see a setup wizard. Follow the steps to create your first user and start using Formbricks.
+
+## Key Environment Variables
+
+The following environment variables are required for the Docker Compose setup. The `DATABASE_URL` and `REDIS_URL` are pre-configured in the `docker-compose.yml` to connect to the bundled PostgreSQL and Valkey services.
+
+| Variable | Required | Description |
+|----------|----------|-------------|
+| `WEBAPP_URL` | Yes | Public URL of your Formbricks instance (e.g., `https://example.com`) |
+| `NEXTAUTH_URL` | Yes | Should be the same as `WEBAPP_URL` |
+| `DATABASE_URL` | Yes | PostgreSQL connection string (pre-configured as `postgresql://postgres:postgres@postgres:5432/formbricks?schema=public`) |
+| `NEXTAUTH_SECRET` | Yes | Random hex string for session signing (generated in Step 3) |
+| `ENCRYPTION_KEY` | Yes | Random hex string for 2FA and single-use link URLs (generated in Step 4) |
+| `CRON_SECRET` | Yes | Random hex string for securing cron job API access (generated in Step 5) |
+| `REDIS_URL` | Yes | Redis/Valkey connection URL (pre-configured as `redis://redis:6379`) |
+
+<Note>
+  For the full list of available environment variables including email, OAuth, S3 storage, and enterprise
+  configuration, see the [Environment Variables Configuration](/self-hosting/configuration/environment-variables)
+  page.
+</Note>
 
 ## Update
 
@@ -119,7 +154,18 @@ Please take a look at our [migration guide](/self-hosting/advanced/migration) fo
 
 ## Optional: Adding MinIO for File Storage
 
-MinIO provides S3-compatible object storage for file uploads in Formbricks. If you want to enable features like image uploads, file uploads in surveys, or custom logos, you can add MinIO to your Docker setup.
+MinIO is an S3-compatible object storage solution that enables file uploads in Formbricks, including survey images, file upload question responses, custom logos, and organization branding assets. If you want to enable these features, you can add MinIO to your Docker setup.
+
+The following S3 environment variables are used to configure MinIO with Formbricks:
+
+| Variable | Description |
+|----------|-------------|
+| `S3_ACCESS_KEY` | MinIO/S3 access key credential |
+| `S3_SECRET_KEY` | MinIO/S3 secret key credential |
+| `S3_REGION` | S3 region (use `us-east-1` for MinIO) |
+| `S3_BUCKET_NAME` | S3 bucket name (e.g., `formbricks`) |
+| `S3_ENDPOINT_URL` | S3 endpoint URL (e.g., `http://minio:9000` for Docker internal, `http://localhost:9000` for external) |
+| `S3_FORCE_PATH_STYLE` | Set to `1` for MinIO/S3-compatible storage, `0` for AWS S3 |
 
 <Note>
   For detailed information about file storage options and configuration, see our [File Uploads
@@ -331,8 +377,9 @@ In an ideal case, you should see this:
 ⠋ e407294bdcda Waiting                                                                                                        8.1s
 ⠋ 6fd8358dca47 Pulling fs layer                                                                                               8.1s
 
-[+] Running 2/2
+[+] Running 3/3
 ✔ Container formbricks-quickstart-postgres-1    Created                                                                       0.0s
+✔ Container formbricks-quickstart-redis-1       Created                                                                       0.0s
 ✔ Container formbricks-quickstart-formbricks-1  Created                                                                       0.0s
 ```
 
@@ -353,5 +400,61 @@ You can close the logs again by hitting `CTRL + C`.
 To edit any of the available environment variables, check out our [Configuration](/self-hosting/configuration/environment-variables) section!
 
 </Note>
+
+## Health Checks
+
+The Docker Compose setup includes built-in health checks for both PostgreSQL and Valkey to ensure services are ready before Formbricks starts. The `formbricks` container uses `depends_on` with `condition: service_healthy`, so it waits for both services to pass their health checks before launching.
+
+**PostgreSQL Health Check:**
+
+```yaml
+healthcheck:
+  test: ["CMD-SHELL", "pg_isready -U postgres || exit 1"]
+  interval: 5s
+  timeout: 3s
+  retries: 30
+  start_period: 30s
+```
+
+**Valkey (Redis) Health Check:**
+
+```yaml
+healthcheck:
+  test: ["CMD", "valkey-cli", "ping"]
+  interval: 5s
+  timeout: 3s
+  retries: 30
+  start_period: 10s
+```
+
+<Note>
+  If a health check fails after the configured retries, the dependent Formbricks container will not start.
+  This helps catch configuration issues early — for example, an incorrect `POSTGRES_PASSWORD` or a Valkey
+  startup failure will prevent Formbricks from launching with broken dependencies.
+</Note>
+
+## Volume Mounts
+
+The Docker Compose setup defines the following persistent volumes and bind mounts to ensure data survives container restarts and upgrades:
+
+| Volume / Mount | Target Path | Purpose |
+|---------------|-------------|---------|
+| `postgres` (named volume) | `/var/lib/postgresql/data` | Persistent PostgreSQL database data |
+| `redis` (named volume) | `/data` | Persistent Valkey cache data (append-only file) |
+| `./saml-connection` (bind mount) | `/home/nextjs/apps/web/saml-connection` | SAML connection configuration (only needed for SAML SSO enterprise feature) |
+
+<Warning>
+  Never delete the `postgres` named volume unless you intend to lose all survey data, responses, and user
+  accounts. Always back up your database before performing any destructive operations.
+</Warning>
+
+<Note>
+  The `./saml-connection` bind mount is only required if you are using the SAML SSO enterprise feature. For
+  more information, see the [SAML SSO Configuration](/self-hosting/configuration/auth-sso/saml-sso) guide.
+</Note>
+
+---
+
+*Source: `docker/docker-compose.yml`*
 
 If you have any questions or require help, feel free to reach out to us on [**GitHub Discussions**](https://github.com/formbricks/formbricks/discussions). 😃

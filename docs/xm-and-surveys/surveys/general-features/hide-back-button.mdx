@@ -1,11 +1,72 @@
 ---
-title: Hide Back Button
-description: Learn how to hide the back button in surveys.
-icon: arrow-left
+title: "Hide Back Button"
+description: "Learn how to hide the back button in surveys to prevent respondents from returning to previous questions and ensure a forward-only survey experience."
+icon: "arrow-left"
 ---
 
-Surveys display a back button by default. If you want to prevent respondents from returning to previous questions, you'll need to disable this feature explicitly.
+## Overview
 
-To disable the back button, navigate to the survey settings and select the Response options tab.
+Surveys in Formbricks display a back button by default, allowing respondents to navigate to previous questions and revise their answers. In some scenarios, you may want to disable this behavior and enforce a forward-only flow.
 
-![Hide back button](/images/xm-and-surveys/surveys/general-features/hide-back-button/hide-back-button.webp)
+The **Hide Back Button** setting removes the back navigation button from all questions in the survey. Once enabled, respondents can only move forward through the survey and cannot return to previously answered questions.
+
+<Note>
+  This setting is configured **per survey** and is found under **Settings &gt; Response Options** in the Survey
+  Editor. It applies to all distribution channels including link surveys, website surveys, and in-app surveys.
+</Note>
+
+## How To Configure
+
+<Steps>
+  <Step title="Open The Survey Editor">
+    Navigate to the survey you want to modify and open the **Survey Editor**.
+  </Step>
+
+  <Step title="Go To The Settings Tab">
+    Click on the **Settings** tab located next to the Questions and Styling tabs.
+  </Step>
+
+  <Step title="Find Response Options">
+    Scroll down to the **Response Options** section within the Settings panel.
+  </Step>
+
+  <Step title="Toggle Hide Back Button">
+    Locate the **Hide "Back" button** toggle and switch it on. The description reads: *Do not display the back button in the survey*.
+
+    ![Hide back button](/images/xm-and-surveys/surveys/general-features/hide-back-button/hide-back-button.webp)
+
+  </Step>
+
+  <Step title="Save Your Changes">
+    Click **Save** to apply the setting. The back button will no longer appear for respondents taking this survey.
+  </Step>
+</Steps>
+
+## Use Cases
+
+- **Sequential Data Collection**: When survey questions build upon each other in a strict sequence and revisiting earlier answers would disrupt the logical flow.
+
+- **Preventing Answer Changes**: In assessments, quizzes, or compliance surveys where respondents should not be able to modify previously submitted answers.
+
+- **Timed Or Ordered Surveys**: When the survey experience is designed to be completed in a single forward pass, such as onboarding flows or progressive feedback collection.
+
+- **Reducing Drop-Offs**: Removing the back button simplifies the survey interface, which can help respondents focus on completing the survey rather than second-guessing earlier responses.
+
+## Impact On Survey Navigation
+
+When the back button is hidden:
+
+- **Respondents cannot navigate backward** — once a question is answered and the respondent moves forward, they cannot return to it.
+
+- **The back button label configuration is skipped** — since the button is not displayed, any custom back button label set on individual questions has no effect.
+
+- **Partial submissions still capture answered questions** — even without back navigation, the [partial submissions](/xm-and-surveys/surveys/general-features/partial-submissions) feature continues to record each answered question as the respondent progresses.
+
+- **Conditional logic continues to function normally** — [conditional logic](/xm-and-surveys/surveys/general-features/conditional-logic) branching and skip logic are unaffected by this setting and work as configured.
+
+## Related Features
+
+- [Partial Submissions](/xm-and-surveys/surveys/general-features/partial-submissions) — Track respondent progress even when they do not complete the survey.
+- [Conditional Logic](/xm-and-surveys/surveys/general-features/conditional-logic) — Configure branching and skip logic to control survey flow.
+- [Limit Submissions](/xm-and-surveys/surveys/general-features/limit-submissions) — Automatically close surveys after a set number of responses.
+- [Spam Protection](/xm-and-surveys/surveys/general-features/spam-protection) — Protect surveys from automated abuse using reCAPTCHA.

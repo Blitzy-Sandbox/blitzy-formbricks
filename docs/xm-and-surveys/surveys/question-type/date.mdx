@@ -28,12 +28,41 @@ Add a clear title to inform the respondent what date you are asking for.
 
 ### Description
 
-Provide an optional description with further instructions.
+Provide an optional description with further instructions. The date element supports both a plain-text `subheader` field (with I18n string support for multi-language surveys) and an optional `html` field for rich-text formatting. When the `html` field is provided, it renders rich-text content alongside or in place of the plain-text subheader.
 
 ### Date Format
 
-Choose from multiple date formats for the input:
+Choose from multiple date formats for the input. The `format` field determines how the date picker displays and captures the date:
 
-- MM-DD-YYYY
-- DD-MM-YYYY
-- YYYY-MM-DD
+| Format Value | Display Format | Description |
+|-------------|---------------|-------------|
+| `M-d-y` | MM-DD-YYYY | Month first — US format |
+| `d-M-y` | DD-MM-YYYY | Day first — European format |
+| `y-M-d` | YYYY-MM-DD | Year first — ISO 8601 format |
+
+<Note>
+  The selected format controls how the date is displayed to the respondent and how the response is stored. The date response is persisted as a string in the chosen format.
+</Note>
+
+### Date Picker Configuration
+
+The date question presents an interactive date picker interface to respondents. When a respondent clicks the date input field, a calendar-style picker appears allowing them to select a date visually. The picker respects the configured date format, ensuring that the displayed date matches the selected format convention.
+
+### Validation Rules
+
+Date elements support validation rules that allow you to restrict which dates respondents can select. You can combine multiple rules using `and` or `or` logic operators to create precise date range constraints.
+
+| Rule | Description | Parameters |
+|------|-------------|------------|
+| `isLaterThan` | Date must be after a specified date | `date` (string in `YYYY-MM-DD` format) |
+| `isEarlierThan` | Date must be before a specified date | `date` (string in `YYYY-MM-DD` format) |
+| `isBetween` | Date must fall within a specified range (inclusive) | `startDate`, `endDate` (strings in `YYYY-MM-DD` format) |
+| `isNotBetween` | Date must fall outside a specified range | `startDate`, `endDate` (strings in `YYYY-MM-DD` format) |
+
+<Note>
+  All date parameters in validation rules use the `YYYY-MM-DD` (ISO 8601) format regardless of the display format configured for the question. This ensures consistent server-side validation.
+</Note>
+
+---
+
+*Source: `packages/types/surveys/elements.ts` (ZSurveyDateElement), `packages/types/surveys/validation-rules.ts` (DATE_RULES)*

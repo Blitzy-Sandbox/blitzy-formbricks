@@ -4,57 +4,80 @@ description: "Add data to a submission without asking the user to type it in. Th
 icon: "eye-slash"
 ---
 
-## How to Add Hidden Fields
+## How To Add Hidden Fields
 
-### Enable Hidden Fields
+<Steps>
+  <Step title="Enable Hidden Fields">
+    Edit the survey you want to add hidden fields to and switch to the **Questions** tab. Scroll down to the bottom of the page where you will see a section called **Hidden Fields**. Enable it by toggling the switch.
 
-1. Edit the survey you want to add hidden fields to & switch to the Questions tab and scroll down to the bottom of the page. You will see a section called **Hidden Fields**. Make sure to enable it by toggling the switch.
+    ![Enable Hidden Fields](/images/xm-and-surveys/surveys/general-features/hidden-fields/hidden-fields.webp)
+  </Step>
 
-![Enable Hidden Fields](/images/xm-and-surveys/surveys/general-features/hidden-fields/hidden-fields.webp)
+  <Step title="Add Hidden Field IDs">
+    Click on the hidden fields section to add a new hidden field ID. You can add as many hidden fields as you want. Each hidden field requires a unique identifier that you will use to pass data via URL parameters or the SDK.
 
-### Add Hidden Field IDs
+    ![Add Hidden Fields](/images/xm-and-surveys/surveys/general-features/hidden-fields/input-hidden-fields.webp)
 
-1. Now click on it to add a new hidden field ID. You can add as many hidden fields as you want.
+    ![Filled Hidden Fields](/images/xm-and-surveys/surveys/general-features/hidden-fields/filled-hidden-fields.webp)
+  </Step>
+</Steps>
 
-![Add Hidden Fields](/images/xm-and-surveys/surveys/general-features/hidden-fields/input-hidden-fields.webp)
+## Set Hidden Field Via URL
 
-![Filled Hidden Fields](/images/xm-and-surveys/surveys/general-features/hidden-fields/filled-hidden-fields.webp)
+You can pass values to hidden fields by appending them as query parameters to your survey link. The parameter name must match the hidden field ID you configured in the survey editor.
 
-## Set Hidden Field via URL
+**Single Hidden Field:**
 
-Single Hidden Field:
-
-```
+```text
 https://formbricks.com/s/clin34bjy?screen=pricing
 ```
 
-Multiple Hidden Fields:
+**Multiple Hidden Fields:**
 
-```
+```text
 https://formbricks.com/s/clin34bjy?screen=landing_page&job=Founder
 ```
 
-## Set Hidden Fields via SDK
+## Set Hidden Fields Via SDK
 
 <Note>
-  We are reworking how to add Hidden Fields via SDK moving away from binding them to Actions over to Context. Until then, we will **continue to support the current approach for the JS SDK**. However, we don't support Hidden Fields for the Android and iOS SDKs.
+  The hidden fields SDK integration is being reworked — the approach is moving from binding hidden fields to Actions over to Context. Until then, the current approach below **continues to be supported for the JS SDK**. However, hidden fields are **not supported** for the Android and iOS SDKs.
 </Note>
 
+You can pass hidden field values programmatically when tracking an action using the `formbricks.track()` method:
+
 ```js
-formbricks.track("action_name", {hiddenFields: {myField: "value"}})
+formbricks.track("my_action_code", {
+  hiddenFields: {
+    myField: "value",
+    anotherField: "anotherValue",
+  },
+});
 ```
 
+The `hiddenFields` property accepts a `Record<string, string | number | string[]>`, allowing you to pass string, numeric, or array values for each hidden field.
 
-## View Hidden Fields in Responses
+## View Hidden Fields In Responses
 
-These hidden fields will now be visible in the responses tab just like other fields in the Summary as well as the Response Cards, and you can use them to filter and analyze your responses.
+Hidden fields are visible in the responses tab just like other fields — both in the **Summary** view and in the individual **Response Cards**. You can use them to filter and analyze your responses.
 
 ![Hidden Field Responses](/images/xm-and-surveys/surveys/general-features/hidden-fields/hidden-field-responses.webp)
 
 ## Use Cases
 
-- **Tracking Source**: You can add a hidden field to track the source of the survey. For a detailed guide on Source Tracking, check out the [Source Tracking](/xm-and-surveys/surveys/link-surveys/source-tracking) guide.
+- **Source Tracking**: Add a hidden field to track the source of the survey. For a detailed guide on source tracking, check out the [Source Tracking](/xm-and-surveys/surveys/link-surveys/source-tracking) guide.
 
-- **User Metadata**: You can add hidden fields to capture user metadata such as user ID, email, or any other user-specific information.
+- **User Metadata**: Capture user metadata such as user ID, email, or any other user-specific information without requiring the respondent to enter it manually.
 
-- **Survey Metadata**: You can add hidden fields to capture other metadata, e.g. the screen from which the survey was filled, or any other app specific information.
+- **Survey Metadata**: Capture contextual metadata such as the screen from which the survey was filled, the current app version, or any other application-specific information.
+
+## Related Features
+
+<CardGroup cols={2}>
+  <Card title="Recall Data" icon="rotate-right" href="/xm-and-surveys/surveys/general-features/recall">
+    Dynamically insert hidden field values into your survey questions using the Recall Data feature.
+  </Card>
+  <Card title="Data Prefilling" icon="fill" href="/xm-and-surveys/surveys/link-surveys/data-prefilling">
+    Prefill visible survey fields with data passed via URL parameters for a seamless respondent experience.
+  </Card>
+</CardGroup>

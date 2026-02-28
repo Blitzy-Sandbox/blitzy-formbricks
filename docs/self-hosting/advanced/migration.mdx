@@ -4,6 +4,148 @@ description: "Formbricks Self-hosted version migration"
 icon: "arrow-right"
 ---
 
+## Migration Overview
+
+Formbricks uses **Prisma** for database schema management. The `packages/database/migration/` directory contains **163 migration files** covering the entire schema evolution from v1.1 to the current version. The database schema currently includes **32 Prisma models** and **22 enums**, all defined in `packages/database/schema.prisma`.
+
+Over the lifetime of Formbricks, two distinct migration eras have existed:
+
+1. **v1.x To v2.7 — Manual Data Migration Container:** Upgrading between these versions required pulling and running a dedicated data migration container (`ghcr.io/formbricks/data-migrations:vX.Y`) after each version bump. This container applied both schema and data transformations outside of the main application process.
+2. **v3.0+ — Automatic Migration System:** Starting with v3.0, Formbricks automatically detects and applies required schema migrations during startup using `prisma migrate deploy`. No separate migration container or manual intervention is needed — simply update the Formbricks image and restart.
+
+<Warning>
+  Always back up your database before any migration. While Formbricks migrations are designed to be safe, database backups ensure you can recover if anything goes wrong.
+</Warning>
+
+<Note>
+  If you're using a version older than v2.7, you must upgrade step-by-step through earlier versions (e.g., 2.4 → 2.5 → 2.6 → 2.7). Once you reach v2.7, you can upgrade directly to any v3.x or future release.
+</Note>
+
+---
+
+## Verifying A Successful Migration
+
+After upgrading Formbricks, verify that the migration completed successfully by following these steps:
+
+### Check Container Logs
+
+Inspect the application logs for migration-related output to confirm that schema changes were applied:
+
+```bash
+# Docker
+docker compose logs formbricks | grep -i "migration"
+
+# Kubernetes
+kubectl logs -n formbricks -l app.kubernetes.io/name=formbricks --tail=200 | grep -i "migration"
+```
+
+A successful migration will show Prisma migration entries without errors. If you see error messages, review the full log output for details before proceeding.
+
+### Verify Application Accessibility
+
+Confirm that Formbricks starts successfully and is accessible at the expected URL. If the application fails to start, check the container logs for startup errors — a failed migration is the most common cause.
+
+### Verify Data Integrity
+
+After the application is running:
+
+- Verify that existing surveys and response data are intact by browsing the dashboard
+- Test key functionality: survey creation, response collection, and API access
+- For enterprise features, confirm that SSO, team management, and billing remain functional
+
+### Check Database Schema State
+
+You can verify the number of successfully applied migrations directly in the database:
+
+```bash
+# Docker
+docker exec formbricks-postgres-1 psql -U postgres -d formbricks -c "SELECT COUNT(*) FROM _prisma_migrations WHERE applied_steps_count > 0;"
+```
+
+The returned count should match the number of migrations expected for your target version. For the latest version, this should be close to the total of 163 migration files in the repository.
+
+---
+
+## Database Backup Best Practices
+
+A reliable backup strategy is essential before performing any Formbricks upgrade. Follow these best practices to protect your data:
+
+<Steps>
+  <Step title="Create A Full Backup Before Every Upgrade">
+    Use `pg_dump` to create a complete database backup before starting any upgrade. The version-specific guides below include the exact commands for both Docker and Kubernetes deployments.
+
+    ```bash
+    # Docker example
+    docker exec formbricks-postgres-1 pg_dump -Fc -U postgres -d formbricks > formbricks_pre_upgrade_$(date +%Y%m%d_%H%M%S).dump
+    ```
+
+    ```bash
+    # Kubernetes example (in-cluster PostgreSQL)
+    kubectl exec -n formbricks formbricks-postgresql-0 -- pg_dump -Fc -U formbricks -d formbricks > formbricks_pre_upgrade_$(date +%Y%m%d_%H%M%S).dump
+    ```
+  </Step>
+  <Step title="Store Backups Externally">
+    Do not keep backups only on the same server as your Formbricks instance. Copy backup files to a separate machine, cloud storage bucket, or off-site location to protect against hardware failures.
+  </Step>
+  <Step title="Verify Backup Integrity">
+    Periodically test restoring a backup to a separate database to confirm that your backups are valid and complete. A backup you have never tested is a backup you cannot trust.
+  </Step>
+  <Step title="Name Backups With Timestamps">
+    The version-specific guides use `$(date +%Y%m%d_%H%M%S)` in backup file names to ensure each backup has a unique, sortable name. This makes it easy to identify exactly when a backup was taken.
+  </Step>
+  <Step title="Keep At Least 2 Previous Backups">
+    Before removing old backup files, ensure you retain at least 2 previous backups. This provides a safety net in case the most recent backup is corrupted or incomplete.
+  </Step>
+</Steps>
+
+---
+
+## Rollback Procedures
+
+<Warning>
+  Rollback is only possible if you have a database backup from before the migration. Some migrations may drop tables or columns, making data unrecoverable without a backup.
+</Warning>
+
+If an upgrade fails or causes issues, you can restore your Formbricks instance to the previous version using a pre-migration database backup. Follow these steps:
+
+<Steps>
+  <Step title="Stop The Running Formbricks Instance">
+    Shut down all Formbricks containers to prevent any further database writes:
+
+    ```bash
+    docker compose down
+    ```
+  </Step>
+  <Step title="Restore The Database From Backup">
+    Use `pg_restore` to restore your database from the pre-migration backup file. Replace `formbricks_pre_vX.Y_TIMESTAMP.dump` with the actual file name of your backup:
+
+    ```bash
+    docker exec -i formbricks-postgres-1 pg_restore --clean -U postgres -d formbricks < formbricks_pre_vX.Y_TIMESTAMP.dump
+    ```
+
+    <Note>
+      The `--clean` flag drops existing database objects before restoring, ensuring a clean state. If your PostgreSQL container was also stopped, start it first with `docker compose up -d postgres` before running the restore command.
+    </Note>
+  </Step>
+  <Step title="Start The Previous Version Of Formbricks">
+    Update your `docker-compose.yml` to pin the Formbricks image to the previous version tag (e.g., `ghcr.io/formbricks/formbricks:v4.0.0`), then start the containers:
+
+    ```bash
+    docker compose up -d
+    ```
+
+    Verify that the application starts successfully and your data is intact at the expected URL.
+  </Step>
+</Steps>
+
+---
+
+## Version-Specific Migration Guides
+
+The sections below contain detailed migration instructions for each Formbricks release, starting with the most recent. Find your current version and follow the steps to upgrade.
+
+---
+
 ## v4.7
 
 Formbricks v4.7 introduces **typed contact attributes** with native `number` and `date` data types. This enables comparison-based segment filters (e.g. "signup date before 2025-01-01") that were previously not possible with string-only attribute values.
@@ -135,7 +277,7 @@ If the migration skipped the value backfill, run the standalone backfill script 
 
 The script will output progress as it runs:
 
-```
+```text
 ========================================
 Attribute Value Backfill Script
 ========================================
@@ -268,7 +410,7 @@ Formbricks supports multiple storage providers (among many other S3-compatible s
 
 Please make sure to set up a storage bucket with one of these solutions and then link it to Formbricks using the following environment variables:
 
-```
+```yaml
   S3_ACCESS_KEY: your-access-key
   S3_SECRET_KEY: your-secret-key
   S3_REGION: us-east-1

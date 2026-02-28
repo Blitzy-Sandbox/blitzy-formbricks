@@ -1,102 +1,280 @@
 ---
 title: Modules & Components
-description: In this document we outline the best practices for organizing modules and components across the codebase. Clear separation of concerns between modules (which encompass business logic and domain-specific functionality) and components (reusable UI elements and building blocks) promotes clarity, scalability, and maintainability.
+description: Guide to the 16 feature modules and 14 enterprise edition sub-modules in apps/web/modules/, covering co-location patterns, server actions, UI component structure, and import alias conventions.
 icon: boxes-stacked
 ---
 
 ## Introduction
 
-Our codebase follows a modular architecture with two primary organizational units:
+The Formbricks codebase follows a modular architecture within `apps/web/modules/` with three primary organizational units:
 
-1. **UI Components**: Reusable components in the `modules/ui/components` directory
-2. **Feature Modules**: Domain-specific functionality organized by feature in the `modules` directory
+1. **UI Components**: Reusable components centralized in the `modules/ui/components/` directory
+2. **Feature Modules**: 16 domain-specific modules organized by feature in `apps/web/modules/`
+3. **Enterprise Modules**: Enterprise-only features organized under `apps/web/modules/ee/`, gated behind the license check system
+
+Each module co-locates its components, business logic, types, and server actions alongside the feature it supports. This promotes discoverability, clear ownership, and minimal cross-module coupling.
+
+Source: `AGENTS.md`, `apps/web/modules/` filesystem
 
 ## Module Organization
 
 ### Core Module Structure
 
-Modules are organized by feature and can be found in the `modules` directory. Each module typically includes:
+Modules are organized by feature within `apps/web/modules/`. Each module typically includes the following directories and files:
 
-```
+```plaintext
 modules/
 └── feature-name/
-   ├── components/ # Feature-specific components
-   ├── lib/ # Business logic and utilities
-   ├── types/ # TypeScript types
-   ├── actions.ts # Server actions
-   └── route.ts # API routes (if needed)
+    ├── actions/       # Server actions (some modules use a single actions.ts file instead)
+    ├── components/    # React components co-located with the feature
+    ├── hooks/         # Custom React hooks
+    ├── lib/           # Module-specific utilities and business logic
+    ├── types/         # Module-specific TypeScript types
+    └── route.ts       # API routes (if needed)
 ```
 
-### Enterprise Edition (EE) Modules
+<Note>
+  Some modules use a single `actions.ts` file at the module root, while others use an `actions/` directory containing multiple action files. For example, `apps/web/modules/auth/` has both an `actions.ts` file and an `actions/` directory. Choose the approach that best fits the complexity of the module.
+</Note>
 
-Enterprise features are organized in a dedicated `modules/ee` directory:
+### Feature Modules
 
+The `apps/web/modules/` directory contains 16 feature modules:
+
+| Module | Directory | Description |
+|--------|-----------|-------------|
+| Account | `modules/account/` | User account management and profile settings |
+| Analysis | `modules/analysis/` | Response analysis, insights, and dashboards |
+| API | `modules/api/` | API v2 implementation and route handlers |
+| Auth | `modules/auth/` | Authentication, authorization, login, and signup flows |
+| Core | `modules/core/` | Core shared utilities and rate limiting |
+| EE | `modules/ee/` | Enterprise features (see [Enterprise Edition Modules](#enterprise-edition-ee-modules) below) |
+| Email | `modules/email/` | Email sending and template management |
+| Environments | `modules/environments/` | Environment management and configuration |
+| Integrations | `modules/integrations/` | Webhook and native integration management |
+| Organization | `modules/organization/` | Organization management, API keys, and member roles |
+| Projects | `modules/projects/` | Project settings and configuration |
+| Setup | `modules/setup/` | Instance setup and onboarding wizard |
+| Storage | `modules/storage/` | File storage management |
+| Survey | `modules/survey/` | Survey engine, editor, responses, and templates |
+| UI | `modules/ui/` | Shared UI components and design system elements |
+| Utils | `modules/utils/` | Common utility functions shared across modules |
+
+Source: `apps/web/modules/` filesystem
+
+## Enterprise Edition (EE) Modules
+
+Enterprise features are organized in a dedicated `apps/web/modules/ee/` directory. Each sub-module follows the same co-location patterns as core feature modules.
+
+<Note>
+  Enterprise Edition (EE) modules require an active enterprise license. These features are gated behind the license check system (`apps/web/modules/ee/license-check/`). See [Enterprise Features](/self-hosting/advanced/enterprise-features/saml-sso) for setup details.
+</Note>
+
+The `modules/ee/` directory contains 14 enterprise sub-modules:
+
+| Sub-Module | Directory | Description |
+|------------|-----------|-------------|
+| Audit Logs | `ee/audit-logs/` | Audit event logging with async queue and Zod-validated events |
+| Auth | `ee/auth/` | Enterprise authentication features (SAML integration) |
+| Billing | `ee/billing/` | Stripe billing integration, plan management, and subscription handling |
+| Contacts | `ee/contacts/` | Contact management, attributes, and segment targeting |
+| Languages | `ee/languages/` | Language management for multi-language support |
+| License Check | `ee/license-check/` | Remote license validation with caching and grace period |
+| Mailing | `ee/mailing/` | Enterprise mailing features and branded email delivery |
+| Multi-Language Surveys | `ee/multi-language-surveys/` | Multi-language survey support with 14-locale translations |
+| Quotas | `ee/quotas/` | Response and usage quota enforcement per plan |
+| Role Management | `ee/role-management/` | Role-based access control (owner, manager, member, billing) |
+| SSO | `ee/sso/` | Single sign-on integration including SAML and OIDC providers |
+| Teams | `ee/teams/` | Team-based access control with admin and contributor roles |
+| Two-Factor Auth | `ee/two-factor-auth/` | TOTP setup, QR code generation, and backup codes |
+| Whitelabel | `ee/whitelabel/` | White-label branding, custom favicons, and email customization |
+
+### EE Directory Structure
+
+```plaintext
+modules/ee/
+├── audit-logs/
+│   ├── lib/
+│   └── types/
+├── auth/
+│   └── saml/
+├── billing/
+│   ├── api/
+│   └── components/
+├── contacts/
+│   ├── api/
+│   ├── attributes/
+│   ├── components/
+│   ├── lib/
+│   ├── segments/
+│   └── types/
+├── languages/
+├── license-check/
+│   ├── lib/
+│   └── types/
+├── mailing/
+│   └── lib/
+├── multi-language-surveys/
+│   ├── components/
+│   └── lib/
+├── quotas/
+│   ├── components/
+│   └── lib/
+├── role-management/
+│   ├── components/
+│   ├── lib/
+│   └── types/
+├── sso/
+│   ├── components/
+│   └── lib/
+├── teams/
+│   ├── lib/
+│   ├── project-teams/
+│   ├── team-list/
+│   └── utils/
+├── two-factor-auth/
+│   ├── components/
+│   └── lib/
+└── whitelabel/
+    ├── email-customization/
+    ├── favicon-customization/
+    └── remove-branding/
 ```
-modules/
-└── ee/
-├── insights/
-│ ├── components/
-│ ├── experience/
-│ └── types/
-└── contacts/
-├── segments/
-└── components/
-```
+
+Source: `apps/web/modules/ee/` filesystem
 
 ## Component Organization
 
 ### UI Component Structure
 
-UI components are centralized in `modules/ui/components` and follow a consistent structure:
+Shared UI components are centralized in `modules/ui/components/` and follow a consistent structure:
 
-```
+```plaintext
 modules/ui/components/
 └── component-name/
-   ├── index.tsx # Main component implementation
-   ├── stories.tsx # Storybook stories
-   └── components/ # Sub-components (if needed)
+    ├── index.tsx      # Main component implementation
+    ├── stories.tsx    # Storybook stories
+    └── components/    # Sub-components (if needed)
 ```
 
 ### Component Types
 
-1. **Base Components**: Fundamental UI elements like Button, Input, Modal
+1. **Base Components**: Fundamental UI elements like Button, Input, Modal — located in `modules/ui/components/`
 
-2. **Composite Components**: More complex components that combine base components
+2. **Composite Components**: More complex components that combine base components — also in `modules/ui/components/`
 
-3. **Feature-Specific Components**: Components tied to specific features
+3. **Feature-Specific Components**: Components tied to specific features — located in `modules/[feature]/components/`
 
+## Component Co-Location
 
-### Feature Module Example
+Components are co-located alongside the feature they belong to. This keeps related code together and reduces the need to navigate across distant directories.
 
-A feature module with its components and business logic:
+- **Feature components** live in `modules/[feature]/components/` within the module they serve
+- **Shared UI components** reside in `modules/ui/components/` and are reusable across all modules
+- **Feature-specific components should NOT be placed in the shared UI directory** — only truly reusable, feature-agnostic components belong in `modules/ui/`
 
+```plaintext
+# Correct: Feature component co-located with its module
+modules/survey/components/survey-card.tsx
+
+# Correct: Shared UI component in the ui module
+modules/ui/components/button/index.tsx
+
+# Incorrect: Feature component placed in shared UI
+modules/ui/components/survey-card.tsx   # ❌ Should be in modules/survey/
 ```
+
+Source: `AGENTS.md` architecture patterns, `apps/web/modules/` filesystem
+
+## Server Actions
+
+Server actions provide a consistent pattern for executing server-side logic from React components. They use the `"use server"` directive and wrap service calls, returning `{ data }` or `{ error }` consistently.
+
+Server actions live either as a single `actions.ts` file at the module root or in an `actions/` directory when the module requires multiple action files.
+
+```typescript
+"use server";
+
+import { surveyService } from "@/modules/survey/lib/survey-service";
+
+export const createSurvey = async (data: TSurveyInput) => {
+  try {
+    const result = await surveyService.create(data);
+    return { data: result };
+  } catch (error) {
+    return { error: "Failed to create survey" };
+  }
+};
+```
+
+<Note>
+  Server actions always return an object with either a `data` property on success or an `error` property on failure. This convention ensures consistent error handling across the application.
+</Note>
+
+Source: `AGENTS.md` line 39 — "Server actions wrap service calls and return `{ data }` or `{ error }` consistently."
+
+## Import Aliases
+
+Use the `@/modules/...` alias for all module imports. This keeps import paths clean and decoupled from relative directory traversal.
+
+```typescript
+// Correct: Use the @/modules alias
+import { SurveyCard } from "@/modules/survey/components/survey-card";
+import { createSurvey } from "@/modules/survey/actions";
+
+// Incorrect: Relative paths across module boundaries
+import { SurveyCard } from "../../../survey/components/survey-card";  // ❌
+```
+
+The alias is configured in the TypeScript `tsconfig.json` and resolves to `apps/web/modules/`. Always prefer the alias over relative imports when referencing code from other modules.
+
+Source: `AGENTS.md` architecture patterns
+
+## Feature Module Example
+
+The `survey` module demonstrates a mature feature module with co-located sub-features, components, hooks, and business logic:
+
+```plaintext
 modules/survey/
-├── components/
-│ ├── question-form-input/
-│ └── template-list/
-├── editor/
-│ └── components/
-├── lib/
-│ └── utils.ts
-└── types/
-└── index.ts
+├── components/    # Shared survey components (cards, forms, inputs)
+├── editor/        # Survey editor with its own components and logic
+├── follow-ups/    # Email follow-up configuration
+├── hooks/         # Custom React hooks for survey state and behavior
+├── lib/           # Survey business logic, utilities, and service functions
+├── link/          # Link survey generation and management
+├── list/          # Survey listing and filtering
+├── slug/          # Survey slug management and resolution
+└── templates/     # Survey template library and template selection
 ```
 
+Each sub-directory within the module may contain its own `components/`, `lib/`, and `types/` directories, forming a nested co-location pattern for complex features.
+
+Source: `apps/web/modules/survey/` filesystem
 
 ## Best Practices
 
 1. **Component Organization**
    - Keep components focused and single-purpose
    - Use proper TypeScript interfaces for props
-   - Implement Storybook stories for UI components
+   - Implement Storybook stories for shared UI components in `modules/ui/`
+   - Co-locate feature-specific components within their module's `components/` directory
 
 2. **Module Structure**
-   - Organize by feature domain
-   - Separate business logic from UI components
-   - Use proper type definitions
+   - Organize by feature domain — one directory per feature in `modules/`
+   - Separate business logic (`lib/`) from UI components (`components/`)
+   - Use proper type definitions in a dedicated `types/` directory
+   - Keep server actions in `actions.ts` or `actions/` at the module root
 
 3. **Code Sharing**
-   - Share common utilities through the ui/lib directory
-   - Maintain clear boundaries between modules
-   - Use proper imports with aliases (@/modules/...)
+   - Share common UI utilities through `modules/ui/`
+   - Maintain clear boundaries between modules — avoid circular dependencies
+   - Use `@/modules/...` import aliases for all cross-module references
+
+4. **Enterprise Features**
+   - Keep all enterprise features strictly under `modules/ee/`
+   - Gate EE functionality behind the license check system (`modules/ee/license-check/`)
+   - Never mix enterprise logic into core feature modules
+
+5. **Documentation**
+   - Document complex module APIs and patterns as described in the [Documentation Standards](/development/standards/practices/documentation) page
+   - Keep module README or inline comments current with structural changes

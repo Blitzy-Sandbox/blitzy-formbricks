@@ -1,3 +1,25 @@
 ---
 openapi: get /api/v1/management/people/{personId}
 ---
+
+<Warning>
+  The People API endpoints are maintained for backward compatibility. In newer versions of Formbricks, the terminology has shifted from "People" to "Contacts." For new integrations, consider using the [Contacts API](/api-reference/management-api--contacts/get-all-contacts) instead.
+</Warning>
+
+## Endpoint Details
+
+This endpoint retrieves a single identified person by their internal Formbricks person ID. The person ID can be obtained from the [Get All Persons](/api-reference/management-api--people/get-all-persons) endpoint.
+
+### Path Parameters
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `personId` | `string` | Yes | The internal Formbricks person ID (not the external userId) |
+
+### Authentication
+
+This endpoint requires a valid API key passed via the `x-api-key` header with appropriate read permissions. See [Generate API Key](/api-reference/generate-key) for setup instructions.
+
+<Note>
+  The `personId` is the internal Formbricks identifier, which is different from the `userId` set during SDK identification. Use the [Get All Persons](/api-reference/management-api--people/get-all-persons) endpoint to look up person IDs.
+</Note>

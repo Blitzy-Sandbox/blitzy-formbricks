@@ -8,7 +8,7 @@ icon: "user"
   User identification is part of the Formbricks [Enterprise Edition](/self-hosting/advanced/license). 
 </Note>
 
-### Understanding Identified vs Unidentified Users
+## Understanding Identified vs Unidentified Users
 
 In Formbricks, understanding the difference between identified and unidentified users is crucial for effective survey segmentation and targeted feedback collection.
 
@@ -31,58 +31,154 @@ This method is recommended for applications where users are required to log in a
 
 ### Setting User ID
 
-To enable user identification, call the `setUserId` function of Formbricks and pass the user id. The user will show up in the Formbricks dashboard. Use a unique string, like a database ID or a unique email address. You can also anonymize the identifier, as long as it is unique for each user.
+To enable user identification, call the `setUserId` function of Formbricks and pass the user id. This identifies the user in the Formbricks dashboard and links all subsequent actions and survey responses to that user. Use a unique identifier that remains consistent across sessions, such as a database ID, unique email address, or a hashed value. You can also anonymize the identifier, as long as it is unique for each user.
 
-```javascript
+The `setUserId` method signature is:
+
+```typescript
+formbricks.setUserId(userId: string): Promise<void>
+```
+
+Here is a basic usage example:
+
+```javascript Setting User ID
 formbricks.setUserId("<user-id>");
 ```
 
+In a real-world application, you would typically call `setUserId` right after the user logs in:
+
+```typescript Setting User ID After Login
+// After user logs in to your application
+const user = await authenticateUser(credentials);
+
+// Identify the user in Formbricks
+formbricks.setUserId(user.id);
+```
+
+<Note>
+  Use a stable, unique identifier for each user. Avoid using values that change frequently, such as session tokens. A database primary key or a consistent hash of the user's email address works well.
+</Note>
+
 ## Setting Custom User Attributes
 
-Use the `setAttribute` function to set custom attributes for the user (e.g., name, plan).
+Use the `setAttribute` function to set a single custom attribute for the user. Attributes are key-value pairs where both the key and value are strings. These attributes can be used to segment users and target surveys to specific user groups.
+
+The `setAttribute` method signature is:
+
+```typescript
+formbricks.setAttribute(key: string, value: string): Promise<void>
+```
+
+Here is a basic usage example:
 
 ```javascript Setting Custom Attributes
 formbricks.setAttribute("Plan", "free");
 ```
 
-The `setAttribute` function works like this:
+You can set any attribute key-value pair relevant to your application:
 
-```javascript Setting Custom Attributes
-formbricks.setAttribute("attribute_key", "attribute_value");
+```javascript Setting Practical Attributes
+formbricks.setAttribute("plan", "pro");
+formbricks.setAttribute("company", "Acme Inc");
+formbricks.setAttribute("role", "admin");
 ```
 
-You can also set multiple attributes at once by passing an object to the `setAttributes` function:
+<Note>
+  Internally, `setAttribute` calls `setAttributes` with a single key-value pair, so both methods use the same underlying mechanism.
+</Note>
+
+### Setting Multiple Attributes at Once
+
+You can also set multiple attributes at once by passing an object to the `setAttributes` function. This is more efficient when you need to update several attributes simultaneously, as it sends a single request to Formbricks.
+
+The `setAttributes` method signature is:
+
+```typescript
+formbricks.setAttributes(attributes: Record<string, string>): Promise<void>
+```
+
+Here is an example with multiple attributes:
 
 ```javascript Setting Multiple Custom Attributes
 formbricks.setAttributes({
-  attribute_key_1: "attribute_value_1",
-  attribute_key_2: "attribute_value_2",
+  plan: "pro",
+  company: "Acme Inc",
+  role: "admin",
+  signupDate: "2024-01-15",
 });
 ```
 
 <Note>
-  **Note**: the number of different attribute classes (e.g., "Plan," "First Name," etc.) is currently limited
-  to 150 attributes per environment.
+  The number of different attribute classes (e.g., "plan," "company," "role," etc.) is limited to **150 attributes per environment**. Plan your attribute schema accordingly.
 </Note>
 
-### Setting User Language
+## Setting User Email
 
-Use the `setLanguage` function to set the user's preferred language for surveys. This allows you to display surveys in the user's language when multi-language surveys are enabled. You can pass either the ISO language code (e.g., "de", "fr", "es") or the language alias you configured in your project settings.
+The `setEmail` method is a convenience wrapper that sets the `email` attribute for the identified user. Internally, it calls `setAttributes({ email })`. This is useful for quickly associating a user's email address without manually specifying the attribute key.
+
+The `setEmail` method signature is:
+
+```typescript
+formbricks.setEmail(email: string): Promise<void>
+```
+
+Usage example:
+
+```javascript Setting User Email
+formbricks.setEmail("user@example.com");
+```
+
+## Setting User Language
+
+Use the `setLanguage` function to set the user's preferred language for surveys. This allows you to display surveys in the user's language when multi-language surveys are enabled. Internally, `setLanguage` is a convenience wrapper that calls `setAttributes({ language })`. You can pass either the ISO language code (e.g., "de", "fr", "es") or the language alias you configured in your project settings.
+
+The `setLanguage` method signature is:
+
+```typescript
+formbricks.setLanguage(language: string): Promise<void>
+```
+
+Usage example:
 
 ```javascript Setting User Language
-formbricks.setLanguage("de"); // ISO identifier or Alias set when creating language
+formbricks.setLanguage("de"); // ISO identifier or alias set when creating language
 ```
 
 <Note>
-  If a user has a language assigned, a survey has multi-language activated and it is missing a translation in
-  the language of the user, the survey will not be displayed. Learn more about [Multi-language Surveys](/docs/xm-and-surveys/surveys/general-features/multi-language-surveys).
+  If a user has a language assigned, a survey has multi-language activated, and it is missing a translation in
+  the language of the user, the survey will not be displayed. Learn more about [Multi-language Surveys](/xm-and-surveys/surveys/general-features/multi-language-surveys).
 </Note>
 
+## Logging Out Users
 
-### Logging Out Users
+When a user logs out of your application, you must also log them out of Formbricks. This is critical to prevent subsequent activity from being linked to the wrong user. Failing to call `logout` can result in incorrect user attribution for surveys and responses.
 
-When a user logs out of your webpage, also log them out of Formbricks to prevent activity from being linked to the wrong user. Use the logout function:
+The `logout` method signature is:
 
-```javascript Logging out User
+```typescript
+formbricks.logout(): Promise<void>
+```
+
+Usage example:
+
+```javascript Logging Out User
 formbricks.logout();
 ```
+
+In a real-world application, call `logout` as part of your sign-out flow:
+
+```typescript Logging Out User in Application
+// When user logs out of your application
+const handleLogout = async () => {
+  await signOut();
+  formbricks.logout();
+};
+```
+
+<Warning>
+  Always call `formbricks.logout()` when a user signs out. If you skip this step, the next user who logs in on the same device may inherit the previous user's Formbricks session, leading to incorrect survey targeting and response attribution.
+</Warning>
+
+---
+
+*Source: `packages/js-core/src/index.ts`*

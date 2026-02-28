@@ -4,7 +4,7 @@ description: "Recontact options in Formbricks enable you to manage how often and
 icon: "user-check"
 ---
 
-## When do Recontact Options come into play?
+## When Do Recontact Options Come Into Play?
 
 Recontact options are the last layer of the logic that determines if a survey is shown to the current user. The logic goes as follows:
 
@@ -44,15 +44,17 @@ Available Recontact Options include:
 
 - **Show only once**: (default) Displays the survey a single time, regardless of whether it was completed.
 
-- **Until they Submit a Response**: If tareting matches and trigger fires, Formbricks keeps showing the survey until the user submits a response.
+- **Show Multiple Times**: Displays the survey up to a specified number of times. You can set a maximum display count (e.g., show the survey a maximum of 3 times). The survey stops appearing once the user submits a response or the display limit is reached.
+
+- **Until they Submit a Response**: If targeting matches and trigger fires, Formbricks keeps showing the survey until the user submits a response.
 
 - **Keep Showing while Conditions Match**: Always shows the survey while specific conditions are met. Useful for continuous feedback collection, such as in [Docs Feedback Survey](/xm-and-surveys/xm/best-practices/docs-feedback) or the [Feedback Box](/xm-and-surveys/xm/best-practices/feedback-box).
 
-![Choose Recontanct Options for the Survey](/images/xm-and-surveys/surveys/website-app-surveys/recontact/survey-recontact.webp)
+![Choose Recontact Options for the Survey](/images/xm-and-surveys/surveys/website-app-surveys/recontact/survey-recontact.webp)
 
 ## Project-wide Survey Cooldown
 
-The Survey Cooldown is a universal blocker to make sure that no user sees too many surveys. This is particularly helpful when several teams of large organisations use Formbricks at the same time.
+The Survey Cooldown is a universal blocker to make sure that no user sees too many surveys. This is particularly helpful when several teams of large organizations use Formbricks at the same time.
 
 <Note>The default Survey Cooldown is set to 7 days.</Note>
 
@@ -86,6 +88,27 @@ For specific surveys, you may need to override the default cooldown. Below is ho
 
 ![Ignore Survey Cooldown for a Specific Survey](/images/xm-and-surveys/surveys/website-app-surveys/recontact/ignore-wait-time.webp)
 
+## Configuration Reference
+
+Under the hood, the recontact behavior is controlled by several configuration properties in the Formbricks SDK. These properties are set automatically based on your selections in the Survey Editor:
+
+| UI Option | SDK Property (`displayOption`) | Additional Properties | Behavior |
+|-----------|-------------------------------|----------------------|----------|
+| Show Only Once | `displayOnce` | — | Survey is displayed once, regardless of whether the user completes it |
+| Show Multiple Times | `displaySome` | `displayLimit` (number) | Survey is shown up to the specified limit; stops if the user responds |
+| Until They Submit a Response | `displayMultiple` | — | Survey keeps appearing until the user submits a response |
+| Keep Showing While Conditions Match | `respondMultiple` | — | Survey is always shown when targeting and trigger conditions are met |
+
+The waiting period between survey displays is controlled by:
+
+| Property | Level | Description |
+|----------|-------|-------------|
+| `recontactDays` | Project | Default cooldown between any two surveys for the same user (default: 7 days) |
+| `recontactDays` | Survey | Survey-specific override for the cooldown period; takes precedence over the project-level setting |
+
+{/* Source: packages/js-core/src/types/config.ts — TEnvironmentStateSurvey (recontactDays, displayLimit, displayOption), TEnvironmentStateProject (recontactDays) */}
+{/* Source: packages/js-core/src/lib/common/utils.ts — filterSurveys() evaluates recontact logic */}
+
 ---
 
-Still struggling or is something not working as expected? [Join us in Github Discussions](https://github.com/formbricks/formbricks/discussions) and we'd be glad to assist you!
+Still struggling or is something not working as expected? [Join us in GitHub Discussions](https://github.com/formbricks/formbricks/discussions) and we'd be glad to assist you!

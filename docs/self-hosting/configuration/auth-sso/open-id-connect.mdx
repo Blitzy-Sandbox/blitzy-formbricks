@@ -6,38 +6,122 @@ icon: "key"
 
 <Note>OpenID Connect is part of the Formbricks [Enterprise Edition](/self-hosting/advanced/license)</Note>
 
-Integrating your own OIDC (OpenID Connect) instance with your Formbricks instance allows users to log in using their OIDC credentials, ensuring a secure and streamlined user experience. Please follow the steps below to set up OIDC for your Formbricks instance.
+Integrating your own OIDC (OpenID Connect) provider with your Formbricks instance allows users to log in using their existing identity credentials, ensuring a secure and streamlined user experience.
 
-- Configure your OIDC provider & get the following variables:
+## Requirements
 
-- `OIDC_CLIENT_ID`
+- An OIDC-compatible identity provider (e.g., FusionAuth, Keycloak, Auth0, Okta)
+- A Formbricks instance running and accessible
+- The redirect URI for your Formbricks instance: `{WEBAPP_URL}/api/auth/callback/openid`
 
-- `OIDC_CLIENT_SECRET`
+## Environment Variables
 
-- `OIDC_ISSUER`
+The following environment variables control OIDC authentication. OIDC SSO is automatically enabled when `OIDC_CLIENT_ID`, `OIDC_CLIENT_SECRET`, and `OIDC_ISSUER` are all set.
 
-- `OIDC_SIGNING_ALGORITHM`
+| Variable | Description | Required | Default |
+|----------|-------------|----------|---------|
+| `OIDC_CLIENT_ID` | Client ID from your OIDC provider | Yes | — |
+| `OIDC_CLIENT_SECRET` | Client secret from your OIDC provider | Yes | — |
+| `OIDC_ISSUER` | Issuer URL of your OIDC provider (must expose `/.well-known/openid-configuration`) | Yes | — |
+| `OIDC_DISPLAY_NAME` | Display name shown on the SSO login button | No | `OpenId` |
+| `OIDC_SIGNING_ALGORITHM` | ID token signing algorithm used by your provider | No | `RS256` |
 
-<Note>
-  Make sure the Redirect URI for your OIDC Client is set to `{WEBAPP_URL}/api/auth/callback/openid`.
-</Note>
+## How To Set Up OIDC SSO
 
-- Update these environment variables in your `docker-compose.yml` or pass it directly to the running container.
+<Steps>
+  <Step title="Configure Your OIDC Provider">
+    Set up an OIDC application in your identity provider. During configuration:
 
-An example configuration for a FusionAuth OpenID Connect in Formbricks would look like:
+    - Set the **Redirect URI** to `{WEBAPP_URL}/api/auth/callback/openid`
+    - Ensure the provider exposes a `.well-known/openid-configuration` endpoint
+    - Note the **Client ID**, **Client Secret**, and **Issuer URL**
 
+    <Note>
+      The Redirect URI must exactly match `{WEBAPP_URL}/api/auth/callback/openid` where `{WEBAPP_URL}` is the base URL of your Formbricks instance (e.g., `https://formbricks.example.com`).
+    </Note>
+  </Step>
+
+  <Step title="Update Environment Variables">
+    Add the following environment variables to your `.env` file or `docker-compose.yml`:
+
+    ```sh
+    OIDC_CLIENT_ID=your-client-id
+    OIDC_CLIENT_SECRET=your-client-secret
+    OIDC_ISSUER=https://your-oidc-provider.com
+    OIDC_DISPLAY_NAME=Your Provider Name
+    OIDC_SIGNING_ALGORITHM=RS256
+    ```
+
+    <Note>
+      `OIDC_DISPLAY_NAME` is optional and defaults to "OpenId". Set it to display your provider's name on the login button (e.g., "Keycloak", "Okta").
+    </Note>
+  </Step>
+
+  <Step title="Restart Your Formbricks Instance">
+    Restart your Formbricks instance to apply the changes:
+
+    ```bash
+    docker compose down && docker compose up -d
+    ```
+  </Step>
+
+  <Step title="Test the Integration">
+    Navigate to your Formbricks login page. You should see a new SSO button with your OIDC provider's display name. Click it to test the authentication flow.
+  </Step>
+</Steps>
+
+## Provider Configuration Examples
+
+### FusionAuth
 
 ```yml Formbricks Env for FusionAuth OIDC
 OIDC_CLIENT_ID=59cada54-56d4-4aa8-a5e7-5823bbe0e5b7
 OIDC_CLIENT_SECRET=4f4dwP0ZoOAqMW8fM9290A7uIS3E8Xg29xe1umhlB_s
-OIDC_ISSUER=http://localhost:9011 
+OIDC_ISSUER=http://localhost:9011
 OIDC_DISPLAY_NAME=FusionAuth
 OIDC_SIGNING_ALGORITHM=HS256
 ```
 
+<Note>
+  FusionAuth uses `HS256` as its default signing algorithm, which differs from the Formbricks default of `RS256`. Make sure to set `OIDC_SIGNING_ALGORITHM=HS256` when using FusionAuth.
+</Note>
 
-- Set an environment variable `OIDC_DISPLAY_NAME` to the display name of your OIDC provider.
+### Keycloak
 
-- Restart your Formbricks instance.
+```yml Formbricks Env for Keycloak OIDC
+OIDC_CLIENT_ID=formbricks
+OIDC_CLIENT_SECRET=your-keycloak-client-secret
+OIDC_ISSUER=https://keycloak.example.com/realms/your-realm
+OIDC_DISPLAY_NAME=Keycloak
+OIDC_SIGNING_ALGORITHM=RS256
+```
 
-- You're all set! Users can now sign up & log in using their OIDC credentials.
+### Auth0
+
+```yml Formbricks Env for Auth0 OIDC
+OIDC_CLIENT_ID=your-auth0-client-id
+OIDC_CLIENT_SECRET=your-auth0-client-secret
+OIDC_ISSUER=https://your-domain.auth0.com
+OIDC_DISPLAY_NAME=Auth0
+OIDC_SIGNING_ALGORITHM=RS256
+```
+
+### Okta
+
+```yml Formbricks Env for Okta OIDC
+OIDC_CLIENT_ID=your-okta-client-id
+OIDC_CLIENT_SECRET=your-okta-client-secret
+OIDC_ISSUER=https://your-domain.okta.com
+OIDC_DISPLAY_NAME=Okta
+OIDC_SIGNING_ALGORITHM=RS256
+```
+
+## Technical Details
+
+- Formbricks uses **PKCE** (Proof Key for Code Exchange) and **state** checks for OIDC security
+- The OIDC provider must support the **OpenID Connect Discovery** specification (`.well-known/openid-configuration`)
+- Scopes requested: `openid`, `email`, `profile`
+- Profile attributes mapped: `sub` → user ID, `name` → display name, `email` → email address
+- Default signing algorithm: `RS256` (override with `OIDC_SIGNING_ALGORITHM` if your provider uses a different algorithm, e.g., `HS256` for FusionAuth)
+
+Source: `apps/web/modules/ee/sso/lib/providers.ts`, `apps/web/lib/constants.ts`

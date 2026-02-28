@@ -24,16 +24,78 @@ icon: "calendar-check"
 
 ### Title
 
-Add a clear title to inform the respondent what information you are asking for.
+Add a clear title to inform the respondent what information you are asking for. This corresponds to the `headline` field in the survey schema and supports internationalized strings for multi-language surveys.
 
 ### Description
 
-Provide an optional description with further instructions.
+Provide an optional description with further instructions or context for the meeting setup. This corresponds to the `subheader` field in the survey schema, is optional, and supports internationalized content.
 
-### Cal.com Username/Event
+### Cal.com Username And Event
 
-Add an input box where users can enter their [`cal.com`](https://cal.com/) username and event URL (e.g., `username/event`).
+Enter your [Cal.com](https://cal.com/) username and event URL in the input box. The value must follow the `username/event` format (e.g., `john-doe/30min`). This is stored in the `calUserName` field and is required for the scheduling embed to function.
+
+The Cal.com scheduling widget is embedded directly within the survey based on this value, displaying available time slots for the specified event type.
+
+<Note>
+  The `calUserName` field is required and must contain at least one character. Ensure that the username and event combination matches a valid, published Cal.com event type.
+</Note>
 
 ### Custom Hostname (Optional)
 
-Enable an input box for adding a custom hostname, which is necessary if using a self-hosted instance of [`cal.com`](https://cal.com/docs/self-hosting/installation).
+Enable an input box for adding a custom hostname via the `calHost` field, which is necessary if using a self-hosted instance of [Cal.com](https://cal.com/docs/self-hosting/installation).
+
+- **Default behavior:** When no custom hostname is provided, the scheduling embed connects to the public Cal.com instance at `cal.com`.
+- **Self-hosted:** When a custom hostname is provided (e.g., `cal.yourcompany.com`), the embed connects to your self-hosted Cal.com deployment instead.
+
+<Note>
+  Organizations running their own Cal.com deployment must provide the custom hostname to ensure the scheduling embed connects to the correct instance. Refer to the [Cal.com self-hosting documentation](https://cal.com/docs/self-hosting/installation) for setup instructions.
+</Note>
+
+## Calendar Availability Setup
+
+The Schedule A Meeting question type relies entirely on Cal.com to manage calendar availability. Here is how it works:
+
+<Steps>
+  <Step title="Cal.com Configuration">
+    The Cal.com embed displays available time slots based on the Cal.com user's calendar configuration. Availability schedules, buffer times, and event durations are all configured within your Cal.com account settings.
+  </Step>
+  <Step title="Calendar Synchronization">
+    Calendar synchronization with external providers (Google Calendar, Microsoft Outlook, Apple Calendar, etc.) is handled by Cal.com. Formbricks embeds the booking widget within the survey and does not manage calendars directly.
+  </Step>
+  <Step title="Respondent Experience">
+    Respondents see available dates and times and can select a slot to book. The availability shown is always up to date based on the Cal.com user's connected calendars.
+  </Step>
+</Steps>
+
+<Note>
+  Formbricks does not manage calendar availability or synchronization. All scheduling configuration is handled within your Cal.com account. Ensure your Cal.com event type is published and your availability is correctly set before distributing the survey.
+</Note>
+
+## Booking Confirmation Flow
+
+After the respondent selects a time slot from the Cal.com embed, the following flow occurs:
+
+<Steps>
+  <Step title="Select A Time Slot">
+    The respondent browses available dates and times within the Cal.com scheduling widget and selects a preferred slot.
+  </Step>
+  <Step title="Enter Booking Details">
+    After selecting a time slot, the respondent enters their details (name, email, and any additional fields configured in Cal.com) directly within the Cal.com embed.
+  </Step>
+  <Step title="Booking Confirmation">
+    The booking is confirmed by Cal.com, and a confirmation email is sent to both the respondent and the meeting host via Cal.com's notification system.
+  </Step>
+  <Step title="Survey Progression">
+    The survey response records that a booking was made. The survey then proceeds to the next question or ending card.
+  </Step>
+</Steps>
+
+## Response Data
+
+The Cal element does not include a `validation` field in the schema. The response data captured is the booking information returned from Cal.com, indicating that a meeting was successfully scheduled.
+
+<Note>
+  Unlike other question types, the Schedule A Meeting element does not support custom validation rules. The response is determined by the Cal.com booking outcome.
+</Note>
+
+*Source: `packages/types/surveys/elements.ts` — `ZSurveyCalElement`*

@@ -26,6 +26,7 @@ module.exports = {
     "<THIRD_PARTY_MODULES>",
     "^@formbricks/(.*)$",
     "^~/(.*)$",
+    "^@/(.*)$",
     "^[./]",
   ],
   importOrderSeparation: false,
@@ -40,14 +41,31 @@ Key configurations:
 - Always use parentheses for arrow functions
 - Strict import ordering
 
+`Source: packages/config-prettier/prettier-preset.js`
+
+### Prettier Plugins
+
+Formbricks uses Prettier v3.5.3 with three plugins to automate formatting tasks:
+
+| Plugin | Version | Purpose |
+|--------|---------|---------|
+| `@trivago/prettier-plugin-sort-imports` | 5.2.2 | Automatic import sorting based on the `importOrder` configuration defined above |
+| `prettier-plugin-tailwindcss` | 0.6.11 | Automatic Tailwind CSS class sorting in JSX `className` attributes |
+| `prettier-plugin-sort-json` | 4.1.1 | Automatic JSON key sorting for consistent JSON file formatting |
+
+These plugins are bundled in the `@formbricks/config-prettier` package and activated automatically when Prettier runs.
+
+`Source: packages/config-prettier/package.json`
+
 ### Import Order
-All imports follow a strict ordering:
-1. Mocks (for testing)
-2. Server-only imports
-3. Third-party modules
-4. Internal `@formbricks/*` modules
-5. Local aliases (`~/*)
-6. Relative imports
+All imports follow a strict ordering enforced by the `@trivago/prettier-plugin-sort-imports` plugin:
+1. Mocks (for testing) — `(.*)/__mocks__/(.*)`
+2. Server-only imports — `server-only`
+3. Third-party modules — `<THIRD_PARTY_MODULES>`
+4. Internal `@formbricks/*` modules — `^@formbricks/(.*)$`
+5. Local aliases `~/` — `^~/(.*)$`
+6. Path aliases `@/` — `^@/(.*)$`
+7. Relative imports — `^[./]`
 
 ### TypeScript Config
 - Strict TypeScript checking enabled
@@ -109,31 +127,66 @@ export class ErrorHandler {
 
 ## Enforcement Tools
 
-### Pre-commit Hooks
-Using Husky and lint-staged for automated checks:
+### Pre-Commit Hooks
+Using Husky and lint-staged (v16.0.0) for automated formatting checks on staged files:
 
 ```json
 {
   "lint-staged": {
-    "(apps|packages)/**/*.{js,ts,jsx,tsx}": [
-      "prettier --write",
-      "eslint --fix"
-    ],
-    "*.json": [
-      "prettier --write"
-    ],
-    "packages/database/schema.prisma": [
-      "prisma format"
-    ]
+    "(apps|packages)/**/*.{js,ts,jsx,tsx}": ["prettier --write"],
+    "*.json": ["prettier --write"],
+    "packages/database/schema.prisma": ["prisma format"]
   }
 }
 ```
 
+`Source: package.json (root)`
+
+<Note>
+  lint-staged runs **only Prettier formatting** on pre-commit — it does not run ESLint fixes. ESLint is run separately via `pnpm lint` as a workspace-level command through Turborepo. This separation ensures fast commits while keeping linting available as a dedicated check.
+</Note>
+
 ### ESLint Configuration
-Each package extends from `@formbricks/eslint-config` with specific presets:
-- `library.js` for packages
-- `next.js` for Next.js applications
-- `react.js` for React applications
+
+Each package extends from `@formbricks/eslint-config` with specific presets tailored to its runtime environment. There are three primary presets built on the Vercel Engineering Style Guide and three legacy presets for older workspaces.
+
+#### Primary Presets
+
+| Preset | Target | Extends |
+|--------|--------|---------|
+| `library.js` | TypeScript packages | `@vercel/style-guide/eslint/node`, `@vercel/style-guide/eslint/typescript` |
+| `next.js` | Next.js applications | node + TypeScript + browser + React + Next + Turbo configs |
+| `react.js` | React library packages | browser + TypeScript + React configs |
+
+- **`library.js`** — Configured for standalone TypeScript packages. Resolves `tsconfig.json` from the workspace root for type-aware linting. Includes the `@vitest` plugin for test conventions.
+- **`next.js`** — Composes six Vercel style-guide presets for comprehensive Next.js coverage. Disables `import/no-default-export` to accommodate Next.js page and layout conventions. Includes the `@vitest` plugin.
+- **`react.js`** — Applies browser, TypeScript, and React presets from the Vercel style guide. Disables `import/no-default-export` for component default exports. Includes an `overrides` section targeting `*.config.js` files to apply the Node environment.
+
+#### Legacy Presets
+
+| Preset | Target | Extends |
+|--------|--------|---------|
+| `legacy-library.js` | Older TypeScript packages | `turbo`, `prettier` |
+| `legacy-next.js` | Older Next.js apps | `next`, `turbo`, `prettier` |
+| `legacy-react.js` | Older React packages | `turbo`, `prettier`, `plugin:react-hooks/recommended` |
+
+All six presets include the `@vitest` plugin and enforce the `@vitest/consistent-test-it` rule requiring the `test` keyword (not `it`) for all test declarations.
+
+`Source: packages/config-eslint/`
+
+### Workspace Commands
+
+Run formatting and linting across the entire workspace using these root-level commands:
+
+```bash
+# Run Prettier formatting across all packages
+pnpm format
+
+# Run ESLint checks via Turborepo across all packages
+pnpm lint
+```
+
+Both commands are defined in the root `package.json` and executed via Turborepo, ensuring consistent results across the entire monorepo.
 
 ### Continuous Integration
 - Automated formatting checks in CI/CD pipeline

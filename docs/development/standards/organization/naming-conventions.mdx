@@ -4,17 +4,29 @@ description: This section outlines the guidelines for naming conventions across 
 icon: input-text
 ---
 
+These conventions are aligned with the project's `AGENTS.md` guidelines, which serve as the authoritative source for coding style and naming standards. See `AGENTS.md` (Section: Coding Style & Naming Conventions) for the complete reference.
+
 ## Files and Directories
 
 ### General Files
+
 - Use lowercase and hyphen-separated names (kebab-case) for files and directories
   - ✅ `user-profile.ts`
   - ❌ `UserProfile.ts`
 - Group related files in directories with descriptive plural names
   - ✅ `components`, `services`, `utils`
   - ❌ `component`, `util`
+- React component files use PascalCase for the exported component name but may use either kebab-case or PascalCase for the file/folder name depending on the module pattern
+  - ✅ `SurveyCard.tsx` (PascalCase file for a standalone component)
+  - ✅ `webhook-detail-modal.tsx` (kebab-case file exporting a PascalCase component)
+  - ✅ `DeleteAccountModal/index.tsx` (PascalCase folder with barrel export)
+
+<Note>
+  Per `AGENTS.md`, the preference is PascalCase for React components and folders under `modules/`. In practice, the codebase uses kebab-case for module directories (e.g., `audit-logs`, `role-management`) and a mix of kebab-case and PascalCase for component folders. Follow the established pattern within the module you are working in.
+</Note>
 
 ### Special Files
+
 - Configuration files should follow framework conventions
   - ✅ `next.config.mjs`, `tailwind.config.js`
 - Test files should mirror source files with `.test` or `.spec` suffix
@@ -22,9 +34,33 @@ icon: input-text
 - Database migration files should include timestamp and description
   - ✅ `20241017124431_add_documents_and_insights.sql`
 
+## File Extension Conventions
+
+Choose the correct file extension based on the content type and purpose of the file:
+
+| Extension | Usage | Example |
+|-----------|-------|---------|
+| `.ts` | Logic files, server actions, utilities | `user-service.ts`, `actions.ts` |
+| `.tsx` | React component files | `SurveyCard.tsx`, `layout.tsx` |
+| `.test.ts` | Unit tests (Vitest) | `user-service.test.ts` |
+| `.spec.ts` | Playwright E2E tests | `billing.spec.ts` |
+| `.mdx` | Documentation files | `introduction.mdx` |
+| `.mjs` | ESM configuration files | `next.config.mjs` |
+| `.js` | CommonJS configuration files | `.eslintrc.js` |
+| `.json` | Data and configuration | `package.json`, `tsconfig.json` |
+| `.yaml` / `.yml` | Configuration and specs | `pnpm-workspace.yaml`, `openapi.yml` |
+| `.sql` | Database migration files | `20241017124431_add_documents.sql` |
+
+<Note>
+  Do not write tests for `.tsx` files — React components are covered by Playwright E2E tests (`.spec.ts`). Unit tests (`.test.ts`) are for logic in `.ts` files only. Test files are colocated next to their source file or placed in a `__tests__` directory.
+
+  Source: `AGENTS.md` Testing Guidelines
+</Note>
+
 ## Code Symbols
 
 ### Variables and Functions
+
 - Use camelCase for variables and function names
   - ✅ `fetchUserData`, `isLoading`, `handleSubmit`
   - ❌ `FetchUserData`, `is_loading`
@@ -34,12 +70,16 @@ icon: input-text
   - ✅ `fetchData`, `createUser`, `updateProfile`
 
 ### Classes and Types
+
 - Use PascalCase for:
   - Classes: `Config`, `Client`, `ResponseAPI`
   - Interfaces: `TSurveySummaryResponse`, `ApiConfig`
   - Type aliases: `TResponseData`, `TJsTrackProperties`
-- Prefix types with T and interfaces with I (when helpful)
+- Prefix types with `T` and interfaces with `I` (when helpful)
   - ✅ `TStats`, `TResponseData`, `IApiConfig`
+- Zod schema types automatically pair with their `T`-prefixed type counterpart
+  - ✅ `ZSurvey` schema → `TSurvey` type
+  - ✅ `ZDocument` schema → `TDocument` type
 - Enum names should be PascalCase, values in UPPER_SNAKE_CASE
   ```typescript
   enum ProjectFeatureKeys {
@@ -50,12 +90,85 @@ icon: input-text
   ```
 
 ### Constants
-- Use UPPER_SNAKE_CASE for constant values
+
+- Use UPPER_SNAKE_CASE (SCREAMING_SNAKE_CASE) for constant values
   - ✅ `API_TIMEOUT`, `MAX_RETRIES`, `CONTAINER_ID`
 - Use PascalCase for constant references/objects
   - ✅ `ErrorCodes`, `Config`
 
-### Database Models
+### Environment Variables
+
+All environment variables use `SCREAMING_SNAKE_CASE`. Client-side variables exposed to the browser must be prefixed with `NEXT_PUBLIC_`.
+
+- **Server-side variables** (no prefix):
+  - ✅ `DATABASE_URL`, `NEXTAUTH_SECRET`, `SMTP_HOST`
+  - ✅ `ENCRYPTION_KEY`, `CRON_SECRET`, `REDIS_URL`
+  - ✅ `STRIPE_SECRET_KEY`, `ENTERPRISE_LICENSE_KEY`
+- **Client-side variables** (`NEXT_PUBLIC_` prefix):
+  - ✅ `NEXT_PUBLIC_FORMBRICKS_API_HOST`
+  - ✅ `NEXT_PUBLIC_POSTHOG_API_KEY`
+- **Feature flags and toggles**:
+  - ✅ `EMAIL_VERIFICATION_DISABLED`, `RATE_LIMITING_DISABLED`
+- **OpenTelemetry observability variables**:
+  - ✅ `OTEL_EXPORTER_OTLP_ENDPOINT`, `OTEL_SERVICE_NAME`
+
+Source: `.env.example`, `apps/web/lib/constants.ts`
+
+## Module Naming Patterns
+
+Feature modules under `apps/web/modules/` follow a consistent kebab-case naming pattern for directories. Each module organizes its internal structure with well-known sub-directories.
+
+### Module Directory Names
+
+Module directories use kebab-case:
+
+```text
+apps/web/modules/
+├── account/
+├── analysis/
+├── api/
+├── auth/
+├── core/
+├── ee/
+│   ├── audit-logs/
+│   ├── billing/
+│   ├── contacts/
+│   ├── license-check/
+│   ├── multi-language-surveys/
+│   ├── role-management/
+│   ├── teams/
+│   ├── two-factor-auth/
+│   └── whitelabel/
+├── email/
+├── environments/
+├── integrations/
+├── organization/
+├── projects/
+├── setup/
+├── storage/
+├── survey/
+├── ui/
+└── utils/
+```
+
+### Module Sub-Directory Structure
+
+Each module uses kebab-case sub-directories following the standard internal layout:
+
+```text
+modules/<module-name>/
+├── components/       # React UI components
+├── lib/              # Business logic and service functions
+├── hooks/            # Custom React hooks
+├── types/            # Module-specific type definitions
+├── actions/          # Server actions
+└── __tests__/        # Test files (when not colocated)
+```
+
+For more details on the full directory organization, see the [File and Directory Organization](/development/standards/organization/file-and-directory-organization) page.
+
+## Database Models
+
 - Use PascalCase singular form for model names
   - ✅ `Survey`, `Response`, `Document`
 - Use camelCase for field names
@@ -63,36 +176,58 @@ icon: input-text
 - Use snake_case for database column names
   - ✅ `created_at`, `updated_at`
 
-### Components
+## Components
+
 - Use PascalCase for React components and their files
   - ✅ `SurveyCard.tsx`, `UserProfile.tsx`
 - Component-specific types should be prefixed with component name
   - ✅ `SurveyCardProps`, `UserProfileData`
 
-### API and Endpoints
+## API and Endpoints
+
 - Use kebab-case for API endpoints
   - ✅ `/api/user-profile`, `/api/survey-responses`
 - Use camelCase for query parameters
   - ✅ `/api/surveys?pageSize=10&sortOrder=desc`
 
 ## Schema and Validation
-- Prefix Zod schemas with Z
+
+- Prefix Zod schemas with `Z`
   - ✅ `ZSurvey`, `ZDocument`, `ZInsight`
 - Use descriptive names for validation schemas
   - ✅ `ZUpdateDocumentAction`, `ZGenerateDocumentObjectSchema`
+- Types inferred from Zod schemas use the `T` prefix
+  - ✅ `TSurvey = z.infer<typeof ZSurvey>`
 
 ## Error Handling
+
 - Suffix error classes with "Error"
   - ✅ `ValidationError`, `DatabaseError`, `AuthenticationError`
 - Use descriptive names for error types
   - ✅ `SURVEY_NOT_FOUND`, `INVALID_RESPONSE`
 
 ## Best Practices
+
 - Keep names descriptive but concise
 - Be consistent within each context
 - Follow existing patterns in the codebase
 - Use full words instead of abbreviations unless widely accepted
   - ✅ `configuration` vs ❌ `config` (except in standard terms)
   - ✅ `id`, `url` (standard abbreviations are acceptable)
+- Always refer to `AGENTS.md` as the canonical naming and style guide
+- Use double quotes (not single quotes) per the Prettier configuration
+- Adhere to the 110-character line width enforced by Prettier
+- Use two-space indentation consistently across all files
+
+## Formatting Tools Reference
+
+The following tools automatically enforce naming and style conventions across the codebase:
+
+- **ESLint**: Shared configuration from `@formbricks/eslint-config` (located in `packages/config-eslint`). Run with `pnpm lint` to check for violations.
+- **Prettier**: 110-character line width, semicolons, double quotes, and sorted import groups (located in `packages/config-prettier`). Ensures consistent formatting on save or via CI.
+- **Two-space indentation**: Standard across all TypeScript, JavaScript, JSON, and MDX files.
+- **SonarQube**: Used to identify code smells and security hotspots. Complements ESLint for deeper static analysis.
+
+Source: `AGENTS.md`, `packages/config-eslint`, `packages/config-prettier`
 
 By following these conventions, we maintain consistency and clarity across the codebase, making it more maintainable and easier to understand for all team members.

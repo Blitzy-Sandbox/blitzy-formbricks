@@ -1,3 +1,45 @@
 ---
 openapi: put /api/v1/client/{environmentId}/responses/{responseId}
 ---
+
+## Additional Information
+
+### Request Body Fields
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `data` | `object` | No | Response answers keyed by question ID (e.g., `{"clx1234abc": "answer value"}`) |
+| `finished` | `boolean` | No | Set to `true` to mark the response as complete. Set to `false` for partial submissions |
+| `endingId` | `string` | No | The ID of the ending card shown to the respondent |
+| `language` | `string` | No | Language/locale code for multi-language surveys (e.g., `"en"`, `"de"`, `"pt"`) |
+| `variables` | `object` | No | Survey variables as key-value pairs |
+| `ttc` | `object` | No | Time-to-completion data per question (question ID → milliseconds) |
+
+<Note>
+  Once a response has `finished: true`, it cannot be updated further. Any attempt to update a finished response will return a `400 Bad Request` error.
+</Note>
+
+### Partial Submissions
+
+To capture partial responses before the survey is completed, create the response with `finished: false` and then update it incrementally as the user progresses through questions:
+
+```json
+{
+  "data": {
+    "clx1234abc": "New answer for this question"
+  },
+  "finished": false
+}
+```
+
+When the respondent reaches the end of the survey, send a final update with `finished: true`:
+
+```json
+{
+  "data": {
+    "clx9876xyz": "Final question answer"
+  },
+  "finished": true,
+  "endingId": "ending_card_id"
+}
+```

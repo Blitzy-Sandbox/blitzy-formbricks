@@ -1,3 +1,42 @@
 ---
 openapi: get /api/v1/management/contact-attribute-keys
 ---
+
+<Note>
+  Contact attribute keys are an **Enterprise Edition** feature. You must have an active Enterprise license to use this endpoint. Without it, the API returns a `403 Forbidden` response.
+</Note>
+
+## Understanding Contact Attribute Keys
+
+Contact attribute keys define the schema of attributes that can be attached to contacts in your Formbricks environment. Each key specifies the attribute's identifier, display name, type, and uniqueness constraint.
+
+The response returns all contact attribute keys across the environments accessible by your API key. Each key object includes:
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `id` | string | Unique identifier for the attribute key |
+| `key` | string | Machine-readable identifier (lowercase letters, numbers, underscores) |
+| `name` | string | Human-readable display name |
+| `type` | string | Attribute type: `"default"` (system-provided) or `"custom"` (user-created) |
+| `description` | string | Description of what this attribute represents |
+| `isUnique` | boolean | Whether this attribute must have unique values across contacts |
+| `environmentId` | string | ID of the environment this key belongs to |
+| `createdAt` | datetime | Timestamp when the key was created |
+| `updatedAt` | datetime | Timestamp of last update |
+
+Source: `apps/web/modules/ee/contacts/api/v1/management/contact-attribute-keys/lib/contact-attribute-keys.ts` — `getContactAttributeKeys` data fetching via `prisma.contactAttributeKey.findMany`
+
+## Authentication And Permissions
+
+<Note>
+  The `x-api-key` header is **required** for this endpoint. The API key's environment permissions determine which contact attribute keys are returned — only keys belonging to environments the API key has access to are listed.
+</Note>
+
+Source: `apps/web/modules/ee/contacts/api/v1/management/contact-attribute-keys/route.ts` — GET handler reads `authentication.environmentPermissions` to derive accessible environment IDs
+
+## Error Responses
+
+| Status Code | Code | Description |
+|------------|------|-------------|
+| `403` | `forbidden` | Enterprise license not active or contacts feature disabled |
+| `401` | `unauthorized` | API key missing or invalid |

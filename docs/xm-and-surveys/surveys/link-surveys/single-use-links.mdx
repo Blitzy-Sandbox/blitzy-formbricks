@@ -13,27 +13,97 @@ This guide will help you understand how to generate and use single-use links wit
 
 - The primary purpose of single-use links is to assure that no respondent submits a survey twice.
 
+- Prevent ballot stuffing in polls by ensuring each distributed link can only be used a single time.
+
+- Ensure unique responses per participant in research studies where each respondent receives their own dedicated link.
+
+- Distribute links to a known list of participants where each person gets a personalized, non-reusable survey URL.
+
 <Note>
-  Want to create up to 5,000 single-use links? Use our [API endpoint for
-  that.](https://documenter.getpostman.com/view/11026000/2sA3Bq5XEh#c49ef758-a78a-4ef4-a282-262621151f08)
+  Want to create up to 5,000 single-use links programmatically? Use the [Get SingleUse Links API
+  endpoint](/api-reference/management-api--survey/get-singleuse-links) to generate them in bulk via the Management API.
 </Note>
 
-## How to use single-use links
+## How To Use Single-Use Links
 
 Using single-use links with Formbricks is quite straight-forward:
 
-1. On the Summary page, hit "Share survey" in the top right corner to open the sharing modal.
+<Steps>
+  <Step title="Open The Sharing Modal">
+    On the Summary page, hit "Share survey" in the top right corner to open the sharing modal.
+  </Step>
 
-2. Toggle "Single Use Link" on in the Anonymous Links tab:
+  <Step title="Enable Single Use Link">
+    Toggle "Single Use Link" on in the Anonymous Links tab:
 
-   ![Single use link survey settings](/images/xm-and-surveys/surveys/link-surveys/single-use-links/single-use-links.webp)
+    ![Single use link survey settings](/images/xm-and-surveys/surveys/link-surveys/single-use-links/single-use-links.webp)
+  </Step>
 
-3. If you'd like to use URL encryption, toggle "URL Encryption" on. You can then customize the number of links you'd like to generate and download as CSV.
+  <Step title="Configure URL Encryption (Optional)">
+    If you'd like to use URL encryption, toggle "URL Encryption" on. You can then customize the number of links you'd like to generate and download as CSV.
+  </Step>
 
-4. If you'd like to set a custom single-use ID, deactivate the "Enable URL Encryption" toggle. You can then customize the single-use ID in the URL or programmatically.
+  <Step title="Set A Custom Single-Use ID (Optional)">
+    If you'd like to set a custom single-use ID, deactivate the "Enable URL Encryption" toggle. You can then customize the single-use ID in the URL or programmatically.
+  </Step>
+</Steps>
 
-## Check suId of a submission
+## Token Generation
+
+When you enable the "Single Use Link" toggle for a link survey, Formbricks generates unique single-use tokens (referred to as `suId`) for each survey link. Understanding how these tokens work helps you manage survey distribution effectively.
+
+- **Automatic token creation:** Each single-use link receives a unique `suId` token that is appended to the survey URL as a query parameter (e.g., `https://app.formbricks.com/s/{surveyId}?suId={token}`).
+
+- **URL encryption:** When the "URL Encryption" option is enabled, the `suId` token is encrypted in the URL. This provides additional privacy by making it impossible for respondents to guess or fabricate valid single-use IDs.
+
+- **Custom IDs:** When URL encryption is disabled, you can set custom single-use IDs. This is useful when you need to map survey responses back to a known list of participants using your own identifier scheme.
+
+- **Bulk generation:** You can generate up to 5,000 single-use links at once via the [Management API endpoint](/api-reference/management-api--survey/get-singleuse-links) or by downloading them as a CSV file from the sharing modal.
+
+```sh Example Single-Use Link URL
+https://app.formbricks.com/s/clin3dxja02k8l80hpwmx4bjy?suId=abc123def456
+```
+
+<Note>
+  Single-use links can only be generated for **link** surveys (not app/website surveys). The survey must have `singleUse` enabled in its configuration.
+</Note>
+
+## Token Invalidation
+
+Single-use tokens follow a strict lifecycle to ensure that each link can only be used once:
+
+1. **Token Created** — The token is generated when the single-use link is created, either through the sharing modal or the API.
+
+2. **Token Active** — The link is accessible and the respondent can view and complete the survey.
+
+3. **Token Used / Invalidated** — After a respondent successfully submits a response, the token is immediately invalidated and can no longer be used.
+
+4. **Token Expired** — Any subsequent attempt to access the survey via this link will fail. The link cannot be reused.
+
+<Note>
+  Token invalidation occurs upon **successful submission** of a response, not when the respondent first clicks the link. If a respondent opens the survey but does not complete it, the token remains active and the link can still be used. Partial submissions (where `finished` is `false`) do not invalidate the token — only a fully completed submission triggers invalidation.
+</Note>
+
+## Error Handling For Reused Tokens
+
+When a respondent attempts to access a single-use link that has already been used, the following behavior occurs:
+
+- The survey is **not displayed** to the respondent.
+
+- An error message is shown indicating that the survey link has already been used and is no longer valid.
+
+- The respondent cannot bypass this restriction — there is no way to reactivate or reset a consumed single-use token through the survey URL.
+
+<Warning>
+  Once a single-use link has been used and the token is invalidated, it **cannot be reactivated**. If a respondent needs to retake the survey, you must generate a new single-use link for them. Use the [Management API](/api-reference/management-api--survey/get-singleuse-links) or the sharing modal to create additional links as needed.
+</Warning>
+
+## Check SuId Of A Submission
 
 You can find the suId of each submission in the submission meta data. You'll find it both in the table as well as in the meta data when hovering over the Avatar:
 
    ![Single use link survey metadata](/images/xm-and-surveys/surveys/link-surveys/single-use-links/suid-metadata.webp)
+
+---
+
+*Source: Single-use link generation logic in `apps/web/app/api/v1/management/surveys/[surveyId]/singleUseIds/route.ts`; token validation enforced by the survey response submission system.*

@@ -6,68 +6,203 @@ icon: magnifying-glass
 
 ## Overview
 
-At Formbricks, we maintain a rigorous testing strategy to ensure high-quality code and reliable functionality. Our testing approach is standardized and integrated into our development workflow.
+At Formbricks, we maintain a rigorous testing strategy to ensure high-quality code and reliable functionality. Our testing approach is standardized and integrated into our development workflow, following a clear separation pattern:
 
-## Testing Structure
+- **Vitest** is used for unit and integration testing of `.ts` logic files (services, utilities, helpers).
+- **Playwright** is used for end-to-end testing that covers `.tsx` React component behavior through full-stack browser workflows.
 
-### Unit Testing with Vitest
+This separation keeps the test suite fast and focused while still providing comprehensive coverage across the entire codebase.
 
-We use Vitest as our primary testing framework. All unit tests follow these conventions:
+<Note>
+  **Core testing rule:** Do not write tests for `.tsx` files — React components are covered by Playwright E2E tests instead. Vitest is reserved exclusively for `.ts` logic files. Source: `AGENTS.md` (Testing Guidelines section).
+</Note>
 
-1. **File Location and Naming**
+## Testing Pyramid
 
-   - Test files are co-located with the source files they test
-   - Test files use the `.test.ts` extension (e.g., `utils.test.ts` tests `utils.ts`)
+Formbricks follows a three-tier testing pyramid that balances speed, coverage, and realism:
 
-2. **Test Organization**
+1. **Unit Tests (Vitest)** — Test individual functions, services, and utilities in `.ts` files. These are colocated with source files as `*.test.ts` or placed inside `__tests__/` directories. Unit tests form the base of the pyramid: they are the most numerous, run the fastest, and provide immediate feedback during development.
 
-   ```typescript
-   import { describe, expect, test } from "vitest";
+2. **Integration Tests (Vitest)** — Test module interactions, database operations via Prisma mocks, and cross-package behavior. Integration tests verify that multiple units work together correctly and are also executed through Vitest with the same colocation conventions.
 
-   describe("ComponentName or FeatureName", () => {
-     describe("functionName or scenario", () => {
-       // We use the `test` function instead of `it` throught our test suite
-       test("should describe expected behavior", () => {
-         // test implementation
-       });
-     });
-   });
-   ```
+3. **End-to-End Tests (Playwright)** — Test complete user workflows through the browser, covering `.tsx` component behavior and full-stack flows. E2E tests form the top of the pyramid: they are fewer in number and slower to execute, but provide the most realistic validation of user-facing functionality.
 
-3. **Coverage Requirements**
-   - Minimum 85% code coverage requirement 
-   - Coverage is tracked using V8 provider
-   - Coverage reports include:
-     - Text summaries
-     - HTML reports
-     - LCOV reports
+Unit tests should always outnumber integration tests, which in turn should outnumber E2E tests. This distribution ensures rapid feedback loops during development while maintaining confidence in overall system behavior.
 
-### End-to-End Testing with Playwright
+## Unit Testing With Vitest
 
-E2E tests are located in `apps/web/playwright/` and focus on critical user workflows.
+We use **Vitest 3.1.3** as our primary testing framework for all `.ts` logic files. Source: `apps/web/package.json`.
+
+### Workspace Configuration
+
+The monorepo uses a **root workspace configuration** at `vitest.workspace.ts` that discovers all Vitest configs across packages and apps:
+
+```typescript
+// vitest.workspace.ts (root)
+export default ["packages/*/vite.config.{ts,mts}", "apps/**/vite.config.{ts,mts}"];
+```
+
+This glob pattern automatically registers every `vite.config.ts` or `vite.config.mts` file found in the `packages/` and `apps/` directories, enabling `pnpm test` to run all suites across the entire monorepo from the root. Source: `vitest.workspace.ts`.
+
+### File Location And Naming
+
+- Test files use the `.test.ts` extension (e.g., `utils.test.ts` tests `utils.ts`)
+- Test files are colocated with the source files they test OR placed in `__tests__/` directories
+- Unit tests sit next to their source as `*.test.ts` or inside `__tests__/`
+
+Source: `AGENTS.md` — "Unit tests sit next to their source as `*.test.ts` or inside `__tests__`."
+
+### Test Organization
+
+```typescript
+import { describe, expect, test } from "vitest";
+
+describe("ComponentName or FeatureName", () => {
+  describe("functionName or scenario", () => {
+    // We use the `test` function instead of `it` throughout our test suite
+    test("should describe expected behavior", () => {
+      // test implementation
+    });
+  });
+});
+```
+
+### Commands
+
+Run tests from the repository root using pnpm:
+
+```bash
+# Execute Vitest suites across the workspace
+pnpm test
+
+# Execute Vitest with coverage reporting
+pnpm test:coverage
+```
+
+Internally, these commands resolve to the following within `apps/web`:
+
+```bash
+# pnpm test runs:
+dotenv -e ../../.env -- vitest run
+
+# pnpm test:coverage runs:
+dotenv -e ../../.env -- vitest run --coverage
+```
+
+Source: `apps/web/package.json`.
+
+### Coverage Requirements
+
+- **Minimum 85% code coverage requirement**
+- Coverage provider: **V8** (via `@vitest/coverage-v8` v3.1.3)
+- Coverage reporters: **text**, **HTML**, **LCOV**
+- Coverage directory: `./coverage`
+
+```typescript
+coverage: {
+  provider: "v8",
+  reporter: ["text", "html", "lcov"],
+  reportsDirectory: "./coverage",
+}
+```
+
+<Note>
+  Run `pnpm test:coverage` when touching critical flows; keep coverage from regressing.
+</Note>
+
+## End-to-End Testing With Playwright
+
+End-to-end tests validate complete user workflows through the browser, providing realistic coverage of `.tsx` component behavior and full-stack interactions. All E2E tests are located in `apps/web/playwright/`. Source: `apps/web/playwright/`.
+
+### Commands
+
+```bash
+# Launch the Playwright browser regression suite
+pnpm test:e2e
+
+# Run E2E tests using Azure Playwright service (CI)
+pnpm test-e2e:azure
+```
+
+### Test File Structure
+
+**Root-level specs:**
+
+| File | Description |
+|------|-------------|
+| `action.spec.ts` | Action-based trigger tests |
+| `js.spec.ts` | JavaScript SDK integration tests |
+| `onboarding.spec.ts` | Onboarding flow tests |
+| `organization.spec.ts` | Organization management tests |
+| `signup.spec.ts` | Signup flow tests |
+| `survey-follow-up.spec.ts` | Survey follow-up email tests |
+| `survey-styling.spec.ts` | Survey styling and theming tests |
+| `survey.spec.ts` | Core survey functionality tests |
+
+**API subdirectory (`api/`):**
+
+| File | Description |
+|------|-------------|
+| `api/auth/security.spec.ts` | Auth security tests |
+| `api/health.spec.ts` | Health endpoint tests |
+| `api/management/contacts.spec.ts` | Contact management API tests |
+| `api/management/response.spec.ts` | Response management API tests |
+| `api/management/survey.spec.ts` | Survey management API tests |
+| `api/management/webhook.spec.ts` | Webhook management API tests |
+| `api/organization/project-team.spec.ts` | Project team API tests |
+| `api/organization/team.spec.ts` | Team API tests |
+| `api/organization/user.spec.ts` | User API tests |
+| `api/role.spec.ts` | Role API tests |
+
+### Support Directories
+
+| Directory | Contents | Purpose |
+|-----------|----------|---------|
+| `fixtures/` | `users.ts` | Test fixture data for user scenarios |
+| `lib/` | `fixtures.ts`, `utils.ts` | Shared test library code and utilities |
+| `utils/` | `helper.ts`, `mock.ts` | Test utility functions and mock helpers |
+
+### CI Integration
+
+E2E tests run in CI via the `e2e.yml` workflow (called by `pr.yml`) with a full PostgreSQL + pgvector service container. The workflow installs Playwright browsers, builds the application, and executes the full E2E suite against a real database instance. Source: `.github/workflows/e2e.yml`.
+
+### Naming Conventions
+
+Use descriptive filenames for new specs (e.g., `billing.spec.ts`) and tag slow suites with `@slow` when necessary. Source: `AGENTS.md` (Testing Guidelines section).
 
 ## Testing Setup
 
 ### Configuration
 
-Our Vitest configuration (`vite.config.ts`) includes:
+Each package and app in the monorepo has its own `vite.config.ts` (or `vite.config.mts`) that registers with the root `vitest.workspace.ts`. This federated approach allows each workspace to define its own test environment, exclusions, setup files, and coverage rules while still being discoverable from the root.
+
+**Root workspace configuration:**
 
 ```typescript
-test: {
-exclude: ['playwright/', 'node_modules/'],
-setupFiles: ['../../packages/lib/vitestSetup.ts'],
-coverage: {
-provider: 'v8',
-reporter: ['text', 'html', 'lcov'],
-reportsDirectory: './coverage',
-},
-}
-
+// vitest.workspace.ts (root)
+export default ["packages/*/vite.config.{ts,mts}", "apps/**/vite.config.{ts,mts}"];
 ```
+
+**Per-package Vitest configuration example:**
+
+```typescript
+// Per-package vite.config.ts
+test: {
+  exclude: ["playwright/", "node_modules/"],
+  setupFiles: ["./vitestSetup.ts"],
+  coverage: {
+    provider: "v8",
+    reporter: ["text", "html", "lcov"],
+    reportsDirectory: "./coverage",
+  },
+}
+```
+
+Source: `vitest.workspace.ts`, `apps/web/vite.config.mts`.
 
 ### Test Utilities
 
-Common test utilities are available in `vitestSetup.ts`:
+Common test utilities are available in `vitestSetup.ts` (located at `apps/web/vitestSetup.ts` and `packages/surveys/vitestSetup.ts`):
 
 - Mock implementations for commonly used functions
 - Test lifecycle hooks (beforeEach, afterEach)
@@ -75,55 +210,77 @@ Common test utilities are available in `vitestSetup.ts`:
 
 ## Best Practices
 
-1. **Test Independence**
+### Test Independence
 
-   ```typescript
-   beforeEach(() => {
-     vi.resetModules();
-     vi.resetAllMocks();
-   });
+Each test should be fully independent and not rely on state from other tests:
 
-   afterEach(() => {
-     vi.clearAllMocks();
-   });
-   ```
+```typescript
+beforeEach(() => {
+  vi.resetModules();
+  vi.resetAllMocks();
+});
 
-2. **Mocking**
+afterEach(() => {
+  vi.clearAllMocks();
+});
+```
 
-   - Use Vitest's built-in mocking utilities
-   - Mock external dependencies and services
-   - Example:
+### Mocking
 
-   ```typescript
-   vi.mock("@formbricks/database", () => ({
-     prisma: {
-       user: {
-         create: vi.fn(),
-         findUnique: vi.fn(),
-       },
-     },
-   }));
-   ```
+- Use Vitest's built-in mocking utilities
+- Mock external dependencies and services
+- Mock network and storage boundaries through helpers from `@formbricks/*`. Source: `AGENTS.md` (Coding Style section).
+- When adding mocks, place them inside `__mocks__` so import ordering stays stable. Source: `AGENTS.md` (Coding Style section).
 
-3. **Assertions**
-   - Write clear, specific assertions
-   - Test both success and error cases
-   - Example:
-   ```typescript
-   expect(result.ok).toBe(true);
-   expect(result.data).toEqual(expectedData);
-   expect(async () => await invalidCall()).rejects.toThrow(ValidationError);
-   ```
+Example:
+
+```typescript
+vi.mock("@formbricks/database", () => ({
+  prisma: {
+    user: {
+      create: vi.fn(),
+      findUnique: vi.fn(),
+    },
+  },
+}));
+```
+
+### Assertions
+
+- Write clear, specific assertions
+- Test both success and error cases
+
+```typescript
+expect(result.ok).toBe(true);
+expect(result.data).toEqual(expectedData);
+expect(async () => await invalidCall()).rejects.toThrow(ValidationError);
+```
+
+### Test Separation Rule
+
+<Warning>
+  **Vitest is used for `.ts` files ONLY.** Do not write Vitest tests for `.tsx` files — React components are covered by Playwright E2E tests. This separation keeps unit tests fast and focused while Playwright provides realistic browser-based validation of component behavior. Source: `AGENTS.md` (Testing Guidelines section).
+</Warning>
 
 ## Quality Assurance Process
 
-1. **Continuous Integration**
+### Continuous Integration
 
-   - Automated test suite execution on pull requests
-   - Coverage reports generation
-   - Test results reporting
+The CI pipeline validates all code changes through automated test execution on every pull request:
 
-2. **New Features**
-   - Must include corresponding unit tests
-   - Must maintain or improve coverage metrics
-   - Must include relevant E2E tests for user-facing features
+- **Unit tests** run via the `test.yml` workflow (called by `pr.yml`). Source: `.github/workflows/test.yml`.
+- **E2E tests** run via the `e2e.yml` workflow (called by `pr.yml`). Source: `.github/workflows/e2e.yml`.
+- **Coverage reports** are generated with the V8 provider and include text, HTML, and LCOV output.
+- **SonarQube analysis** runs via the `sonarqube.yml` workflow for code quality and security scanning. Source: `.github/workflows/sonarqube.yml`.
+
+<Note>
+  Run `pnpm test` before opening a PR and `pnpm test:coverage` when touching critical flows.
+</Note>
+
+### New Features
+
+All new features must meet these testing requirements:
+
+- Must include corresponding unit tests for any `.ts` logic
+- Must maintain or improve coverage metrics (85% minimum)
+- Must include relevant E2E tests for user-facing features

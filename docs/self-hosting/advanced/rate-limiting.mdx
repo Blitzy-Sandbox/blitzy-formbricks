@@ -4,16 +4,48 @@ description: "Current request rate limits in Formbricks"
 icon: "timer"
 ---
 
-Formbricks applies request rate limits to protect against abuse and keep API usage fair.
+Formbricks applies request rate limits to protect against abuse and keep API usage fair. The rate limiting system uses **Redis Lua scripts** for atomic increment-and-check operations, preventing race conditions in multi-pod Kubernetes environments. Each rate limit counter is incremented and checked in a single atomic Redis operation, ensuring accuracy even under high concurrency.
+
+Formbricks follows a **fail-open design pattern**: when Redis is unavailable, rate limiting allows all requests through to ensure system availability takes priority over perfect rate limiting. This means your application remains accessible even during temporary Redis outages.
 
 Rate limits are scoped by identifier, depending on the endpoint:
 
-- IP hash (for unauthenticated/client-side routes and public actions)
-- API key ID (for authenticated API calls)
-- User ID (for authenticated session-based calls and server actions)
-- Organization ID (for follow-up email dispatch)
+- **IP hash** — for unauthenticated/client-side routes and public actions
+- **API key ID** — for authenticated API calls
+- **User ID** — for authenticated session-based calls and server actions
+- **Organization ID** — for follow-up email dispatch
 
 When a limit is exceeded, the API returns `429 Too Many Requests`.
+
+<Note>
+  Redis/Valkey is required for robust rate limiting. Set the `REDIS_URL` environment variable to point to your Redis instance. See [Environment Variables](/self-hosting/configuration/environment-variables) for details.
+</Note>
+
+## How Rate Limiting Works
+
+The following diagram shows the rate limiting decision flow for each incoming request:
+
+```mermaid
+flowchart TD
+    A[Incoming Request] --> B{Rate Limiting Disabled?}
+    B -->|Yes| E[Allow Request]
+    B -->|No| C{Redis Available?}
+    C -->|Yes| D[Check Rate Limit Counter via Lua Script]
+    D --> F{Within Limit?}
+    F -->|Yes| E[Allow Request]
+    F -->|No| G[Return 429 Too Many Requests]
+    C -->|No| H[Fail Open — Allow Request]
+    H --> I[Log Warning]
+```
+
+Key implementation details:
+
+- Formbricks uses atomic Redis Lua scripts to increment counters and check limits in a single operation, preventing race conditions across multiple application pods
+- Each rate limit window uses a **fixed-window algorithm** with automatic key expiry — the Redis key TTL is set to expire exactly at the window boundary
+- Counter keys include the namespace, identifier, and window start timestamp (e.g., `rate-limit:api:v1:<identifier>:<window_start>`)
+- If Redis is unavailable, the system **fails open** — allowing all requests through while logging a warning, ensuring service availability over strict enforcement
+
+_Source: `apps/web/modules/core/rate-limit/rate-limit.ts`_
 
 ## Management API Rate Limits
 
@@ -79,6 +111,10 @@ v2-style endpoints return:
 
 For self-hosters, rate limiting can be disabled if necessary. We strongly recommend keeping it enabled in production.
 
+<Warning>
+  Disabling rate limiting in production is strongly discouraged. It removes protection against brute-force attacks and API abuse. Only disable rate limiting in development or testing environments.
+</Warning>
+
 Set:
 
 ```bash
@@ -87,8 +123,27 @@ RATE_LIMITING_DISABLED=1
 
 After changing this value, restart the server.
 
+Rate limits are enforced differently based on the authentication context of the request:
+
+- **API key-authenticated requests** — rate limited by API key ID
+- **Session-authenticated requests** — rate limited by User ID
+- **Unauthenticated requests** — rate limited by IP hash
+
 ## Operational Notes
 
 - Redis/Valkey is required for robust rate limiting (`REDIS_URL`).
 - If Redis is unavailable at runtime, rate-limiter checks currently fail open (requests are allowed through without enforcement).
 - Authentication failure audit logging uses a separate throttle (`shouldLogAuthFailure()`) and is intentionally **fail-closed**: when Redis is unavailable or errors occur, audit log entries are **skipped entirely** rather than written without throttle control. This prevents spam while preserving the hash-integrity chain required for compliance. In other words, if Redis is down, no authentication-failure audit logs will be recorded—requests themselves are still allowed (fail-open rate limiting above), but the audit trail for those failures will not be written.
+- Rate limit violations are reported to **Sentry** when `SENTRY_DSN` is configured. Violations are logged as breadcrumbs for correlation with subsequent error events, and Redis errors during rate limit checks are captured as Sentry exceptions. _(Source: `apps/web/modules/core/rate-limit/rate-limit.ts`)_
+
+## Rate Limiting Environment Variables
+
+The following environment variables control rate limiting behavior:
+
+| Variable | Type | Default | Description |
+|----------|------|---------|-------------|
+| `REDIS_URL` | String | (required) | Redis/Valkey connection URL for rate limiting |
+| `RATE_LIMITING_DISABLED` | Boolean | `0` | Set to `1` to disable all rate limiting |
+| `SENTRY_DSN` | String | (optional) | Sentry DSN for monitoring rate limit violations |
+
+For a complete list of environment variables, see [Environment Variables](/self-hosting/configuration/environment-variables).

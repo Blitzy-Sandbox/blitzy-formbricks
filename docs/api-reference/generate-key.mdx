@@ -8,7 +8,11 @@ description: "Here is how you can generate an API key which gives you full acces
 
 <Steps>
   <Step title="Navigate to API Keys">
-    Click on **API Keys** in the breadcrumbs at the top left corner of the page. Your organization name is a dropdown menu.
+    Click on the organization dropdown in the top-left corner of the page and select **Organization Settings**. Then navigate to the **API Keys** section in the settings sidebar.
+
+    <Note>
+      Only organization **owners** and **managers** can access and manage API keys. Members with other roles will not see the API Keys settings page.
+    </Note>
   </Step>
   
   <Step title="Add a new API key">
@@ -34,6 +38,10 @@ description: "Here is how you can generate an API key which gives you full acces
   </Step>
 </Steps>
 
+<Note>
+  API keys use a structured format with the `fbk_` prefix (e.g., `fbk_abc123...`). The key is secured using a hybrid approach: a SHA-256 hash is used for fast lookup, while a bcrypt hash provides additional security verification. Always treat your API key as a sensitive credential.
+</Note>
+
 ## Delete API Key
 
 If you need to revoke access for an API key:
@@ -52,4 +60,10 @@ API Keys have three permission levels that can be assigned per project/environme
 - **Write**: Can perform read and write operations (GET, POST, PUT, PATCH requests)
 - **Manage**: Has full access including delete operations (all request types)
 
-Additionally, organization-level access controls can be configured for broader permissions.
+Permissions are set per project environment (development/production), allowing fine-grained access control. For example, you can grant **read** access to production data while granting **manage** access to a development environment within the same project.
+
+Additionally, organization-level access controls can be configured for broader permissions. Organization access supports **read** and **write** levels, which govern operations at the organization scope such as managing members or viewing organization settings.
+
+<Note>
+  API requests are subject to rate limiting. If you receive a `429 Too Many Requests` response, reduce your request frequency and implement exponential backoff in your integration.
+</Note>

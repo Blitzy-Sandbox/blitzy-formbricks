@@ -63,17 +63,34 @@ void window.formbricks.setup(...args);
 - Document the feature's purpose, usage, and implementation details
 - Include code examples and best practices
 
+## Authoritative Documentation Standards
+
+The `AGENTS.md` file at the repository root is the authoritative source for documentation standards across the Formbricks codebase. All documentation contributors must follow these rules:
+
+- Add frontmatter with `title`, `description`, and `icon` at the top of every MDX file — all three fields are **required**
+- Do not start with an H1 heading — Mintlify generates the H1 automatically from the frontmatter `title`
+- Use Camel Case headings throughout (only capitalize the feature name, e.g., "## Set Up your first Survey" not "## SET UP YOUR FIRST SURVEY")
+- Use Mintlify components for steps and callouts (see the [Mintlify Components](#mintlify-components) section below)
+- If a page documents an Enterprise-only feature, add the Enterprise note block (see [Enterprise Feature Annotations](#enterprise-feature-annotations) below)
+
+> Source: `AGENTS.md` — Documentation (apps/docs) section
+
 ## Working with Mintlify
 
-We use Mintlify to write our documentation.
+We use [Mintlify](https://mintlify.com/docs) to build, preview, and deploy our documentation.
 
-### File Structure
+### File Format Requirements
 
-1. **MDX Files**
-   - All documentation files must use the `.mdx` extension
-   - Include frontmatter with required metadata:
+All documentation files must adhere to the following format:
 
-```markdown
+- Use the `.mdx` file extension for every documentation file
+- Include frontmatter with `title` (in Camel Case), `description`, and `icon` — all three fields are **required** on every page
+- Do not include an H1 heading in the file body — Mintlify generates it from the frontmatter `title`
+- All content headings start at H2 (`##`) and use Camel Case
+
+Example frontmatter block:
+
+```yaml
 ---
 title: "Document Title"
 description: "Brief description of the content"
@@ -81,49 +98,204 @@ icon: "appropriate-icon"
 ---
 ```
 
-2. **Navigation**
-   - Add new pages to the appropriate section in `docs/mint.json`
-   - Follow the existing navigation structure
-   - Include proper redirects if URLs change
+### Navigation Configuration
+
+The master navigation configuration lives in `docs/docs.json` (migrated from the legacy `mint.json` format via the `mintlify upgrade` command).
+
+<Note>
+  The configuration file was renamed from `mint.json` to `docs.json` as part of the Mintlify platform migration. Always reference `docs/docs.json` — the legacy `mint.json` file no longer exists.
+</Note>
+
+Key details about navigation:
+
+- `docs/docs.json` is a 760-line configuration file that defines the site theme, navigation tabs, redirects, analytics, and navbar
+- The navigation is organized into **6 tabs**: Overview, XM & Surveys, Self Hosting, Development, API v1 Reference, and API v2 Reference (Beta)
+- Every new MDX file **must** have a corresponding entry in the `docs.json` navigation structure
+- When renaming or moving pages, add redirect entries to the `redirects` array in `docs.json` to preserve backward compatibility
+- Follow the existing navigation hierarchy when adding new pages
+
+> Source: `docs/docs.json` — Mintlify navigation configuration
+
+### Mintlify Components
+
+Use Mintlify components to create structured, visually consistent documentation. The following components are available:
+
+**`<Note>` — Important information callouts:**
+
+```mdx
+<Note>
+  Important information that readers should be aware of.
+</Note>
+```
+
+**`<Warning>` — Critical warning callouts:**
+
+```mdx
+<Warning>
+  Critical warning about potential issues or breaking changes.
+</Warning>
+```
+
+**`<Steps>` — Sequential procedure steps:**
+
+```mdx
+<Steps>
+  <Step title="First Step">
+    Description of the first step.
+  </Step>
+  <Step title="Second Step">
+    Description of the second step.
+  </Step>
+</Steps>
+```
+
+**`<Card>` — Navigation or content cards:**
+
+```mdx
+<Card title="Card Title" icon="icon-name" href="/path/to/page">
+  Brief description of what this card links to.
+</Card>
+```
+
+**`<CardGroup>` — Grouped card layouts for navigation:**
+
+```mdx
+<CardGroup cols={2}>
+  <Card title="First Card" icon="icon-name" href="/path/to/first">
+    First card description.
+  </Card>
+  <Card title="Second Card" icon="icon-name" href="/path/to/second">
+    Second card description.
+  </Card>
+</CardGroup>
+```
+
+**`<Accordion>` — Collapsible content sections:**
+
+```mdx
+<Accordion title="Expandable Section Title">
+  Content that is hidden by default and revealed on click.
+</Accordion>
+```
+
+### Image Requirements
+
+All documentation images must follow these standards for consistency and accessibility:
+
+- Use `.webp` format for all images (consistent with the existing 393+ image assets in the repository)
+- Store images in `docs/images/` subdirectories that mirror the documentation structure (e.g., `docs/images/xm-and-surveys/core-features/integrations/slack/`)
+- Include descriptive alt text on every image for accessibility compliance
+- Example image syntax:
+
+```mdx
+![Descriptive alt text for the screenshot](/images/section/feature/screenshot.webp)
+```
+
+### Internal Link Format
+
+Use relative paths **without** file extensions for all internal documentation links:
+
+```mdx
+<!-- Correct -->
+[Docker Setup](/self-hosting/setup/docker)
+
+<!-- Incorrect — do not include .mdx extension -->
+[Docker Setup](self-hosting/setup/docker.mdx)
+
+<!-- Incorrect — do not use absolute URLs for internal links -->
+[Docker Setup](https://formbricks.com/docs/self-hosting/setup/docker)
+```
+
+### Enterprise Feature Annotations
+
+Pages that document Enterprise-only features (SSO, audit logging, team access, billing, quotas, multi-language surveys, whitelabel, contacts and segments, email follow-ups, insights) must include an Enterprise license annotation at the top of the content:
+
+```mdx
+<Note>
+  This feature requires an Enterprise License. [Learn more about Enterprise features](/self-hosting/advanced/enterprise-features).
+</Note>
+```
+
+Place this annotation immediately after the frontmatter block and before the first content heading.
 
 ### Content Guidelines
 
 1. **Writing Style**
-   - Use clear, concise language
-   - Break content into logical sections with proper headings
+   - Use clear, concise language accessible to developers and product managers
+   - Break content into logical sections with proper Camel Case headings
    - Include practical examples and code snippets
-   - Use Mintlify components for notes, warnings, and callouts:
-
-```markdown
-<Note>
-Important information goes here
-</Note>
-```
+   - Follow progressive disclosure: simple concepts first, advanced configurations later
 
 2. **Media and Assets**
 
-   - Store images in the appropriate `/images` subdirectory
+   - Store images in the appropriate `docs/images/` subdirectory in `.webp` format
    - Use descriptive alt text for all images
    - Optimize images for web delivery
-   - Use relative paths for internal links
+   - Use relative paths without file extensions for internal links
 
 3. **Code Examples**
-   - Specify the language for all code blocks
+   - Specify the language identifier for all code blocks (e.g., `typescript`, `bash`, `yaml`, `json`, `mdx`)
    - Include comments for complex code snippets
    - Use proper indentation and formatting
 
 ## Validation
 
-1. **Local Testing**
-   - Test documentation locally using Mintlify CLI:
+### Local Testing
+
+Test documentation locally using the Mintlify CLI. Install the CLI globally and run the preview server from the `docs/` directory:
 
 ```bash
+# Install Mintlify CLI globally
+npm i -g mintlify
+
+# Navigate to the docs folder and start the preview server
+cd docs
 mintlify dev
 ```
 
-2. **Review Process**
-   - Documentation changes require peer review
-   - Verify all links and references work
-   - Ensure proper formatting and rendering
+The documentation preview is available at `http://localhost:3000` by default. Use a custom port if needed:
+
+```bash
+mintlify dev --port 3333
+```
+
+> Source: `docs/README.md` — Mintlify local development instructions
+
+### Mintlify CLI Commands
+
+The following CLI commands are available for documentation validation and maintenance:
+
+| Command | Purpose |
+|---------|---------|
+| `mintlify dev` | Start local documentation preview server (default port 3000) |
+| `mintlify dev --port 3333` | Start preview on a custom port |
+| `mint check-links` | Check for broken internal links |
+| `mint check-links --check-anchors` | Check broken links including anchor references |
+| `mint a11y` | Accessibility audit (contrast ratios, alt text compliance) |
+| `mint openapi-check` | Validate OpenAPI specification files |
+| `mint validate --strict` | Strict build validation for CI/CD (exits on warnings) |
+| `mint rename` | Rename files and update all internal link references automatically |
+
+### Pre-Deployment Checklist
+
+Before merging documentation changes, run the following validation pipeline:
+
+```bash
+# Check for broken links
+mint check-links
+
+# Validate accessibility
+mint a11y
+
+# Strict validation (recommended for CI/CD)
+mint validate --strict
+```
+
+### Review Process
+
+- Documentation changes require peer review
+- Verify all links and references work using `mint check-links`
+- Ensure proper formatting and rendering via `mintlify dev`
+- Confirm all code blocks have language identifiers
 
 These documentation requirements ensure that our codebase remains maintainable, accessible, and well-documented for both current and future developers.

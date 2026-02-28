@@ -22,14 +22,17 @@ Data prefilling via URL comes in handy when you:
 https://app.formbricks.com/s/clin3dxja02k8l80hpwmx4bjy?question_id_1=answer_1&question_id_2=answer_2&skipPrefilled=true
 ```
 
-## How it works
+## How It Works
 
 1. To prefill survey questions, add query parameters to the survey URL using the format `questionId=answer`. 
 2. The answer must match the question’s expected type to pass [validation](/xm-and-surveys/surveys/link-surveys/data-prefilling#validation).
 3. The answer needs to be [URL encoded](https://www.urlencoder.org/) (if it contains spaces or special characters)
 
+<Note>
+  Special characters and spaces **must** be URL-encoded in query parameters. For example, use `%20` for spaces, `%2C` for commas within a single value, and `%26` for ampersands. Most programming languages provide built-in URL encoding functions such as `encodeURIComponent()` in JavaScript or `urllib.parse.quote()` in Python.
+</Note>
 
-### Skip prefilled questions
+### Skip Prefilled Questions
 
 You can skip prefilled questions by adding the `skipPrefilled` parameter in the URL. To skip prefilled questions and show the next available question, add `skipPrefilled=true` to the URL. By default, `skipPrefilled` is set to `false`.
 
@@ -37,15 +40,41 @@ You can skip prefilled questions by adding the `skipPrefilled` parameter in the 
 app.formbricks.com/s/clin3dxj?question_id_1=answer_1&skipPrefilled=true
 ```
 
-### Prefilling multiple values
+### Prefilling Multiple Values
 
 Formbricks lets you prefill as many values as you want. Combine multiple values in the URL using `&`, for example: `name=Bernadette&age=18`. The order of query parameters doesn’t matter, so you can move questions around or add new ones without worrying about the parameter order.
 
-### Where do I find my question Id?
+### Where Do I Find My Question Id?
 
 You can find the `questionId` in the **Advanced Settings** at the bottom of each question card in the Survey Editor. You can update the `questionId` to any string you like **before you publish a survey.** After you published a survey, you cannot change the id anymore.
 
-![The question Id is located at the bottom of each question card in the survey editor.](/images/xm-and-surveys/surveys/link-surveys//data-prefilling/question-id.webp)
+![The question Id is located at the bottom of each question card in the survey editor.](/images/xm-and-surveys/surveys/link-surveys/data-prefilling/question-id.webp)
+
+## Supported Question Types
+
+The following table summarizes which question types support URL data prefilling and the expected value format for each:
+
+| Question Type | Supported | URL Value Format | Example Value |
+|---|---|---|---|
+| Rating | ✅ Yes | Integer from `1` to configured range (default `5`) | `5` |
+| NPS | ✅ Yes | Integer from `0` to `10` | `9` |
+| Single Select | ✅ Yes | Option ID or exact label text | `Very%20disappointed` or `option-abc123` |
+| Multi Select | ✅ Yes | Comma-separated option IDs or labels | `Sun%2CPalms%2CBeach` |
+| Open Text | ✅ Yes | Any URL-encoded string | `I%20love%20Formbricks` |
+| Consent | ✅ Yes | `accepted` or `dismissed` | `accepted` |
+| Picture Selection | ✅ Yes | Comma-separated 1-based image indices | `1%2C2%2C3` |
+| Date | ❌ No | — | — |
+| Matrix | ❌ No | — | — |
+| Address | ❌ No | — | — |
+| Ranking | ❌ No | — | — |
+| Contact Info | ❌ No | — | — |
+| File Upload | ❌ No | — | — |
+| CTA / Statement | ❌ No | — | — |
+| Schedule a Meeting | ❌ No | — | — |
+
+<Note>
+  Only the seven question types marked as supported above can be prefilled via URL parameters. For unsupported question types, any prefilling parameters are silently ignored and the question is presented normally.
+</Note>
 
 ## Examples
 
@@ -164,5 +193,9 @@ The URL validation works as follows:
 - **Open Text questions:** Any string value is accepted.
 
 <Note>
-  If an answer is invalid or doesn't match any option, the prefilling will be ignored and the question is presented as if not prefilled.
+  If an answer is invalid or doesn't match any option, the prefilling will be ignored and the question is presented as if not prefilled. Additionally, reserved parameter names such as `userId`, `source`, `suid`, `end`, `start`, `welcomeCard`, `hidden`, `verifiedEmail`, `multiLanguage`, `embed`, and `verify` cannot be used as question IDs for prefilling.
 </Note>
+
+---
+
+_Source: Prefilling logic is implemented in `apps/web/modules/survey/link/lib/prefill/` — validators, transformers, and matchers handle type-specific parsing and option matching. Question type definitions are in `packages/types/surveys/constants.ts` and `packages/types/surveys/elements.ts`._

@@ -1,6 +1,7 @@
 ---
 title: "Airtable"
 description: "A step-by-step guide to integrate Airtable with Formbricks Cloud."
+icon: "table-columns"
 ---
 
 The Airtable integration allows you to automatically send responses to an Airtable of your choice.
@@ -63,5 +64,109 @@ To remove the integration with Airtable,
 4. It will now ask for a confirmation to remove the integration. Click on the "Delete" button to remove the integration. You can always come back and connect again with the same Airtable Account.
 
 ![Delete Airtable Integration with Formbricks](/images/xm-and-surveys/core-features/integrations/airtable/delete-integration.webp)
+
+## Field Character Limit
+
+Each Airtable field value is limited to **99,995 characters** per field. When a survey response value exceeds this limit, Formbricks automatically truncates the text to fit within the allowed size using its internal `truncateText()` utility.
+
+This limit is intentionally set slightly below Airtable's native 100,000 character maximum for long text fields to provide a safety buffer and avoid write failures.
+
+<Note>
+  If you collect open-ended responses that may be very long (e.g., free-text questions), be aware that values exceeding 99,995 characters will be silently truncated before being written to Airtable.
+</Note>
+
+Source: `apps/web/lib/constants.ts` (`AIRTABLE_MESSAGE_LIMIT = 99995`), `apps/web/lib/airtable/service.ts`
+
+## PKCE S256 Authorization
+
+Airtable requires **PKCE (Proof Key for Code Exchange)** with the **S256 challenge method** for OAuth authorization. This is a more secure OAuth variant that prevents authorization code interception attacks.
+
+The PKCE S256 flow works as follows:
+
+1. Formbricks generates a random `code_verifier` string.
+2. A `code_challenge` is computed as the **SHA-256 hash** of the `code_verifier`, encoded in **base64url** format.
+3. The authorization request sent to Airtable includes the `code_challenge` along with `code_challenge_method=S256`.
+4. During the token exchange step, Formbricks sends the original `code_verifier` to Airtable to prove its identity.
+
+<Note>
+  PKCE is handled entirely by Formbricks behind the scenes. You do not need to manually configure or manage PKCE parameters — simply click "Connect with Airtable" and Formbricks takes care of the secure authorization flow.
+</Note>
+
+Source: `apps/web/lib/airtable/service.ts`
+
+## Base And Table Selection
+
+During the integration setup, Formbricks discovers your Airtable bases and tables automatically using the Airtable Meta API:
+
+- **Base Discovery:** Formbricks calls the Airtable Meta API endpoint (`/v0/meta/bases`) to retrieve a list of all bases your OAuth grant has access to.
+- **Table Discovery:** After you select a base, Formbricks fetches the available tables for that base via `/v0/meta/bases/{baseId}/tables`.
+- **Field Metadata:** Table metadata returned by the API includes field definitions (names and types), which Formbricks uses to present field mapping options during setup.
+
+The user workflow is:
+
+1. Select an Airtable **base** from the list of accessible bases.
+2. Select a **table** within that base.
+3. Map survey questions to the appropriate Airtable **fields** (columns).
+
+All API calls are authenticated using the OAuth access token obtained during the connection step.
+
+Source: `apps/web/lib/airtable/service.ts`
+
+## Field Type Mapping
+
+Survey response values are mapped to Airtable fields based on the configuration you choose during setup:
+
+- When linking a survey to an Airtable table, each selected survey question appears as a column option that can be mapped to an existing Airtable field.
+- Response data is written as **text values** regardless of the Airtable field type. Airtable will attempt to parse the value according to the destination field type (e.g., a number string written to a Number field).
+- Values exceeding the **99,995 character** field limit are automatically truncated before writing.
+
+<Note>
+  For best results, use Airtable **Long Text** or **Single Line Text** field types for survey response mappings. Other field types (Number, Date, etc.) require response values that match the expected format.
+</Note>
+
+## Token Refresh Flow
+
+Airtable OAuth access tokens expire periodically and require automatic refresh. Formbricks handles this process transparently:
+
+1. When a token refresh is needed, Formbricks sends a **POST** request to `https://airtable.com/oauth2/v1/token`.
+2. The request uses `Content-Type: application/x-www-form-urlencoded` (form-encoded body, not JSON).
+3. The request body includes the following parameters:
+   - `grant_type` — Set to `refresh_token` for token renewal
+   - `refresh_token` — The previously stored refresh token
+   - `client_id` — The value of the `AIRTABLE_CLIENT_ID` environment variable
+4. For the initial token exchange (after first authorization), the `code_verifier` from the PKCE flow is also included.
+5. On successful refresh, the new access and refresh tokens are securely stored via `createOrUpdateIntegration()`.
+
+<Note>
+  Token refresh is fully automatic. If a refresh fails (e.g., due to revoked access), you will need to remove the integration and reconnect with Airtable.
+</Note>
+
+Source: `apps/web/lib/airtable/service.ts` (`fetchAirtableAuthToken()`)
+
+## Self-Hosted Configuration
+
+To enable the Airtable integration on a self-hosted Formbricks instance, the following environment variable must be configured:
+
+| Environment Variable | Description |
+|---------------------|-------------|
+| `AIRTABLE_CLIENT_ID` | Your Airtable OAuth application Client ID. Required for the OAuth authorization flow and token refresh. |
+
+<Note>
+  For complete self-hosted Airtable integration setup instructions — including creating an Airtable OAuth app, configuring redirect URLs, and setting required scopes — see the [self-hosted Airtable configuration guide](/self-hosting/configuration/integrations/airtable).
+</Note>
+
+Source: `apps/web/lib/constants.ts`, `apps/web/lib/airtable/service.ts`
+
+## Troubleshooting
+
+| Issue | Cause | Solution |
+|-------|-------|----------|
+| No bases appearing in the dropdown | OAuth grant does not include base access | Re-authenticate with Airtable and ensure you grant access to the needed bases during the OAuth consent screen |
+| Data truncated in Airtable fields | Response value exceeds the 99,995 character limit | This is expected behavior — long text field values are automatically capped at the limit |
+| "Invalid token" errors | OAuth access token expired and automatic refresh failed | Remove the Airtable integration from the Integrations tab and reconnect |
+| Base permissions changed or base not found | The Airtable base was unshared, deleted, or moved | Re-authenticate to grant Formbricks access to the base again |
+| Integration not available on self-hosted | `AIRTABLE_CLIENT_ID` environment variable is not set | Configure the environment variable as described in [Self-Hosted Configuration](#self-hosted-configuration) above |
+
+Source: `apps/web/lib/airtable/service.ts`, `apps/web/lib/constants.ts`
 
 Still struggling or something not working as expected? [Join our Github Discussions](https://github.com/formbricks/formbricks/discussions) and we'd be glad to assist you!

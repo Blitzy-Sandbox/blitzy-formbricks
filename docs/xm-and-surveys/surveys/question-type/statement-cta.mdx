@@ -1,10 +1,10 @@
 ---
-title: "Statement (Call to Action)"
-icon: "arrow-right"
-description: "The Statement question type allows you to display descriptive information in your survey, such as a message or instruction. "
+title: "Statement (Call To Action)"
+icon: "bullhorn"
+description: "The Statement question type allows you to display descriptive information in your survey, such as a message or instruction."
 ---
 
-It consists of a title (can be Question or Short Note) and a description, which can be a brief note(realted to CTA) or guideline. Instead of collecting input, this type includes a call to action button for further steps, such as booking an interview call.
+The Statement / CTA card consists of a title (a question or short note) and an optional description, which can be a brief note (related to the CTA) or guideline. Instead of collecting input, this type includes a call-to-action button for further steps, such as booking an interview call, redirecting to a website, or simply advancing the respondent to the next question.
 
 <iframe
   title="Survey Embed"
@@ -26,13 +26,63 @@ It consists of a title (can be Question or Short Note) and a description, which 
 
 ### Title
 
-This is the main question or heading that appears at the top of the card.
+The main heading that appears at the top of the card. This maps to the `headline` field in the survey schema and supports internationalization (I18n) for multi-language surveys.
 
 ### Description
 
-A brief note or instruction displayed under the title, typically used to provide context or instructions for the next step.
+An optional descriptive text displayed below the title, typically used to provide context, instructions, or additional information for the next step. This maps to the `subheader` field in the schema and supports rich text content with internationalized values.
 
-### Button Options
+## Button Options
 
-- Button to continue in survey: This will continue respondent with the survey, form or fillups.
-- Button to link to external URL: Selecting this option will open-up URL input box below when us set URL the button will redirect to your setted link.
+The CTA card supports two distinct button modes controlled by the `buttonExternal` field:
+
+### Continue In Survey (Default)
+
+When `buttonExternal` is set to `false` (the default), the CTA button advances the respondent to the next question or card in the survey. No external URL is needed in this mode — the button simply acts as a navigation control within the survey flow.
+
+### Redirect To External URL
+
+When `buttonExternal` is set to `true`, the CTA button redirects the respondent to an external URL. In this mode:
+
+- The `buttonUrl` field must contain a valid URL
+- Clicking the CTA button opens the external URL in a new browser tab
+- Both `buttonUrl` and a button label are required when this mode is enabled
+
+<Note>When using an external redirect, the exact behavior (new tab vs. same window) may vary depending on the survey embed context. In the default survey renderer, external URLs open in a new tab.</Note>
+
+### CTA Button Label
+
+The `ctaButtonLabel` field controls the text displayed on the primary CTA button (for example, "Continue", "Learn More", or "Visit Website"). This field supports internationalization, so you can provide different button labels for each language in a multi-language survey.
+
+### Dismiss Button
+
+The dismiss button provides a secondary option that allows respondents to skip the CTA and proceed to the next question without clicking the primary CTA button. When a dismiss button label is configured:
+
+- A secondary button appears alongside the primary CTA button
+- Clicking the dismiss button skips the CTA action and moves to the next question
+- This is useful for non-mandatory CTAs where users should have the option to skip
+
+If no dismiss button label is set, only the primary CTA button is shown on the card.
+
+<Note>The dismiss button is particularly helpful when you want to offer a call to action (such as "Book a Demo") but do not want to force every respondent to interact with it. Users who are not interested can simply dismiss and continue with the survey.</Note>
+
+## Redirect URL Configuration
+
+The redirect behavior is determined by the combination of `buttonExternal` and `buttonUrl`:
+
+| Setting | `buttonExternal` | `buttonUrl` | Behavior |
+|---------|-------------------|-------------|----------|
+| Continue in survey | `false` (default) | Not required | Advances to next question |
+| Redirect to URL | `true` | Valid URL required | Opens external URL in new tab |
+
+<Warning>When `buttonExternal` is enabled, a valid URL and a CTA button label are both required. The survey editor will validate that these fields are filled before allowing the survey to be published.</Warning>
+
+## No Validation Rules
+
+Unlike data-collection question types (such as free text or multiple choice), the Statement / CTA element does **not** have a `validation` field in the schema. It is a statement or action card — it does not collect respondent input data and therefore does not support input validation rules.
+
+<Note>Since the CTA element does not collect data, it always records a value of `"clicked"` when the respondent interacts with the primary CTA button. This can be used in conditional logic to determine whether the respondent engaged with the CTA.</Note>
+
+---
+
+*Source: `packages/types/surveys/elements.ts` — `ZSurveyCTAElement` schema definition*

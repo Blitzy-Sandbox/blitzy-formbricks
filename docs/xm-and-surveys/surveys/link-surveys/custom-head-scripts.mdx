@@ -113,7 +113,7 @@ Override or extend workspace scripts for **specific surveys**.
 </Steps>
 
 
-## To keep in mind
+## Important Considerations
 
 <Warning>
   Custom scripts execute in the context of your survey pages. Only add scripts from trusted sources. Malicious scripts could compromise your survey data or user privacy.
@@ -125,7 +125,7 @@ Override or extend workspace scripts for **specific surveys**.
 
 - **Self-Hosted Only** — This feature is only available on self-hosted instances. Formbricks Cloud does not support Custom Head Scripts for security and performance reasons.
 
-- **Permissions** — Only Owners, Managers, and members with Manage access can configure Custom Head Scripts.
+- **Permissions** — Only organization-level **Owners** and **Managers** can configure Custom Head Scripts. Regular members do not have access to modify these settings, regardless of team-level permissions.
 
 ## Common Use Cases
 
@@ -191,3 +191,10 @@ If your scripts aren't loading, check:
 2. **Are you in preview mode?** Scripts don't load in preview—test with the actual survey link.
 3. **Check the browser console** for JavaScript errors that might prevent script execution.
 4. **Verify your HTML syntax** is correct (properly closed tags, valid attributes).
+5. **Verify your role permissions** — only organization Owners and Managers can configure custom scripts.
+
+---
+
+<Note>
+  **Source References:** Custom head script injection is implemented in `apps/web/modules/survey/link/components/custom-scripts-injector.tsx`. Workspace-level script configuration is managed in `apps/web/modules/projects/settings/general/components/custom-scripts-form.tsx`. Survey-level script configuration uses the Custom HTML tab in `apps/web/app/(app)/environments/[environmentId]/surveys/[surveyId]/(analysis)/summary/components/shareEmbedModal/custom-html-tab.tsx`.
+</Note>

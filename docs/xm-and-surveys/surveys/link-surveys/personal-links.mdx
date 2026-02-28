@@ -8,7 +8,7 @@ icon: "user"
   Personal Links are part of the [Enterprise Edition](/self-hosting/advanced/license). 
 </Note>
 
-## When to use Personal Links
+## When To Use Personal Links
 
 Personal Links are ideal when you need to:
 
@@ -17,14 +17,18 @@ Personal Links are ideal when you need to:
 - **Control survey access**: Set expiry dates to limit when links can be used
 - **Maintain data integrity**: Ensure each contact can only submit one response per survey
 
-## How Personal Links work
+## How Personal Links Work
 
 When you generate personal links:
 
-1. **Individual URLs**: Each contact receives a unique survey link tied to their contact record
-2. **Automatic attribution**: Responses are automatically linked to the specific contact who clicked the link
-3. **Single-use by default**: Each link can only be used once to prevent duplicate responses
-4. **Expiry control**: Set expiration dates to control survey access windows
+1. **Individual URLs**: Each contact receives a unique survey link tied to their contact record. Under the hood, the link contains an encrypted JWT token embedding both the contact ID and the survey ID, signed with HMAC-SHA256
+2. **Automatic attribution**: Responses are automatically linked to the specific contact who clicked the link. When the contact opens the URL, Formbricks decrypts the token to resolve the contact record and associates the submitted response with that contact in the database — no additional identification step is required
+3. **Single-use by default**: Each link can only be used once to prevent duplicate responses. If a contact has already responded to the survey, the API rejects further link generation for that contact
+4. **Expiry control**: Set expiration dates to control survey access windows. Expiry is enforced at the JWT token level, so expired links return a clear error message
+
+Once responses are collected, you can view them in the **Responses** tab of your survey. Each response displays the associated contact's attributes (name, email, custom ID), enabling targeted follow-up analysis and segment-based reporting directly in the Formbricks dashboard.
+
+{/* Source: apps/web/modules/ee/contacts/lib/contact-survey-link.ts, apps/web/modules/api/v2/management/surveys/[surveyId]/contact-links/ */}
 
 ## Generating Personal Links (UI)
 
@@ -58,7 +62,7 @@ When you generate personal links:
   </Step>
 </Steps>
 
-### Understanding the CSV export
+### Understanding The CSV Export
 
 Your downloaded CSV file contains the following columns in this order:
 
@@ -76,10 +80,18 @@ Use the Custom ID column to match contacts with your existing systems, and the P
 </Tip>
 
 ## Generating Personal Links (API)
-We also offer a way to generate Personal Links via the API. You can use two endpoints for generating Personal Links: For [individual contacts](/api-v2-reference/management-api--surveys--contact-links/get-personalized-survey-link-for-a-contact) and for a [whole segment](/api-v2-reference/management-api--surveys--contact-links/get-survey-links-for-contacts-in-a-segment).
+
+You can also generate Personal Links programmatically via the API v2. Two endpoints are available:
+
+- **Individual contact**: [Get personalized survey link for a contact](/api-v2-reference/management-api--surveys--contact-links/get-personalized-survey-link-for-a-contact) — generates a link for a single contact by `contactId` with an optional `expirationDays` query parameter
+- **Segment-based**: [Get survey links for contacts in a segment](/api-v2-reference/management-api--surveys--contact-links/get-survey-links-for-contacts-in-a-segment) — generates links for all contacts within a given segment
+
+Both endpoints require a valid API key with appropriate environment permissions. Refer to the [API v2 Reference](/api-v2-reference/introduction) for authentication details.
+
+{/* Source: apps/web/modules/api/v2/management/surveys/[surveyId]/contact-links/ */}
 
 
-## Limitations and considerations
+## Limitations And Considerations
 
 <Warning>
 Keep these limitations in mind when using Personal Links

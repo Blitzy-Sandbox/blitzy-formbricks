@@ -1,3 +1,32 @@
 ---
 openapi: get /api/v1/management/responses/{responseId}
 ---
+
+<Note>
+  This endpoint requires a valid `x-api-key` header. The API key must have at minimum **read** permission for the environment containing the response's survey. See [Generate API Key](/api-reference/generate-key) for setup instructions.
+</Note>
+
+## Response Detail
+
+The response object includes the full detail of a single survey response:
+
+- **`data`**: Answer data keyed by question IDs (e.g., `{"clx1234...": "answer value"}`)
+- **`finished`**: Boolean indicating completion status (`false` for partial submissions)
+- **`language`**: The language code used by the respondent (for multi-language surveys)
+- **`meta`**: Metadata object including browser, OS, and URL information when available
+- **`person`** / **`contact`**: Linked person or contact information when the respondent was identified
+
+Source: `apps/web/app/api/v1/management/responses/[responseId]/route.ts`
+
+## Authorization
+
+The API key's environment permissions are checked against the survey's environment. If the key does not have `GET` permission for the relevant environment, a `401 Unauthorized` response is returned.
+
+## Error Responses
+
+The following error scenarios may be returned by this endpoint:
+
+| Status Code | Error              | Description                                                                                             |
+| ----------- | ------------------ | ------------------------------------------------------------------------------------------------------- |
+| `404`       | Not Found          | No response exists with the given `responseId`.                                                          |
+| `401`       | Unauthorized       | The API key does not have `GET` permission for the environment associated with the response's survey.    |

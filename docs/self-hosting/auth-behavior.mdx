@@ -6,10 +6,38 @@ icon: "user"
 
 ## Overview
 
-In self-hosted Formbricks, user management and authentication can be customized using environment variables. By default, self-hosted instances have user signup disabled, and only organization owners or admins can invite new users. The behavior of the authentication and invitation flow can be further controlled using the following environment variables:
+In self-hosted Formbricks, user management and authentication can be customized using environment variables. By default, self-hosted instances have user signup disabled, and only organization owners or admins can invite new users.
 
-- `AUTH_SKIP_INVITE_FOR_SSO`
-- `AUTH_DEFAULT_TEAM_ID`
+Formbricks supports **six identity providers** out of the box:
+
+- **Email/Password** — Enabled by default (disable via `EMAIL_AUTH_DISABLED=1`)
+- **Google OAuth** — Enabled when `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` are set
+- **GitHub OAuth** — Enabled when `GITHUB_ID` and `GITHUB_SECRET` are set
+- **Azure AD OAuth** — Enabled when `AZUREAD_CLIENT_ID` and `AZUREAD_CLIENT_SECRET` are set
+- **OpenID Connect (OIDC)** — Enterprise feature, enabled when `OIDC_CLIENT_ID`, `OIDC_CLIENT_SECRET`, and `OIDC_ISSUER` are set
+- **SAML SSO** — Enterprise feature, enabled when `SAML_DATABASE_URL` is set
+
+The general authentication flow works as follows: a user arrives at the login page and selects an authentication method. After successful authentication, the user is either required to have a prior invitation (default behavior) or allowed to join directly if `AUTH_SKIP_INVITE_FOR_SSO=1` is configured. Once authenticated, the user is assigned to an organization and optionally auto-assigned to a default team if `AUTH_DEFAULT_TEAM_ID` is set.
+
+Source: `apps/web/lib/constants.ts` — provider enablement logic
+
+## Supported Identity Providers
+
+The table below summarizes all supported authentication providers, their required environment variables, whether an enterprise license is needed, and links to detailed setup guides.
+
+| Provider | Environment Variables | Enterprise License | Setup Guide |
+|----------|----------------------|-------------------|-------------|
+| Email/Password | `EMAIL_AUTH_DISABLED` (set to `1` to disable) | No | Built-in, no additional setup required |
+| Google OAuth | `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` | No | [Google OAuth](/self-hosting/configuration/auth-sso/google-oauth) |
+| GitHub OAuth | `GITHUB_ID`, `GITHUB_SECRET` | No | Configured via environment variables only |
+| Azure AD OAuth | `AZUREAD_CLIENT_ID`, `AZUREAD_CLIENT_SECRET` | No | [Azure AD OAuth](/self-hosting/configuration/auth-sso/azure-ad-oauth) |
+| OpenID Connect (OIDC) | `OIDC_CLIENT_ID`, `OIDC_CLIENT_SECRET`, `OIDC_ISSUER` | **Yes** | [Open ID Connect](/self-hosting/configuration/auth-sso/open-id-connect) |
+| SAML SSO | `SAML_DATABASE_URL` | **Yes** | [SAML SSO](/self-hosting/configuration/auth-sso/saml-sso) |
+
+<Note>
+  OpenID Connect (OIDC) and SAML SSO require a valid [enterprise license](/self-hosting/advanced/license). All other
+  identity providers are available in the Community Edition.
+</Note>
 
 ## License Requirement for Role Management and SSO Behavior
 
@@ -25,8 +53,9 @@ In self-hosted Formbricks, user management and authentication can be customized 
 - **Type:** Boolean (0 or 1)
 - **Default:** 0 (invite required)
 - **Description:**
-  - When set to `1`, users who sign up via SSO (Single Sign-On) providers (such as Google, Azure AD, SAML, or OIDC) can create an account without requiring an invitation.
+  - When set to `1`, users who sign up via any SSO provider — including Google OAuth, GitHub OAuth, Azure AD OAuth, OpenID Connect (OIDC), and SAML SSO — can create an account without requiring an invitation.
   - When set to `0` (default), all users—including those signing up via SSO—must be invited by an organization owner or admin before they can create an account.
+- **Applies to:** All SSO providers (Google, GitHub, Azure AD, OIDC, SAML). Does not apply to Email/Password authentication.
 - **Use case:**
   - Set this to `1` if you want to allow anyone with access to your SSO provider to join your Formbricks instance without a manual invite.
   - Keep it at `0` for stricter access control, where only invited users can join, regardless of SSO.
@@ -38,6 +67,7 @@ In self-hosted Formbricks, user management and authentication can be customized 
 - **Description:**
   - When a new user is invited or signs up (if allowed), they will automatically be added to the team with the ID specified in this variable.
   - This is useful for onboarding users into a default team, ensuring they have access to relevant projects and resources immediately after joining.
+- **Important:** The team specified by this ID **must already exist** in your Formbricks instance. The value must be a valid cuid (e.g., `clxxxxxxxxxxxxxxxxxxxxxxxxx`). If the team does not exist, the auto-assignment will fail silently and the user will not be added to any team.
 - **Use case:**
   - Set this to the ID of your default team to streamline onboarding for new users.
   - If not set, users will not be automatically assigned to any team upon signup or invite acceptance.
@@ -45,6 +75,33 @@ In self-hosted Formbricks, user management and authentication can be customized 
 ## Example `.env` Configuration
 
 ```env
+# ── Email/Password Authentication ──
+# Enabled by default. Uncomment below to disable:
+# EMAIL_AUTH_DISABLED=1
+
+# ── Google OAuth ──
+# GOOGLE_CLIENT_ID=your-google-client-id
+# GOOGLE_CLIENT_SECRET=your-google-client-secret
+
+# ── GitHub OAuth ──
+# GITHUB_ID=your-github-id
+# GITHUB_SECRET=your-github-secret
+
+# ── Azure AD OAuth ──
+# AZUREAD_CLIENT_ID=your-azure-client-id
+# AZUREAD_CLIENT_SECRET=your-azure-client-secret
+
+# ── OpenID Connect (Enterprise) ──
+# OIDC_CLIENT_ID=your-oidc-client-id
+# OIDC_CLIENT_SECRET=your-oidc-client-secret
+# OIDC_ISSUER=https://your-oidc-provider.com
+# OIDC_DISPLAY_NAME=Your Provider
+# OIDC_SIGNING_ALGORITHM=RS256
+
+# ── SAML SSO (Enterprise) ──
+# SAML_DATABASE_URL=postgresql://postgres:postgres@localhost:5432/formbricks-saml
+
+# ── SSO Behavior ──
 # Allow SSO users to join without invite
 AUTH_SKIP_INVITE_FOR_SSO=1
 
@@ -56,9 +113,39 @@ Refer to the [Environment Variables documentation](./configuration/environment-v
 
 ---
 
-For more information on SSO setup, see:
+## Authentication Flow
+
+The following diagram illustrates how Formbricks processes authentication requests in a self-hosted deployment:
+
+```mermaid
+flowchart TD
+    A[User Arrives at Login Page] --> B{Select Auth Method}
+    B -->|Email/Password| C[Email/Password Login]
+    B -->|SSO Provider| D[Redirect to SSO Provider]
+    D --> E[Google / GitHub / Azure AD / OIDC / SAML]
+    E --> F{Authentication Successful?}
+    C --> F
+    F -->|No| G[Show Error]
+    F -->|Yes| H{AUTH_SKIP_INVITE_FOR_SSO = 1?}
+    H -->|Yes| I[Allow Direct Signup]
+    H -->|No / Email Auth| J{User Has Invite?}
+    J -->|Yes| I
+    J -->|No| K[Deny Access — Invite Required]
+    I --> L{AUTH_DEFAULT_TEAM_ID Set?}
+    L -->|Yes| M[Auto-Assign User to Default Team]
+    L -->|No| N[User Joins Organization Only]
+    M --> O[User Authenticated and Assigned]
+    N --> O
+```
+
+---
+
+## SSO Setup Guides
+
+For detailed instructions on configuring each SSO provider, see:
 
 - [Google OAuth](./configuration/auth-sso/google-oauth)
+- **GitHub OAuth** — No separate setup guide required; configure via `GITHUB_ID` and `GITHUB_SECRET` environment variables
 - [Azure AD OAuth](./configuration/auth-sso/azure-ad-oauth)
 - [Open ID Connect](./configuration/auth-sso/open-id-connect)
 - [SAML SSO](./configuration/auth-sso/saml-sso)

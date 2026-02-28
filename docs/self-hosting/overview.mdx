@@ -4,51 +4,111 @@ description: "Learn how to self-host Formbricks."
 icon: "server"
 ---
 
-### System Requirements
+## System Requirements
 
-<Info>
+<Note>
   **Minimum Setup**: 1 vCPU, 2 GB RAM, 8 GB SSD.
-</Info>
+</Note>
 
-<Info>
+<Note>
+  **Recommended Production Setup**: 2+ vCPU, 4+ GB RAM, 20+ GB SSD for optimal performance with larger response volumes and file uploads.
+</Note>
+
+<Note>
   **HTTPS Required**: Ensure your server runs with a valid HTTPS certificate.
-</Info>
+</Note>
 
-#### **Self-Hosting Options**
+## Choosing A Deployment Method
 
-* [**One-Click Setup**](/self-hosting/setup/one-click)**:** Set up Formbricks on Ubuntu in minutes with our shell script.
+Use the decision tree below to determine the best deployment method for your infrastructure:
 
-* [**Docker Setup**](/self-hosting/setup/docker)**:** Use our pre-built Docker image for an effortless start.
+```mermaid
+flowchart TD
+    A[Start: Self-Host Formbricks] --> B{What is your environment?}
+    B -->|Single Ubuntu Server| C{Quick setup or customized?}
+    C -->|Quick automated setup| D[One-Click Setup]
+    C -->|Custom configuration| E[Docker Setup]
+    B -->|Kubernetes cluster| F{Single node or multi-node?}
+    F -->|Single node| G[Kubernetes / Helm]
+    F -->|Multi-node HA| H[Cluster Setup]
+    B -->|Existing Docker infrastructure| E
+    D --> I[Production Ready]
+    E --> I
+    G --> I
+    H --> I
+```
 
-* [**Migration Guide**](/self-hosting/advanced/migration)**:** Upgrade your existing Formbricks instance smoothly.
+- **One-Click Setup** — Automated shell script for Ubuntu servers, ideal for getting started quickly
+- **Docker Setup** — Pre-built Docker images with docker-compose, full control over services (PostgreSQL pgvector:pg17, Valkey cache, MinIO S3 storage)
+- **Kubernetes / Helm** — Helm chart deployment for Kubernetes clusters
+- **Cluster Setup** — Multi-node high-availability deployment for large-scale production
 
-* [**Configuration**](/self-hosting/configuration)**:** Customize your setup with advanced configurations.
+## Self-Hosting Options
 
-* [**Integrations**](/self-hosting/configuration/integrations)**:** Connect Formbricks to third-party tools.
+<CardGroup cols={2}>
 
-* [**Licensing**](/self-hosting/advanced/license)**:**  Learn more about our AGPL Formbricks Core and its open-source license & Unlock advanced features tailored for larger teams and enterprises with the EE License.
+  <Card title="One-Click Setup" icon="rocket" href="/self-hosting/setup/one-click">
+    Set up Formbricks on Ubuntu in minutes with our automated shell script.
+  </Card>
 
-### **Hosting Options**
+  <Card title="Docker Setup" icon="docker" href="/self-hosting/setup/docker">
+    Deploy with Docker Compose including PostgreSQL, Valkey, and MinIO.
+  </Card>
 
-* **Cloud Hosting:** Hassle-free managed deployment at [app.formbricks.com](https://app.formbricks.com).
+  <Card title="Kubernetes" icon="circle-nodes" href="/self-hosting/setup/kubernetes">
+    Deploy using Helm charts on Kubernetes.
+  </Card>
 
-* **Self-Hosting Free:** Perfect for personal use or small projects.
+  <Card title="Monitoring" icon="magnifying-glass-chart" href="/self-hosting/setup/monitoring">
+    Configure OpenTelemetry, Prometheus, and Sentry for observability.
+  </Card>
 
-* **Self-Hosting with EE License:** Unlock advanced features for large teams or enterprises.
+  <Card title="Migration Guide" icon="arrow-right" href="/self-hosting/advanced/migration">
+    Upgrade your existing Formbricks instance smoothly.
+  </Card>
 
-### **Licensing Options Comparison**:
+  <Card title="Configuration" icon="code" href="/self-hosting/configuration/environment-variables">
+    Customize your setup with 75+ environment variables.
+  </Card>
 
-For Self Hosting, our core product is free however certain advanced features are a part of our Enterprise License offering. Please refer this table to understand if you want the features that are a part of it and then we’ll reach out to you!
+  <Card title="Integrations" icon="plug" href="/self-hosting/configuration/integrations/slack">
+    Connect to Slack, Google Sheets, Notion, Airtable, and more.
+  </Card>
 
-| **Feature**             | Cloud Hosting              | Self-Hosting Free | Self-Hosting EE License |
-| ----------------------- | -------------------------- | ----------------- | ----------------------- |
-| Setup & Maintenance     | Managed                    | DIY               | DIY                     |
-| Advanced Functionality  | Full (Optional Paid plans) | Most of them      | All Advanced Features   |
-| Support & Updates       | Included                   | Community         | Prioritized             |
-| Price                   | Subscription               | Free              | Fixed Per month         |
-| Customization & Control | Limited                    | Moderate          | Full                    |
+  <Card title="Licensing" icon="file-certificate" href="/self-hosting/advanced/license">
+    AGPL core license and Enterprise License for advanced features.
+  </Card>
 
-For licensing queries, contact us at [**hola@formbricks.com**]().
+</CardGroup>
+
+## Hosting Options
+
+- **Cloud Hosting:** Hassle-free managed deployment at [app.formbricks.com](https://app.formbricks.com) with all features included and no maintenance required.
+
+- **Self-Hosting Free:** Deploy on your own infrastructure with all core survey features, 15 question types, 4 distribution channels, and community support — perfect for personal use or small projects.
+
+- **Self-Hosting With EE License:** Unlock enterprise features including SSO (OIDC/SAML), team access control, audit logging, multi-language surveys, contact management, and white-label — ideal for large teams and enterprises.
+
+## Licensing Options Comparison
+
+For self-hosting, the core product is free. Certain advanced features are part of the Enterprise License offering. Refer to this table to understand which features are included in each tier:
+
+| **Feature** | Cloud Hosting | Self-Hosting Free | Self-Hosting EE License |
+| --- | --- | --- | --- |
+| Setup & Maintenance | Managed | DIY | DIY |
+| Survey Types | All (App + Link + Email) | All (App + Link + Email) | All (App + Link + Email) |
+| Question Types | All 15 | All 15 | All 15 |
+| Integrations | All | All | All |
+| SSO (OIDC/SAML) | Included | Not Available | Included |
+| Team Access Control | Included | Not Available | Included |
+| Audit Logging | Included | Not Available | Included |
+| Multi-Language Surveys | Included | Not Available | Included |
+| Contact Management | Included | Not Available | Included |
+| White-Label | Included | Not Available | Included |
+| Support | Included | Community | Prioritized |
+| Price | Subscription | Free | Fixed Monthly |
+
+For licensing queries, contact us at [**hola@formbricks.com**](mailto:hola@formbricks.com).
 
 Formbricks is designed to be intuitive and accessible, ensuring an easy setup no matter which option you choose. Start using Formbricks today and take your surveys to the next level!
 

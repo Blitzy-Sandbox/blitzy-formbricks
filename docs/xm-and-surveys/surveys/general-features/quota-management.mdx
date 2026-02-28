@@ -9,66 +9,110 @@ icon: "chart-pie"
 Quota Management allows you to set limits on the number of responses collected for specific segments or criteria in your survey. This feature helps ensure you collect a balanced and representative dataset while preventing oversaturation of certain response types.
 
 <Note>
-  Quota Management is part of the [Enterprise Edition](/self-hosting/advanced/license).
+  Quota Management is part of the [Enterprise Edition](/self-hosting/advanced/license). You need an active enterprise license to create and manage quotas.
 </Note>
 
-### Key benefits
+### Key Benefits
 
 - **Balanced Data Collection**: Ensure your survey responses are evenly distributed across different segments
 - **Cost Control**: Prevent collecting more responses than needed from specific groups
 - **Quality Assurance**: Maintain data quality by avoiding homogeneous response patterns
 - **Automated Management**: Automatically stop collecting responses when quotas are met
 
-### How Quota Management works
+### How Quota Management Works
 
 When you set up quotas for your survey, Formbricks automatically tracks responses against your defined limits. Once a quota is reached, the system can:
 
-- Prevent new responses from that segment
-- Skip respondents to the end of the survey
-- Redirect respondents to a custom end screen
+- End the survey and redirect respondents to a specific ending card
+- Allow the respondent to continue the survey without counting toward the quota
 
-## Setting up Quotas
+## Plan Response Limits
+
+Each Formbricks plan includes a monthly response allowance that governs how many responses your organization can collect across all surveys. Quota management operates within these plan-level limits.
+
+| Plan | Monthly Responses | Monthly Identified Users (MIU) | Projects |
+|------|-------------------|-------------------------------|----------|
+| Free | 1,500 | 2,000 | 3 |
+| Startup | 5,000 | 7,500 | 3 |
+| Custom / Enterprise | Unlimited | Unlimited | Unlimited |
+
+{/* Source: apps/web/lib/constants.ts — BILLING_LIMITS constant */}
+
+<Note>
+  Plan-level response limits apply to your entire organization. Quota management lets you further control how those responses are distributed across specific segments within individual surveys.
+</Note>
+
+For controlling the total number of responses on a single survey (independent of segment-based quotas), see [Limit Submissions](/xm-and-surveys/surveys/general-features/limit-submissions).
+
+## Setting Up Quotas
+
 In the first step, you need to define the criteria for the quota:
 
 <Steps>
-  <Step title="Name the quota">
+  <Step title="Name The Quota">
     Create a Quota and label it e.g. "Mobile Phone Users in Europe"
   </Step>
-  <Step title="Set quota limit">
+  <Step title="Set Quota Limit">
     Set numerical limits for each hidden field value combination e.g. 500
   </Step>
-  <Step title="Define inclusion criteria">
-    Choose a distinct set of answers to survey questions, variable values or hidden fields. Responses who match this set will be included in the quota. 
+  <Step title="Define Inclusion Criteria">
+    Choose a distinct set of answers to survey questions, variable values or hidden fields. Responses who match this set will be included in the quota.
   </Step>
-  <Step title="Configure actions">
-    Choose what happens when this Quota is met (e.g. skip to specific end screen)
+  <Step title="Configure Actions">
+    Choose what happens when this Quota is met (e.g. end the survey and show a specific ending card)
   </Step>
 </Steps>
 
-## Quota actions
+## Quota Actions
+
 Configure what happens when a quota reaches its limit:
 
 <Tabs>
-  <Tab title="Skip to End">
-    Jump respondents directly to the survey completion page
+  <Tab title="End Survey">
+    When a quota is full, the respondent is immediately directed to a specific ending card. You must select which ending card to display when configuring this action. The response is automatically marked as finished and linked to the selected ending card.
   </Tab>
-  <Tab title="Custom Redirect (soon)">
-    Redirect respondents to a custom thank you page or alternative survey
+  <Tab title="Continue Survey">
+    When a quota is full, the respondent continues the survey as normal. The response is still tracked against the quota but is marked as screened out rather than screened in. This is useful when you want to collect additional data from respondents even after a segment quota is met.
   </Tab>
 </Tabs>
 
+{/* Source: packages/types/quota.ts — ZSurveyQuotaAction: "endSurvey" | "continueSurvey" */}
 
-## Counting against Quotas
+## Quota Enforcement Behavior
 
-### 1. Count by Hidden Field value
+Formbricks evaluates quotas in real time as responses are submitted. Understanding how enforcement works helps you design effective quota strategies.
+
+### Evaluation Flow
+
+1. **Response Submission**: When a respondent submits or updates a response, the system evaluates all active quotas for that survey.
+2. **Condition Matching**: Each quota's inclusion criteria (logic conditions) are checked against the response data, variables, and hidden fields.
+3. **Count Check**: For quotas where conditions match, the system counts existing screened-in responses. Depending on your configuration, either all responses or only completed responses are counted.
+4. **Action Trigger**: If the count meets or exceeds the quota limit, the configured action fires — the survey ends with a specific ending card, or the response is marked as screened out while the respondent continues.
+
+{/* Source: apps/web/modules/ee/quotas/lib/evaluation-service.ts, apps/web/modules/ee/quotas/lib/utils.ts */}
+
+### In-Progress Responses
+
+If a respondent is actively filling out a survey when a quota fills:
+
+- **End Survey action**: The response is immediately marked as finished and the respondent is redirected to the ending card. The response counts toward the quota.
+- **Continue Survey action**: The respondent continues without interruption. The response is marked as screened out for that quota.
+
+### Graceful Error Handling
+
+If the quota evaluation encounters an error (for example, a temporary database issue), the system defaults to allowing the response through (`shouldEndSurvey: false`). This fail-open design ensures respondents are never blocked due to transient infrastructure issues.
+
+## Counting Against Quotas
+
+### 1. Count By Hidden Field Value
 
 Determine if a response falls in or out of a Quota based on hidden field values passed through URL parameters:
 
-```
+```text
 https://your-survey-url.com/s/abc123?product=credit-card&region=europe
 ```
 
-### 2. Quota by survey responses
+### 2. Quota By Survey Responses
 
 Create quotas based on specific answers to survey questions:
 
@@ -85,7 +129,7 @@ Create quotas based on specific answers to survey questions:
   </Tab>
 </Tabs>
 
-### 3. Multi-criteria quotas
+### 3. Multi-Criteria Quotas
 
 Create complex quotas using multiple conditions:
 
@@ -106,15 +150,17 @@ Quota Limit: 50 responses
 ```
 </CodeGroup>
 
-### Partial vs. complete responses
+### Partial Vs. Complete Responses
 
-<Info>
-  By default, Quota Management includes partial responses in quota counts. You can change this behavior by configuring the quota to only count complete responses.
-</Info>
+<Note>
+  By default, Quota Management includes partial responses in quota counts. You can change this behavior by configuring the quota to only count complete responses (toggle the **Count Partial Submissions** setting when creating or editing a quota).
+</Note>
 
-This means if a respondent starts but doesn't complete the survey, they may still count toward your quota if they've answered the qualifying questions.
+This means if a respondent starts but does not complete the survey, they may still count toward your quota if they have answered the qualifying questions. When **Count Partial Submissions** is disabled, only responses marked as `finished: true` are counted toward the quota limit.
 
-## Quota monitoring
+{/* Source: apps/web/modules/ee/quotas/lib/utils.ts — countPartialSubmissions filter in handleQuotas */}
+
+## Quota Monitoring
 
 <Card title="Live Quota Status" icon="chart-line">
   Monitor your quotas in real-time through the dashboard in the survey summary:
@@ -122,4 +168,34 @@ This means if a respondent starts but doesn't complete the survey, they may stil
   - **Current Count**: See how many responses each quota has collected
   - **Progress Bars**: Visual representation of quota completion
   - **Status Indicators**: Active, completed, or paused quota status
+  - **Screened In / Screened Out**: Track how many responses matched quota criteria and whether they were counted or excluded
 </Card>
+
+## Upgrading Your Plan
+
+If you are approaching your plan's monthly response limit, you can upgrade to unlock additional capacity:
+
+| Upgrade Path | Response Increase | Additional Benefits |
+|-------------|-------------------|---------------------|
+| Free → Startup | 1,500 → 5,000 responses/month | Increased MIU from 2,000 to 7,500 |
+| Startup → Custom | 5,000 → Unlimited responses/month | Unlimited projects, MIU, and responses |
+
+{/* Source: apps/web/lib/constants.ts — BILLING_LIMITS constant */}
+
+To upgrade your plan:
+
+<Steps>
+  <Step title="Open Billing Settings">
+    Navigate to your **Organization Settings** and select the **Billing** tab.
+  </Step>
+  <Step title="Choose A Plan">
+    Review available plans and select the one that fits your response volume requirements.
+  </Step>
+  <Step title="Complete Payment">
+    Follow the Stripe checkout flow to activate your new plan. Your increased limits take effect immediately.
+  </Step>
+</Steps>
+
+<Note>
+  Plan-level response limits reset monthly. Quota management limits are per-survey and do not reset automatically — they track cumulative responses matching the defined criteria.
+</Note>

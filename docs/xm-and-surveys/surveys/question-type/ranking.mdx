@@ -24,17 +24,68 @@ icon: "ranking-star"
 
 ### Title
 
-Add a clear title to inform the respondent what information you are asking for.
+Add a clear title to inform the respondent what information you are asking for. This maps to the `headline` field in the survey schema and supports multi-language translations via the I18n system.
 
 ### Description
 
-Provide an optional description with further instructions.
+Provide an optional description with further instructions. This maps to the `subheader` field in the survey schema and is optional. Descriptions also support multi-language translations.
 
 ### Options
 
-You need to add at least two options so that users can rearrange them in numerical order based on their selection.
+The ranking element requires a list of choices for respondents to reorder. Each choice consists of:
 
-### Select ordering
+- **`id`** (string) — A unique identifier for the choice.
+- **`label`** (I18n string) — The display text shown to the respondent, with support for multi-language translations.
 
-- Keep current order: This will keep the order of options the same for all respondents.
-- Randomize all: This will randomize the options for each respondent.
+You must add at least two choices and can include up to 25 choices per ranking element. Each choice supports multi-language translations via the I18n system, allowing you to present localized options to respondents across different locales.
+
+### Drag-and-Drop Ordering
+
+Respondents interact with the ranking element through a drag-and-drop interface. They drag items to reorder them based on their preference, and the items are rearranged in real-time as the user drags. The ranking is determined by the final order of the items:
+
+- **First position** = Rank 1 (most preferred)
+- **Second position** = Rank 2
+- **Third position** = Rank 3
+- And so on for each subsequent item
+
+<Note>
+  The drag-and-drop interface provides a natural and intuitive way for respondents to express their preferences. Items snap into place as they are dragged, giving immediate visual feedback on the current ranking order.
+</Note>
+
+### Select Ordering
+
+Control the initial order in which choices are presented to respondents using the `shuffleOption` field:
+
+- **Keep current order** (`none`) — Items appear in the exact order they were added in the survey editor. This is the default behavior.
+- **Randomize all** (`all`) — All items are randomly shuffled for each respondent, reducing position bias in responses.
+- **Randomize except last** (`exceptLast`) — All items are randomly shuffled except the last one, which remains in its original position. This is useful when the last option is an "Other" or catch-all choice.
+
+### Validation Rules
+
+Ranking elements support validation rules that control how many items must be ranked before a response is accepted. The following rules are available:
+
+| Rule | Description | Parameters |
+|------|-------------|------------|
+| `rankAll` | Requires respondents to rank every single item in the list. No items can be left unranked. | None (no parameters required) |
+| `minRanked` | Requires a minimum number of items to be ranked before the response is accepted. | `min` (number, must be ≥ 1) — The minimum number of items that must be ranked. |
+
+<Note>
+  When multiple validation rules are applied, they are combined using the configured logic operator (`and` or `or`). By default, rules are combined with `and`, meaning all conditions must be satisfied for the response to be accepted.
+</Note>
+
+### Response Data Format
+
+Ranking responses are stored as an ordered array of choice labels. The position within the array represents the rank, where the first element (index 0) is ranked highest (Rank 1), and subsequent elements represent decreasing rank.
+
+```json
+["Choice A", "Choice C", "Choice B"]
+```
+
+In this example:
+- **Choice A** was ranked #1 (most preferred)
+- **Choice C** was ranked #2
+- **Choice B** was ranked #3
+
+---
+
+*Source: `packages/types/surveys/elements.ts` (ZSurveyRankingElement), `packages/types/surveys/validation-rules.ts` (RANKING_RULES)*

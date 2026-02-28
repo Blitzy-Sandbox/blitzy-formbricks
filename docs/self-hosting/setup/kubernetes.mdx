@@ -5,25 +5,32 @@ icon: "circle-nodes"
 ---
 
 ## Prerequisites
+
 Ensure you have the following before proceeding:
 
 - A running Kubernetes cluster (EKS, GKE, AKS, Minikube, etc.)
 - An **Ingress Controller** (e.g., Traefik, Nginx)
-- **Helm installed** on your local machine
+- **Helm 3.x** installed on your local machine
+- **kubectl** installed and configured for your cluster
 - **Production setup requires managed PostgreSQL and Redis services**
 
-> **Note:** Redis is required for **session handling** when deploying multiple pods.
+<Note>
+  Redis/Valkey is required for **session management, rate limiting, caching, and audit logging** when deploying multiple pods.
+</Note>
 
 ---
 
-## 1. Installation Steps
+## Installation Steps
 
 <Steps>
 <Step title="Install with Default Configuration">
 ```sh
 helm install formbricks oci://ghcr.io/formbricks/helm-charts/formbricks -n formbricks --create-namespace
 ```
-> **Note:** To specify specific version use `--version` flag. E.g., `--version 1.0.0`. Starting from 3.5.0, the chart is available on the GitHub Container Registry (GHCR).
+
+<Note>
+  To specify a specific version, use the `--version` flag. For example, `--version 1.0.0`. Starting from version 3.5.0, the chart is available on the GitHub Container Registry (GHCR) OCI registry.
+</Note>
 
 By default:
 - PostgreSQL and Redis are deployed within the cluster.
@@ -39,7 +46,7 @@ helm install formbricks oci://ghcr.io/formbricks/helm-charts/formbricks -n formb
 
 ---
 
-## 2. Configuring Secrets
+## Configuring Secrets
 
 ### Using Kubernetes Secrets (Default)
 By default, **secrets are stored as Kubernetes Secrets**.
@@ -107,9 +114,9 @@ helm install formbricks oci://ghcr.io/formbricks/helm-charts/formbricks -n formb
 
 ---
 
-## 3. Configuring PostgreSQL and Redis
+## Configuring PostgreSQL And Redis
 
-### Using Managed PostgreSQL and Redis
+### Using Managed PostgreSQL And Redis
 For production, we recommend using **managed database and cache services**.
 
 Modify `values.yaml`:
@@ -129,7 +136,7 @@ helm install formbricks oci://ghcr.io/formbricks/helm-charts/formbricks -n formb
 
 ---
 
-### Using In-Cluster PostgreSQL and Redis (Default)
+### Using In-Cluster PostgreSQL And Redis (Default)
 By default, PostgreSQL and Redis are **deployed inside the cluster**.
 To **ensure in-cluster deployment**, use:
 
@@ -145,9 +152,45 @@ Apply with:
 helm install formbricks oci://ghcr.io/formbricks/helm-charts/formbricks -n formbricks --create-namespace -f values.yaml
 ```
 
+<Note>
+  The Helm chart uses `pgvector/pgvector:0.8.0-pg17` (PostgreSQL 17 with the pgvector extension) by default for the in-cluster PostgreSQL deployment, as configured in `values.yaml`:
+
+  ```yaml
+  postgresql:
+    image:
+      repository: pgvector/pgvector
+      tag: 0.8.0-pg17
+  ```
+</Note>
+
+The Redis subchart defaults to **standalone** mode with authentication enabled:
+
+```yaml
+redis:
+  architecture: standalone
+  auth:
+    enabled: true
+```
+
+<Note>
+  For file uploads, configure S3-compatible storage via environment variables. The Helm chart supports passing these through `deployment.env` or `deployment.envFrom`:
+
+  ```yaml
+  deployment:
+    env:
+      S3_ACCESS_KEY: "your-access-key"
+      S3_SECRET_KEY: "your-secret-key"
+      S3_BUCKET_NAME: "formbricks"
+      S3_ENDPOINT_URL: "https://your-s3-endpoint"
+      S3_FORCE_PATH_STYLE: "1"
+  ```
+
+  See [Environment Variables](/self-hosting/configuration/environment-variables) for the full list of configurable variables.
+</Note>
+
 ---
 
-## 4. Upgrading the Deployment
+## Upgrading The Deployment
 To apply changes:
 ```sh
 helm upgrade formbricks oci://ghcr.io/formbricks/helm-charts/formbricks -n formbricks
@@ -165,25 +208,101 @@ helm upgrade formbricks oci://ghcr.io/formbricks/helm-charts/formbricks -n formb
 
 ---
 
-## 5. Key Configuration Values
+## Key Configuration Values
 
-| Field                         | Description                          | Default Value |
-|--------------------------------|--------------------------------------|--------------|
-| `deployment.replicas`         | Number of application replicas       | `1`          |
-| `deployment.image.repository` | Docker image repository              | `"ghcr.io/formbricks/formbricks"` |
-| `deployment.image.tag`        | Docker image tag                     | `"latest"`   |
-| `autoscaling.enabled`         | Enable autoscaling                   | `false`      |
-| `postgresql.enabled`          | Deploy PostgreSQL in cluster         | `true`       |
-| `postgresql.externalDatabaseUrl` | External PostgreSQL URL           | `""`         |
-| `redis.enabled`               | Deploy Redis in cluster              | `true`       |
-| `redis.externalRedisUrl`      | External Redis URL                   | `""`         |
-| `externalSecret.enabled`      | Enable external secrets manager      | `false`      |
+| Field                            | Description                          | Default Value                       |
+|----------------------------------|--------------------------------------|-------------------------------------|
+| `deployment.replicas`            | Number of application replicas       | `1`                                 |
+| `deployment.image.repository`    | Docker image repository              | `"ghcr.io/formbricks/formbricks"`  |
+| `deployment.image.tag`           | Docker image tag                     | `"latest"`                          |
+| `autoscaling.enabled`            | Enable autoscaling                   | `false`                             |
+| `postgresql.enabled`             | Deploy PostgreSQL in cluster         | `true`                              |
+| `postgresql.externalDatabaseUrl` | External PostgreSQL URL              | `""`                                |
+| `redis.enabled`                  | Deploy Redis in cluster              | `true`                              |
+| `redis.externalRedisUrl`         | External Redis URL                   | `""`                                |
+| `externalSecret.enabled`         | Enable external secrets manager      | `false`                             |
+| `formbricks.webappUrl`           | Base URL of the Formbricks instance  | `""`                                |
+| `enterprise.enabled`             | Enable enterprise features           | `false`                             |
+| `enterprise.licenseKey`          | Enterprise license key               | `""`                                |
+| `migration.enabled`              | Enable database migration job        | `true`                              |
+| `serviceMonitor.enabled`         | Enable Prometheus ServiceMonitor     | `true`                              |
+| `ingress.enabled`                | Enable Ingress resource              | `false`                             |
+| `ingress.ingressClassName`       | Ingress class name                   | `alb`                               |
 
-**Refer to the Helm chart repository for full configuration options.**
+Refer to the [Formbricks Helm chart](https://github.com/formbricks/formbricks/tree/main/charts/formbricks) for full configuration options.
+
+Source: `charts/formbricks/Chart.yaml`, `charts/formbricks/values.yaml`
 
 ---
 
-## 6. Uninstalling the Deployment
+## Configuring Ingress
+
+To expose Formbricks via an Ingress resource, enable and configure the `ingress` section in `values.yaml`:
+
+```yaml
+ingress:
+  enabled: true
+  ingressClassName: nginx  # or alb, traefik, etc.
+  hosts:
+    - host: formbricks.example.com
+      paths:
+        - path: /
+          pathType: "Prefix"
+          serviceName: "formbricks"
+  annotations:
+    # Add your ingress annotations here
+    # For example, for cert-manager:
+    # cert-manager.io/cluster-issuer: "letsencrypt-prod"
+```
+
+<Note>
+  Ensure your Ingress Controller (e.g., Nginx, Traefik, ALB) is installed and configured in the cluster before enabling Ingress.
+</Note>
+
+---
+
+## Monitoring
+
+The Helm chart includes a built-in Prometheus **ServiceMonitor** that is enabled by default (`serviceMonitor.enabled: true`). Metrics are scraped every 5 seconds from the `/metrics` endpoint on port `9464`.
+
+```yaml
+serviceMonitor:
+  enabled: true
+  endpoints:
+    - interval: 5s
+      path: /metrics
+      port: metrics
+```
+
+For detailed monitoring configuration including log levels, OpenTelemetry, and Sentry integration, see [Monitoring](/self-hosting/setup/monitoring).
+
+---
+
+## Database Migrations
+
+The chart includes a database migration job that runs automatically before the main deployment. Migration is enabled by default (`migration.enabled: true`).
+
+- When using **ArgoCD**, migrations run as a **PreSync hook** before the deployment, and the in-container startup migration is skipped.
+- The migration job is cleaned up after **300 seconds** (`ttlSecondsAfterFinished: 300`).
+- Resource allocation: **256Mi–512Mi** memory, **100m** CPU.
+- The job retries up to **3 times** before being marked as failed (`backoffLimit: 3`).
+
+```yaml
+migration:
+  enabled: true
+  ttlSecondsAfterFinished: 300
+  backoffLimit: 3
+  resources:
+    limits:
+      memory: 512Mi
+    requests:
+      memory: 256Mi
+      cpu: "100m"
+```
+
+---
+
+## Uninstalling The Deployment
 To remove the deployment:
 ```sh
 helm uninstall formbricks -n formbricks
@@ -207,5 +326,7 @@ kubectl delete namespace formbricks
 - **Ingress Setup:** If using an ingress controller, make sure to configure `ingress.enabled: true` in `values.yaml`.
 - **Environment Variables:** Pass custom environment variables via `envFrom` in `values.yaml`.
 - **Backup Strategy:** Ensure you have a backup policy for PostgreSQL if running in-cluster.
+- **Monitoring:** Prometheus metrics are enabled by default via the built-in ServiceMonitor.
+- **File Storage:** Configure S3-compatible storage for file uploads via environment variables.
 
 **Your Formbricks deployment is now ready!**

@@ -26,23 +26,49 @@ Rating questions allow respondents to rate questions on a scale. Displays a titl
 
 ### Title
 
-Add a clear title to inform the respondent what information you are asking for.
+Add a clear title to inform the respondent what information you are asking for. This maps to the `headline` field in the survey schema and supports multi-language translations.
 
 ### Description
 
-Provide an optional description with further instructions.
+Provide an optional description with further instructions. This maps to the optional `subheader` field and also supports multi-language translations.
 
 ### Scale
 
-Select the icon to be used for the rating scale. The options include: stars, numbers or smileys. The default is stars.
+Select the display mode to be used for the rating scale. There are four visual styles available:
+
+| Display Mode | Value | Description |
+|-------------|-------|-------------|
+| **Star** | `star` | Star icons that fill based on selection (default) |
+| **Smiley** | `smiley` | Smiley face emoticons representing satisfaction levels |
+| **Number** | `number` | Numeric buttons displayed as labels |
+| **Heart** | `heart` | Heart icons for sentiment-based ratings |
+
+Each display mode provides a different visual representation but collects the same underlying numeric data.
 
 ### Range
 
-Select the range of the rating scale. the options include: 3, 4, 5, 6, 7 or 10. The default is 5.
+Select the range of the rating scale. The supported ranges are: 3, 4, 5, 6, 7, or 10. The default is 5. Respondents select a value from 1 up to the selected range number.
 
 ### Labels
 
-Add labels for the lower and upper bounds of the rating scale. The default is "Not good" and "Very good".
+Add labels for the lower and upper bounds of the rating scale:
+
+- **Lower Label** (`lowerLabel`) — Displayed beneath the lowest rating value (e.g., "Not satisfied")
+- **Upper Label** (`upperLabel`) — Displayed beneath the highest rating value (e.g., "Very satisfied")
+
+Both labels support multi-language translations for internationalized surveys. The defaults are "Not good" and "Very good".
+
+### Color Coding
+
+Enable the `isColorCodingEnabled` option to apply visual color cues to the rating scale. When enabled, rating values are color-coded from red (low) to green (high), providing immediate visual feedback about the sentiment of the selected value.
+
+This option is disabled by default.
+
+<Note>Color coding works with all four display modes (star, smiley, number, heart) and helps respondents intuitively understand the sentiment associated with each rating value.</Note>
+
+## Response Format
+
+The response for a rating question is always a single numeric value within the selected range (1 to the maximum range value). There are no additional validation rules — the respondent simply selects one value from the scale.
 
 ## CSAT Summary
 
@@ -54,9 +80,13 @@ After collecting responses, rating questions display a CSAT (Customer Satisfacti
 
 <Note>The traffic light indicator appears automatically in the survey summary view, giving you instant feedback on user satisfaction without needing to dig into the data.</Note>
 
-### How CSAT is Calculated
+### How CSAT Is Calculated
 
-The CSAT percentage represents the proportion of respondents who gave a "satisfied" rating. What counts as "satisfied" depends on your selected range:
+The CSAT percentage represents the proportion of respondents who gave a "satisfied" rating. The formula is:
+
+**CSAT Score = (Number of Satisfied Responses / Total Responses) × 100**
+
+What counts as "satisfied" depends on your selected range:
 
 | Range | Satisfied Ratings | Examples |
 |-------|------------------|----------|
@@ -70,3 +100,7 @@ The CSAT percentage represents the proportion of respondents who gave a "satisfi
 <Note>
 **Pro Tip:** For most use cases, a 5-point scale with star or smiley icons provides the best balance between granularity and user experience. Users find it easy to understand and quick to complete.
 </Note>
+
+---
+
+*Source: `packages/types/surveys/elements.ts` — `ZSurveyRatingElement`*

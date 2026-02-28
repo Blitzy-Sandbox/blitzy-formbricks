@@ -12,14 +12,101 @@ icon: "palette"
 
 Keep the survey styling consistent over all surveys with a Styling Theme. Customize the colors, fonts, and other styling options to match your brand's aesthetic.
 
+## CSS Variable System
+
+Formbricks uses a comprehensive CSS variable architecture to power survey theming. All survey styles are defined as CSS custom properties scoped under the `#fbjs` selector, which ensures complete style isolation when surveys are embedded in external pages.
+
+### The `#fbjs` Scoping Mechanism
+
+Every CSS variable for the survey renderer is declared inside the `#fbjs` selector. This is an intentional architectural decision: when a survey is embedded in-app or on a website, the `#fbjs` scope prevents survey styles from leaking into the host page and vice versa. The survey renderer creates a container element with `id="fbjs"` that encapsulates all survey styles.
+
+### Base Design Tokens
+
+The following base primitives are defined within `#fbjs` and form the foundation of the design system:
+
+| Token | Purpose | Default |
+|-------|---------|---------|
+| `--radius` | Corner roundness for components | `0.625rem` |
+| `--background` / `--foreground` | Page-level background and text colors | `oklch(1 0 0)` / `oklch(0.145 0 0)` |
+| `--card` / `--card-foreground` | Card background and text colors | `oklch(1 0 0)` / `oklch(0.145 0 0)` |
+| `--primary` / `--primary-foreground` | Brand and action button colors | `oklch(0.205 0 0)` / `oklch(0.985 0 0)` |
+| `--secondary` / `--secondary-foreground` | Secondary action colors | `oklch(0.97 0 0)` / `oklch(0.205 0 0)` |
+| `--muted` / `--muted-foreground` | Muted and disabled state colors | `oklch(0.97 0 0)` / `oklch(0.556 0 0)` |
+| `--accent` / `--accent-foreground` | Accent highlight colors | `oklch(0.97 0 0)` / `oklch(0.205 0 0)` |
+| `--destructive` / `--destructive-muted` | Error and destructive action colors | `oklch(0.577 0.245 27.325)` / `oklch(0.97 0.02 27.325)` |
+| `--border` / `--input` | Border and input element styling | `oklch(0.922 0 0)` / `black` |
+| `--slate-50` through `--slate-900` | Slate color scale for neutral tones | `rgb(248, 250, 252)` through `rgb(15 23 42)` |
+
+### Theming Tokens (`--fb-*` Prefix)
+
+Survey-specific theming variables use the `--fb-*` prefix and control the appearance of individual survey elements:
+
+| Token | Purpose | Default |
+|-------|---------|---------|
+| `--fb-survey-brand-color` | Primary brand color | `#64748b` |
+| `--fb-accent-background-color` | Accent background for selections | `#e2e8f0` |
+| `--fb-accent-background-color-selected` | Selected state accent background | `#f1f5f9` |
+| `--fb-element-headline-color` | Headline text color | `#414b5a` |
+| `--fb-element-description-color` | Description text color | `#414b5a` |
+| `--fb-input-bg-color` | Input field background | `#f3f4f6` |
+| `--fb-input-border-color` | Input field border color | `#c1c7d1` |
+| `--fb-button-bg-color` | Button background color | `#414b5a` |
+| `--fb-button-text-color` | Button text color | `#ffffff` |
+| `--fb-progress-track-bg-color` | Progress bar track color | `#d9dbde` |
+| `--fb-progress-indicator-bg-color` | Progress bar indicator color | `#414b5a` |
+| `--fb-option-bg-color` | Option (radio/checkbox) background | `#f3f4f6` |
+| `--fb-option-label-color` | Option label text color | `#414b5a` |
+
+These values are derived from the brand color using the `getSuggestedColors()` function. When you set a brand color, the following derived palette is automatically calculated:
+
+| Derived Color | Formula | Example (Brand `#64748b`) |
+|--------------|---------|--------------------------|
+| `questionColor` | Brand mixed with black at 0.35 | `#414b5a` |
+| `inputBg` | Brand mixed with white at 0.92 | `#f3f4f6` |
+| `inputBorder` | Brand mixed with white at 0.60 | `#c1c7d1` |
+| `cardBg` | Brand mixed with white at 0.97 | `#fafbfc` |
+| `cardBorder` | Brand mixed with white at 0.80 | `#e0e3e8` |
+| `progressTrack` | `questionColor` mixed with white at 0.80 | `#d9dbde` |
+
+### CSS Variable Structure Example
+
+Below is a simplified view of the CSS variable declarations scoped to `#fbjs`:
+
+```css
+#fbjs {
+  /* Base primitives */
+  --radius: 0.625rem;
+  --background: oklch(1 0 0);
+  --foreground: oklch(0.145 0 0);
+  --primary: oklch(0.205 0 0);
+  --primary-foreground: oklch(0.985 0 0);
+
+  /* Survey theming tokens */
+  --fb-survey-brand-color: #00C4B8;
+  --fb-element-headline-color: #414b5a;
+  --fb-input-bg-color: #f3f4f6;
+  --fb-input-border-color: #c1c7d1;
+  --fb-button-bg-color: #414b5a;
+  --fb-button-text-color: #ffffff;
+  --fb-progress-track-bg-color: #d9dbde;
+}
+```
+
+### Runtime Override Behavior
+
+<Note>
+  At runtime, the JavaScript styling system always overrides the CSS variable values from the JS configuration object. The CSS values defined in the stylesheet serve as the initial and fallback state, ensuring the survey looks correct before JavaScript executes. Once the JS styling engine initializes, it applies the project-level or survey-level theme settings directly to the CSS variables.
+</Note>
+
+Source: `packages/survey-ui/src/styles/globals.css`, `apps/web/lib/styling/constants.ts`
+
 ## Configuration
 
 In the left side bar, you find the `Configuration` page. On this page you find the `Look & Feel` section:
 
 ![Look & Feel](/images/xm-and-surveys/core-features/styling-theme/look-and-feel.webp)
-/>
 
-## **Styling Options**
+## Styling Options
 
 1. **Form Styling:** Customize the survey card using the following settings
 
@@ -77,12 +164,47 @@ Customize your survey with your brand's logo.
 
 <Note>The logo settings apply across all Link Surveys pages.</Note>
 
-## Overwrite Styling Theme
+## Global Theme Vs Survey-Level Overrides
 
-You can allow to overwrite the styling theme for individual surveys to create unique styles for each survey:
+Formbricks uses a two-tier theming model that gives you flexibility while maintaining brand consistency across all surveys in a project.
 
-![Choose a link survey template](/images/xm-and-surveys/core-features/styling-theme/allow-overwrite.webp)
+### Global Theme (Project-Level)
 
-In the survey editor, a tab called `Styling` will appear. Here you can overwrite the default styling theme.
+The global theme is configured once in **Project Settings > Configuration > Look & Feel**. It applies to all surveys in the project by default. Any changes to the global theme automatically propagate to all surveys that do not have individual overrides applied.
 
----
+### Survey-Level Overrides
+
+When "Allow Overwrite" is enabled in project settings, individual surveys can override the global theme through the survey editor's **Styling** tab. This allows you to create unique visual styles for specific surveys while keeping the global theme as the default for everything else.
+
+![Allow overwrite styling theme](/images/xm-and-surveys/core-features/styling-theme/allow-overwrite.webp)
+
+In the survey editor, a tab called `Styling` will appear. Here you can overwrite the default styling theme for that specific survey.
+
+<Note>
+  **How overrides work:**
+  - Survey-level overrides always take precedence over the global theme.
+  - If "Allow Overwrite" is disabled in project settings, all surveys use the global theme exclusively and the **Styling** tab will not appear in the survey editor.
+  - Changes to the global theme propagate to all surveys that do not have individual overrides. Surveys with custom overrides retain their own styling.
+</Note>
+
+## Style Isolation For Embedded Surveys
+
+When surveys are embedded in-app or on external websites, style isolation is critical to prevent conflicts between the survey UI and the host page's CSS.
+
+Formbricks achieves this through the `#fbjs` CSS scoping mechanism:
+
+- The survey renderer creates a container element with `id="fbjs"` that encapsulates all survey markup and styles
+- All survey CSS rules are scoped under the `#fbjs` selector, so they only apply within the survey container
+- Host page CSS cannot accidentally affect the survey's appearance because the survey styles have higher specificity within the `#fbjs` scope
+- Similarly, survey styles do not leak out and affect the host page's layout or appearance
+
+This isolation works consistently across both rendering modes:
+
+- **Preact renderer** — used for in-app and website surveys where the survey is injected into an existing page
+- **React renderer** — used for standalone link surveys served on their own page
+
+<Note>
+  No additional configuration is required for style isolation. The `#fbjs` scoping is built into the survey renderer and works automatically whenever a survey is displayed.
+</Note>
+
+Source: `packages/surveys/`, `packages/survey-ui/`

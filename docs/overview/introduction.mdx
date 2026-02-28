@@ -6,27 +6,33 @@ icon: "presentation-screen"
 
 ## Welcome to the Formbricks Documentation!
 
-Formbricks is a versatile open-source platform for collecting and analyzing feedback from customers, users, and employees through targeted surveys. Whether you need simple forms or complex experience management solutions, Formbricks scales with your needs.
+Formbricks is a powerful open-source experience management platform for collecting and analyzing feedback from customers, users, and employees through targeted surveys. It ships with 26 features (16 core and 10 enterprise), 15 question types, 4 distribution channels (in-app, website, link, and email surveys), 6+ native integrations (Slack, Google Sheets, Notion, Airtable, Zapier, n8n), a lightweight 7KB browser SDK, and a dual REST API (v1 and v2). Whether you need simple feedback forms, advanced experience management, or enterprise-grade features like SSO, audit logging, team-based access, and billing — Formbricks scales with your needs.
 
-This guide covers everything you need to set up, use, and develop with Formbricks. You'll find step-by-step instructions, feature explanations, and best practices. It also includes advanced docs on extending Formbricks using its self-hosted option, APIs, and SDKs.
+This documentation covers everything from initial setup to advanced platform customization. Follow the recommended path: start with the platform overview, set up your self-hosted instance or cloud account, create your first survey, integrate the SDK into your website or app, review analytics, and configure integrations. You will find step-by-step instructions, feature explanations, best practices, and complete API references across the sections below.
 
 
 <CardGroup cols={2}>
-
   <Card title="XM & Surveys" icon="square-poll-vertical" href="/xm-and-surveys/overview">
-    Learn how to use Formbricks' XM & Surveys to collect feedback from your customers, users, and employees.
+    Create and distribute surveys using 15 question types across 4 channels (in-app, website, link, email). Explore integrations, styling, user management, and best practices.
   </Card>
-  <Card href="/self-hosting/overview" title="Self Host" icon="server">
-  Learn how to self-host Formbricks on your infrastructure.
-</Card>
-
-<Card href="/api-reference/rest-api" title="API" icon="code">
-  Learn how to use Formbricks' API to CRUD various resources programmatically.
-</Card>
-
-  <Card title="Start developing" icon="rocket" href="/development/overview">
-    Warm up with the Formbricks code base to make changes to the platform.
+  <Card title="Self Host" icon="server" href="/self-hosting/overview">
+    Deploy Formbricks on your own infrastructure with Docker, Kubernetes, or one-click setup. Configure environment variables, auth/SSO, SMTP, file uploads, and more.
   </Card>
-
+  <Card title="API Reference" icon="code" href="/api-reference/rest-api">
+    Access the Public Client API and Management API (v1) for programmatic survey management, response collection, and webhook configuration. Also explore the API v2 (Beta) for next-generation endpoints.
+  </Card>
+  <Card title="Development" icon="rocket" href="/development/overview">
+    Set up your local development environment (Mac, Linux, Windows, Codespaces, Gitpod), follow coding standards, explore the technical handbook, and contribute to the project.
+  </Card>
 </CardGroup>
+
+## Recommended Learning Paths
+
+<Note>
+  **New Users:** Start with [What is Formbricks?](/overview/what-is-formbricks) to understand the platform, then [set up self-hosting](/self-hosting/overview) or sign up for cloud, and [create your first survey](/xm-and-surveys/surveys/link-surveys/quickstart).
+
+  **Developers:** Begin with [local setup](/development/overview), integrate the [SDK into your app](/xm-and-surveys/surveys/website-app-surveys/quickstart), and explore the [API reference](/api-reference/rest-api).
+
+  **Enterprise Users:** Configure [self-hosting](/self-hosting/overview), set up [SSO](/self-hosting/configuration/auth-sso/saml-sso), and enable [enterprise features](/self-hosting/advanced/license) like audit logging, team access, and billing.
+</Note>
 

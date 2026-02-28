@@ -1,6 +1,7 @@
 ---
 title: "n8n"
 description: "Integrate Formbricks with n8n for a streamlined workflow experience."
+icon: "circle-nodes"
 ---
 
 <Note>
@@ -11,7 +12,7 @@ description: "Integrate Formbricks with n8n for a streamlined workflow experienc
 
 n8n allows you to build flexible workflows focused on deep data integration. And with sharable templates and a user-friendly UI, the less technical people on your team can collaborate on them too. Unlike other tools, complexity is not a limitation. So you can build whatever you want — without stressing over budget. Hook up Formbricks with n8n and you can send your data to 350+ other apps. Here is how to do it.
 
-## Step 1: Setup your survey incl. `questionId` for every question
+## Step 1: Setup Your Survey Incl. `questionId` For Every Question
 
 <Note>
   Nailed down your survey? Any changes in the survey cause additional work in
@@ -32,13 +33,13 @@ When setting up the node your life will be easier when you change the `questionI
   ![Duplicate Survey](/images/xm-and-surveys/core-features/integrations/n8n/duplicate-survey.webp)
 </Note>
 
-## Step 2: Setup your n8n workflow
+## Step 2: Setup Your n8n Workflow
 
 Go to [n8n.io](https://n8n.io) and create a new workflow. Search for “Formbricks” to get started:
 
 ![Add Formbricks Trigger](/images/xm-and-surveys/core-features/integrations/n8n/add-formbricks-trigger.webp)
 
-## Step 3: Connect Formbricks with n8n
+## Step 3: Connect Formbricks With n8n
 
 Now, you have to connect n8n with Formbricks via an API Key:
 
@@ -48,7 +49,7 @@ Click on Create New Credentail button to add your host and API Key
 
 ![Add host and api key](/images/xm-and-surveys/core-features/integrations/n8n/add-api-key.webp)
 
-Now you need an API key. Please refer to the [API Key Setup](/api-reference/rest-api#how-to-generate-an-api-key) page to learn how to create one.
+Now you need an API key. Please refer to the [API Key Setup](/api-reference/generate-key) page to learn how to create one.
 
 Once you copied it in the API Key field, hit Save button to test the connection and save the credentials.
 
@@ -72,7 +73,7 @@ Here, we are selecting two surveys.
 
 ![Selected Surveys](/images/xm-and-surveys/core-features/integrations/n8n/selected-surveys.webp)
 
-## Step 6: Test your trigger
+## Step 6: Test Your Trigger
 
 In order to set up n8n you'll need a test response in the selected survey. This allows you to select the individual values of each response in your workflow.
 
@@ -88,7 +89,7 @@ Then, go to the survey which you selected. Fill it out, and wait for the particu
 
 Now you have all the data you need at hand. The next steps depend on what you want to do with it. In this tutorial, we will send submissions to a discord channel:
 
-## Step 7: Add discord to your workflow
+## Step 7: Add Discord To Your Workflow
 
 Click on the plus and search `Discord`.
 
@@ -101,3 +102,38 @@ Fill in the `Webhook URL` and the `Content` that you want to receive in the resp
 Once the execution is successful, you'll receive the content in the discord channel.
 
 ![Discord Response](/images/xm-and-surveys/core-features/integrations/n8n/discord-response.webp)
+
+## Self-Hosted n8n Compatibility
+
+Formbricks works with both n8n Cloud and self-hosted n8n instances. The community node `@formbricks/n8n-nodes-formbricks` functions identically on either deployment.
+
+When connecting the two services, keep the following in mind:
+
+- **n8n Cloud + Formbricks Cloud:** No special configuration is required. Use `https://app.formbricks.com` as the API host when creating your Formbricks credentials in n8n.
+- **Self-hosted n8n + Formbricks Cloud:** Use `https://app.formbricks.com` as the API host. Ensure your self-hosted n8n instance has outbound internet access to reach the Formbricks API.
+- **n8n Cloud + Self-hosted Formbricks:** Set the API host to your self-hosted Formbricks URL (e.g., `https://formbricks.example.com`). Your Formbricks instance must be publicly accessible so that n8n Cloud can reach it.
+- **Self-hosted n8n + Self-hosted Formbricks:** Set the API host to the URL of your self-hosted Formbricks instance. Both services can communicate over your internal network as long as n8n can reach the Formbricks API endpoint.
+
+<Note>
+  When using a self-hosted Formbricks instance, make sure the URL you enter as the API host is reachable from the n8n environment. If your Formbricks instance is behind a firewall or VPN, configure the appropriate network rules to allow n8n to connect.
+</Note>
+
+## Data Mapping
+
+When a survey response triggers your n8n workflow, the Formbricks trigger node delivers the full webhook payload. Response data is keyed by each question's `questionId`, which is why setting meaningful question IDs in Step 1 is important for readability.
+
+The payload contains the following top-level field groups:
+
+| Field Group | Description |
+|------------|-------------|
+| `data.*` | Survey response values keyed by `questionId` (e.g., `data.satisfaction`, `data.feedback`) |
+| `meta.country` | The country from which the response was submitted |
+| `meta.userAgent` | Browser and operating system information of the respondent |
+| `survey.title` | The name of the survey that received the response |
+| `survey.type` | The survey distribution type (e.g., `link` or `app`) |
+
+Use these fields in subsequent n8n nodes to route and transform data. For example, you can map `data.*` fields to columns in a Google Sheet, include `survey.title` in a Slack notification message, or filter workflows based on `meta.country`.
+
+<Note>
+  The available trigger events are `responseCreated`, `responseUpdated`, and `responseFinished`. Choose the event that best fits your workflow — `responseFinished` fires only when all required questions are answered and the survey is submitted.
+</Note>

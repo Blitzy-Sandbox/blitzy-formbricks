@@ -5,7 +5,7 @@ description:
 icon: "text"
 ---
 
-Free text questions allow respondents to enter a custom answer. Displays a title and an input field for the respondent to type in.
+Free text questions (internally referred to as **OpenText** elements) allow respondents to enter a custom answer. Displays a title and an input field for the respondent to type in.
 
 <iframe
   title="Survey Embed"
@@ -25,25 +25,116 @@ Free text questions allow respondents to enter a custom answer. Displays a title
 
 ![Overview of Free Text question type](/images/xm-and-surveys/core-features/question-type/free-text.webp)
 
-
 ### Title
 
-Add a clear title to inform the respondent what information you are asking for.
+Add a clear title to inform the respondent what information you are asking for. This maps to the `headline` field in the survey element schema and supports internationalization (I18n) for multi-language surveys.
 
 ### Description
 
-Provide an optional description with further instructions.
+Provide an optional description with further instructions. The description field (internally `subheader`) supports rich text formatting and is useful for adding context or guidance beneath the main title.
 
 ### Placeholder
 
-Specify a placeholder text to display in the input field.
+Specify a placeholder text to display in the input field. The placeholder supports internationalization (I18n), so you can provide locale-specific placeholder text for multi-language surveys.
 
 ### Input Type
 
-Choose the type of input field to display. Options include:
+Choose the type of input field to display. The `inputType` setting determines both the validation applied to the response and the keyboard layout shown on mobile devices. The five available input types are:
 
-- **Text**: A text area input. This can be converted to a single line input field if needed, by toggling the _"Long answer"_ switch at the bottom of the question segment.
-- **Email**: A single-line text input that validates the input as an email address.
-- **URL**: A single-line text input that validates the input as a URL.
-- **Number**: A single-line text input that validates the input as a number and shows "increase" and "decrease" buttons.
-- **Phone**: A single-line text input that validates the input as a phone number.
+- **Text** — Standard free-text input for open-ended responses. By default this renders as a multi-line textarea (long answer). You can toggle the _"Long answer"_ switch at the bottom of the question segment to convert it to a single-line input field.
+- **Email** — A single-line text input that validates the response as a properly formatted email address.
+- **URL** — A single-line text input that validates the response as a properly formatted URL.
+- **Number** — A single-line text input that accepts only numeric values. Displays increment and decrement buttons for convenience. When this input type is selected, additional numeric validation rules become available (see [Validation Rules](#validation-rules) below).
+- **Phone** — A single-line text input that validates the response as a phone number format.
+
+<Note>
+The input type affects the virtual keyboard shown on mobile devices. For example, selecting **Email** presents an email-optimized keyboard with the `@` symbol readily accessible, while **Number** shows a numeric keypad.
+</Note>
+
+### Character Limits
+
+You can configure minimum and maximum character limits for free text responses using the character limit settings. When enabled, a character counter is displayed in the input field to give respondents real-time feedback on their input length.
+
+To configure character limits:
+
+<Steps>
+  <Step title="Enable Character Limits">
+    Toggle the character limit option on within the question configuration.
+  </Step>
+  <Step title="Set Minimum (Optional)">
+    Specify the minimum number of characters required. The respondent must enter at least this many characters to submit their response.
+  </Step>
+  <Step title="Set Maximum (Optional)">
+    Specify the maximum number of characters allowed. The respondent cannot exceed this character count.
+  </Step>
+</Steps>
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `enabled` | Boolean | Whether character limits are active. Defaults to `false`. |
+| `min` | Number (optional) | Minimum number of characters required. Must be a positive number. |
+| `max` | Number (optional) | Maximum number of characters allowed. Must be a positive number. |
+
+<Note>
+When character limits are enabled, at least one of `min` or `max` must be specified. If both are set, the minimum value cannot exceed the maximum value.
+</Note>
+
+### Long Answer
+
+The **Long Answer** toggle controls whether the input field renders as a multi-line textarea or a single-line input:
+
+- **Enabled (default for Text input type)** — Renders a multi-line textarea, ideal for longer open-ended responses such as feedback, comments, or detailed descriptions.
+- **Disabled** — Renders a single-line input field, suitable for short answers like names, titles, or brief phrases.
+
+<Note>
+The Long Answer toggle is only relevant when the input type is set to **Text**. Other input types (Email, URL, Number, Phone) always render as single-line fields.
+</Note>
+
+## Validation Rules
+
+Free Text (OpenText) elements support the most comprehensive set of validation rules among all question types. You can combine multiple rules using **AND** or **OR** logic to create precise input requirements.
+
+### Text And String Rules
+
+The following validation rules apply to all input types:
+
+| Rule | Description | Parameters |
+|------|-------------|------------|
+| `minLength` | Requires a minimum number of characters | `min` (number) — Minimum character count |
+| `maxLength` | Limits the maximum number of characters | `max` (number) — Maximum character count |
+| `pattern` | Validates against a regular expression pattern | `pattern` (string) — Regex pattern; `flags` (string, optional) — Regex flags |
+| `email` | Validates that the input is a properly formatted email address | None |
+| `url` | Validates that the input is a properly formatted URL | None |
+| `phone` | Validates that the input is a properly formatted phone number | None |
+| `equals` | Requires the input to exactly match a specific value | `value` (string) — The expected value |
+| `doesNotEqual` | Requires the input to not match a specific value | `value` (string) — The excluded value |
+| `contains` | Requires the input to contain a specific substring | `value` (string) — The required substring |
+| `doesNotContain` | Requires the input to not contain a specific substring | `value` (string) — The excluded substring |
+
+### Numeric Rules
+
+The following validation rules are available exclusively when the input type is set to **Number**:
+
+| Rule | Description | Parameters |
+|------|-------------|------------|
+| `minValue` | Sets a minimum numeric value for the response | `min` (number) — Minimum allowed value |
+| `maxValue` | Sets a maximum numeric value for the response | `max` (number) — Maximum allowed value |
+| `isGreaterThan` | Requires the numeric response to exceed a threshold | `min` (number) — Threshold value (exclusive) |
+| `isLessThan` | Requires the numeric response to be below a threshold | `max` (number) — Threshold value (exclusive) |
+
+<Warning>
+Numeric validation rules (`minValue`, `maxValue`, `isGreaterThan`, `isLessThan`) are only applicable when the input type is set to **Number**. They will not appear as options for other input types.
+</Warning>
+
+### Combining Rules
+
+You can add multiple validation rules to a single Free Text element and choose how they are evaluated:
+
+- **AND logic (default)** — The response must satisfy **all** rules to be accepted.
+- **OR logic** — The response must satisfy **at least one** rule to be accepted.
+
+This allows you to build complex validation scenarios. For example, you could require a response that is between 10 and 500 characters long and contains the word "feedback", or validate that a numeric input falls within a specific range.
+
+---
+
+*Source: `packages/types/surveys/elements.ts` (ZSurveyOpenTextElement), `packages/types/surveys/validation-rules.ts` (OPEN_TEXT_RULES)*

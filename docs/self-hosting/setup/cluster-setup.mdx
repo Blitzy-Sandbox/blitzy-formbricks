@@ -22,9 +22,15 @@ To run Formbricks in a cluster setup, you'll need:
 
 - Shared PostgreSQL database
 
-- Shared Redis cache for session management and caching
+- Shared Redis/Valkey cache for session management, rate limiting, caching, and audit logging
+
+- S3-compatible storage (AWS S3, MinIO, etc.) for shared file uploads across all instances
 
 - Load balancer to distribute traffic
+
+<Note>
+  Formbricks supports Valkey as a Redis-compatible alternative. The application uses the `REDIS_URL` environment variable regardless of whether you use Redis or Valkey.
+</Note>
 
 ## Architecture
 
@@ -48,9 +54,9 @@ graph TD
             PSQL_R[(PostgreSQL Replica)]
         end
 
-        subgraph Redis Cluster
-            RC_P[(Redis Primary)]
-            RC_R[(Redis Replica)]
+        subgraph Redis/Valkey Cluster
+            RC_P[(Redis/Valkey Primary)]
+            RC_R[(Redis/Valkey Replica)]
         end
 
         S3[S3 Compatible Storage]
@@ -95,37 +101,48 @@ graph TD
 2. **PostgreSQL Database**
 
    - Primary database storing all survey, response, and contact data
+   - Uses `pgvector/pgvector:pg17` image with vector search capability
    - Optional high-availability setup with primary-replica configuration
    - Handles all persistent data storage needs
 
-3. **Redis Cluster**
+3. **Redis/Valkey Cluster**
 
-   - Acts as a distributed cache layer
+   - Acts as a distributed cache and session layer. Valkey is an open-source, Redis-compatible alternative fully supported by Formbricks
+   - Handles session management, rate limiting, caching, and audit logging
    - Improves performance by caching frequently accessed data
    - Can be configured in HA mode with primary-replica setup
-   - Handles session management and real-time features
+   - Formbricks requires Redis/Valkey to start. The application will not function without a configured `REDIS_URL`
 
 4. **S3 Compatible Storage**
 
    - Stores file uploads and attachments
    - Can be any S3-compatible storage service (AWS S3, MinIO, etc.)
    - Provides reliable and scalable file storage
+   - Regular uploads support up to 10MB, organization file storage up to 1GB (enterprise plans)
 
 5. **Load Balancer**
    - Distributes incoming traffic across all Formbricks instances
    - Performs health checks and removes unhealthy instances
    - Ensures even load distribution and high availability
 
-## Redis Configuration
+## Redis/Valkey Configuration
 
 <Note>
-  Redis is required for Formbricks to function. The application will not start without a Redis URL configured.
+  Redis/Valkey is required for Formbricks to function. The application will not start without a Redis URL configured.
 </Note>
 
-Configure Redis by adding the following **required** environment variable to your instances:
+Configure Redis/Valkey by adding the following **required** environment variable to your instances:
 
-```sh env
+```env
+# Redis
 REDIS_URL=redis://your-redis-host:6379
+```
+
+For Valkey, the same `REDIS_URL` format applies:
+
+```env
+# Valkey Cluster mode
+REDIS_URL=redis://your-valkey-host:6379
 ```
 
 ## S3 Configuration
@@ -156,7 +173,7 @@ When using S3 in a cluster setup, ensure that:
 
 ## Kubernetes Setup
 
-Formbricks provides an official Helm chart for deploying the entire cluster stack on Kubernetes. The Helm chart is available in the [Formbricks GitHub repository](https://github.com/formbricks/formbricks/tree/main/helm-chart).
+Formbricks provides an official Helm chart for deploying the entire cluster stack on Kubernetes. The Helm chart is available in the [Formbricks GitHub repository](https://github.com/formbricks/formbricks/tree/main/charts/formbricks).
 
 ### Features of the Helm Chart
 
@@ -164,24 +181,21 @@ The Helm chart provides a complete deployment solution that includes:
 
 - Formbricks application with configurable replicas
 - PostgreSQL database (with optional HA configuration)
-- Redis cluster for caching
+- Redis/Valkey cluster for caching
 - Optional Traefik ingress controller for routing and SSL termination
 - Automatic configuration of dependencies and networking
 
 ### Installation Steps
 
-1. Add the Formbricks Helm repository:
+Install the chart from the OCI registry:
 
 ```sh
-helm repo add formbricks https://raw.githubusercontent.com/formbricks/formbricks/main/helm-chart
-helm repo update
+helm install formbricks oci://ghcr.io/formbricks/helm-charts/formbricks -n formbricks --create-namespace
 ```
 
-2. Install the chart:
-
-```sh
-helm install formbricks formbricks/formbricks
-```
+<Note>
+  Starting from version 3.5.0, the Helm chart is available on the GitHub Container Registry (GHCR). Use `--version` flag to pin a specific version.
+</Note>
 
 ### Configuration Options
 
@@ -190,8 +204,53 @@ The Helm chart can be customized using a `values.yaml` file to configure:
 - Number of Formbricks replicas
 - Resource limits and requests
 - Database configuration
-- Redis settings
+- Redis/Valkey settings
 - Ingress rules and TLS
 - Environment variables and secrets
+- ServiceMonitor for Prometheus metrics
+- Database migration job configuration
+- External Secrets integration
 
-Refer to the [Helm chart documentation](https://github.com/formbricks/formbricks/tree/main/helm-chart) for detailed configuration options and examples.
+Refer to the [Helm chart documentation](https://github.com/formbricks/formbricks/tree/main/charts/formbricks) for detailed configuration options and examples.
+
+## Session Persistence
+
+<Warning>
+  All Formbricks instances in a cluster must share critical secrets and connections to function correctly. Failure to do so will result in session invalidation and data inconsistencies.
+</Warning>
+
+When running Formbricks in a cluster, ensure:
+
+- All instances share the same `NEXTAUTH_SECRET` for session cookie validation
+- All instances connect to the same Redis/Valkey instance for session storage
+- All instances use the same `ENCRYPTION_KEY` for consistent encryption/decryption
+
+## Recommended Production Configuration
+
+The following environment variables must be identical across all Formbricks instances in the cluster:
+
+```env
+# Required for all instances
+WEBAPP_URL=https://formbricks.example.com
+NEXTAUTH_URL=https://formbricks.example.com
+NEXTAUTH_SECRET=<shared-secret-across-all-instances>
+ENCRYPTION_KEY=<shared-key-across-all-instances>
+CRON_SECRET=<shared-secret>
+
+# Shared PostgreSQL
+DATABASE_URL=postgresql://user:password@postgres-primary:5432/formbricks
+
+# Shared Redis/Valkey
+REDIS_URL=redis://valkey-primary:6379
+
+# Shared S3 Storage
+S3_ACCESS_KEY=your-access-key
+S3_SECRET_KEY=your-secret-key
+S3_REGION=us-east-1
+S3_BUCKET_NAME=formbricks
+S3_ENDPOINT_URL=https://s3.amazonaws.com
+```
+
+<Note>
+  All Formbricks instances in the cluster must share the same environment variable values for `NEXTAUTH_SECRET`, `ENCRYPTION_KEY`, `DATABASE_URL`, and `REDIS_URL`.
+</Note>

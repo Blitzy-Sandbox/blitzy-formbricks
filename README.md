@@ -77,37 +77,79 @@ Formbricks is both a free and open source survey platform - and a privacy-first 
 
 ### Features
 
-- 📲 Create **conversion-optimized surveys** with our no-code editor with several question types.
+- 📲 Create **conversion-optimized surveys** with our no-code editor featuring **15 question types** (free text, single/multi select, NPS, CTA, rating, consent, picture selection, Cal.com scheduling, date, matrix, address, ranking, contact info, and file upload).
 
 - 📚 Choose from a variety of best-practice **templates**.
 
-- 👩🏻 Launch and **target your surveys to specific user groups** without changing your application code.
+- 👩🏻 Launch and **target your surveys to specific user groups** with segment-based targeting and attribute operators — without changing your application code.
 
-- 🔗 Create shareable **link surveys**.
+- 🔗 Distribute surveys across **4 channels**: in-app, website, link, and email surveys.
 
-- 👨‍👩‍👦 Invite your organization members to **collaborate** on your surveys.
+- 📥 **Response collection** — Collect responses with partial submission capture, file uploads, and spam protection (Turnstile/reCAPTCHA).
 
-- 🔌 Integrate Formbricks with **Slack, Notion, Zapier, n8n and more**.
+- 📊 **Analytics & Insights** — Response dashboards, CSAT scoring, and shareable analytics links.
+
+- 📈 **REST API v1 & v2** — Comprehensive API with dual-version architecture.
+
+- 🔐 **Authentication** — Email/password, OAuth providers (Google, Azure AD), and CAPTCHA protection.
+
+- 👨‍👩‍👦 **Organization management** — Organization roles (owner, manager, member, billing) and multi-org support.
+
+- 📁 **Project management** — Multi-project support with environment-based configuration (development/production).
+
+- 🔌 **Webhook integrations** — Standard Webhooks–compliant webhook delivery with HMAC-SHA256 signing.
+
+- 🧩 Integrate Formbricks with **Slack, Google Sheets, Notion, Airtable, Zapier, n8n, and more** native integrations.
+
+- 📎 **File storage** — S3-compatible file storage with plan-based size limits (5 MB / 10 MB / 1 GB).
+
+- 🌍 **Internationalization** — 14-locale support for surveys, emails, and platform UI.
+
+- ⏱️ **Rate limiting** — Redis-backed rate limiting with 12 configurable categories and fail-open design.
+
+- 📧 **Email notifications** — Transactional email system with customizable templates, branding, and legal footers.
+
+- 🚀 **Setup & onboarding** — Guided onboarding wizard for fresh instances with Docker, Kubernetes, and one-click setup.
 
 - 🔒 All **open source**, transparent and self-hostable.
 
+- 🔐 **Enterprise SSO** — SAML and OIDC single sign-on support.
+
+- 🏷️ **Contact management** — Contact segments with attribute-based targeting (enterprise feature).
+
+- 🛡️ **Two-factor authentication** — TOTP-based 2FA with backup codes (enterprise feature).
+
+- 📝 **Audit logging** — Enterprise audit trail with async queue processing.
+
+- 💳 **Billing & subscription** — Stripe-powered subscription management with plan-based feature gating.
+
+- 👥 **Role management** — Team-based access control with admin and contributor roles (enterprise feature).
+
+- 🌐 **Multi-language surveys** — Translate surveys into 14 supported locales (enterprise feature).
+
+- ✉️ **Email follow-ups** — Automated email follow-ups based on survey responses (enterprise feature).
+
+- 📏 **Quotas & limits** — Plan-based response quotas (Free: 1,500, Startup: 5,000) and configurable limits.
+
+- 🔑 **License management** — Enterprise license validation with remote verification, caching, and grace period.
+
 ### Built on Open Source
 
-- 💻 [Typescript](https://www.typescriptlang.org/)
+- 💻 [TypeScript](https://www.typescriptlang.org/) — Strict mode, sole primary language
 
-- 🚀 [Next.js](https://nextjs.org/)
+- 🚀 [Next.js 16.1.6](https://nextjs.org/) — App Router with RSC
 
-- ⚛️ [React](https://reactjs.org/)
+- ⚛️ [React 19.2.3](https://react.dev/) — Server and client components
 
-- 🎨 [TailwindCSS](https://tailwindcss.com/)
+- 🎨 [TailwindCSS](https://tailwindcss.com/) — Utility-first CSS framework
 
-- 📚 [Prisma](https://prisma.io/)
+- 📚 [Prisma 6.14.0](https://prisma.io/) — Type-safe ORM with PostgreSQL
 
-- 🔒 [Auth.js](https://authjs.dev/)
+- 🔒 [Auth.js](https://authjs.dev/) — Authentication framework
 
-- 🧘‍♂️ [Zod](https://zod.dev/)
+- 🧘‍♂️ [Zod](https://zod.dev/) — Runtime type validation
 
-- 🐛 [Vitest](https://vitest.dev/)
+- 🐛 [Vitest](https://vitest.dev/) — Unit and integration testing
 
 <a id="getting-started"></a>
 
@@ -125,13 +167,13 @@ Formbricks has a hosted cloud offering with a generous free plan to get you up a
 
 ### 🐳 Self-hosting Formbricks
 
-Formbricks is available Open-Source under AGPLv3 license. You can host Formbricks on your own servers using Docker without a subscription.
+Formbricks is available Open-Source under AGPLv3 license. You can host Formbricks on your own servers without a subscription using Docker, Kubernetes, or our one-click setup script.
 
 If you opt for self-hosting Formbricks, here are a few options to consider:
 
 #### Docker
 
-To get started with self-hosting with Docker, take a look at our [self-hosting docs](https://formbricks.com/docs/self-hosting/deployment).
+To get started with self-hosting with Docker, take a look at our [self-hosting docs](https://formbricks.com/docs/self-hosting/setup/docker).
 
 #### Community-managed One Click Hosting
 
@@ -161,15 +203,15 @@ Or you can also deploy Formbricks on [Zeabur](https://zeabur.com) using the butt
 
 Here is what you need to be able to run Formbricks:
 
-- [Node.js](https://nodejs.org/en) (Version: >=18.x)
+- [Node.js](https://nodejs.org/en) (Version: >=20.0.0)
 
-- [Pnpm](https://pnpm.io/)
+- [pnpm](https://pnpm.io/) (Version: 10.28.2)
 
-- [Docker](https://www.docker.com/) - to run PostgreSQL and MailHog
+- [Docker](https://www.docker.com/) - to run PostgreSQL pgvector:pg17, Valkey, MinIO, and MailHog
 
 ### Local Setup
 
-To get started locally, we've got a [guide to help you](https://formbricks.com/docs/developer-docs/contributing/get-started#local-machine-setup).
+To get started locally, we've got a [guide to help you](https://formbricks.com/docs/development/local-setup/mac).
 
 ### Gitpod Setup
 
@@ -237,7 +279,7 @@ The Formbricks core application is licensed under the [AGPLv3 Open Source Licens
 
 ### The Enterprise Edition
 
-Additional to the AGPL licensed Formbricks core, this repository contains code licensed under an Enterprise license. The [code](https://github.com/formbricks/formbricks/tree/main/apps/web/modules/ee) and [license](https://github.com/formbricks/formbricks/blob/main/apps/web/modules/ee/LICENSE) for the enterprise functionality can be found in the `/apps/web/modules/ee` folder of this repository. This additional functionality is not part of the AGPLv3 licensed Formbricks core and is designed to meet the needs of larger teams and enterprises. This advanced functionality is already included in the Docker images, but you need an [Enterprise License Key](https://formbricks.com/docs/self-hosting/enterprise) to unlock it.
+Additional to the AGPL licensed Formbricks core, this repository contains code licensed under an Enterprise license. The [code](https://github.com/formbricks/formbricks/tree/main/apps/web/modules/ee) and [license](https://github.com/formbricks/formbricks/blob/main/apps/web/modules/ee/LICENSE) for the enterprise functionality can be found in the `/apps/web/modules/ee` folder of this repository. This additional functionality is not part of the AGPLv3 licensed Formbricks core and is designed to meet the needs of larger teams and enterprises. This advanced functionality is already included in the Docker images, but you need an [Enterprise License Key](https://formbricks.com/docs/self-hosting/advanced/license) to unlock it.
 
 ### White-Labeling Formbricks and Other Licensing Needs
 

@@ -1,3 +1,49 @@
 ---
 openapi: delete /api/v1/management/responses/{responseId}
 ---
+
+<Note>
+  This endpoint requires a valid `x-api-key` header with **delete** permission for the environment containing the response's survey. See [Generate API Key](/api-reference/generate-key) for setup instructions.
+</Note>
+
+## Deletion Behavior
+
+<Warning>
+  Response deletion is permanent and cannot be undone. The response and all associated data (including file uploads linked to the response) will be permanently removed.
+</Warning>
+
+Deleting a response:
+- Permanently removes the response record from the database
+- Removes all associated answer data
+- Does **not** trigger webhook events (deletion is a management operation, not a response pipeline action)
+- May affect analytics and response counts for the associated survey
+
+Source: `apps/web/app/api/v1/management/responses/[responseId]/route.ts`
+
+## Authorization
+
+The API key must have `DELETE` permission for the environment where the response's survey belongs. The endpoint performs the same two-step authorization as other response endpoints:
+1. Fetches the response by ID to verify existence
+2. Looks up the associated survey to determine the environment
+3. Validates the API key has `DELETE` permission for that environment
+
+If the response is not found, a `404 Not Found` response is returned. If the API key lacks permission, a `401 Unauthorized` response is returned.
+
+## Error Responses
+
+The following error scenarios may be returned by this endpoint:
+
+| Status Code | Error              | Description                                                                                                 |
+| ----------- | ------------------ | ----------------------------------------------------------------------------------------------------------- |
+| `404`       | Not Found          | No response exists with the given `responseId`.                                                              |
+| `401`       | Unauthorized       | The API key does not have `DELETE` permission for the environment associated with the response's survey.      |
+
+Source: `apps/web/app/api/v1/management/responses/[responseId]/route.ts`
+
+## Success Response
+
+<Note>
+  On successful deletion, the API returns an **HTTP 200** response with the deleted response object in the response body. This allows the caller to verify which response was deleted and log the event on their side.
+</Note>
+
+The returned object includes the full response data (answers, metadata, timestamps, survey association) as it existed before deletion, enabling confirmation and client-side auditing.

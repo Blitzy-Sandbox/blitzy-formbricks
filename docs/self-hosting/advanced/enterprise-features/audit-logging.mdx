@@ -5,14 +5,16 @@ description: Enable comprehensive audit logs for your Formbricks instance.
 icon: file-shield
 ---
 
-import Hint from "@theme/Hint";
+<Note>
+  This feature requires an active Formbricks Enterprise License. [Learn more about licensing](/self-hosting/advanced/license).
+</Note>
 
 Audit logs record **who** did **what**, **when**, **from where**, and **with what outcome** across your Formbricks instance.
 
 
 ---
 
-## Benefits of audit logging
+## Benefits Of Audit Logging
 
 - **Compliance readiness** — Many regulatory frameworks such as GDPR and SOC 2 require immutable records of user activity.
 - **Security investigation support** — Audit logs provide clear visibility into user and system actions, helping teams respond quickly and confidently during security incidents.
@@ -20,7 +22,7 @@ Audit logs record **who** did **what**, **when**, **from where**, and **with wha
 
 ---
 
-## Enabling audit logging
+## Enabling Audit Logging
 
 1. Set the following environment variables in your deployment (Docker Compose, Kubernetes, etc.):
 
@@ -37,7 +39,134 @@ Audit logs are printed to **stdout** as JSON Lines format, making them easily ac
 
 ---
 
-## Understanding the log format
+## Event Processing Architecture
+
+Formbricks audit logging is designed for minimal performance overhead while ensuring reliable event capture.
+
+### Async Queue Processing
+
+Audit events are queued and processed asynchronously so that logging never blocks the main request flow. The `queueAuditEventBackground` function uses `setImmediate` to schedule audit event construction and dispatch outside the current request lifecycle, while `queueAuditEvent` provides a synchronous alternative for edge-runtime contexts such as API routes.
+
+The `buildAndLogAuditEvent` function assembles the complete audit event object — including actor, action, target, status, timestamp, and optional change details — and passes it to the logging service.
+
+> Source: `apps/web/modules/ee/audit-logs/lib/handler.ts`
+
+### Zod-Validated Event Schemas
+
+All audit events are validated against Zod schemas before storage and output, ensuring data integrity and a consistent event structure across the entire platform. The `ZAuditLogEventSchema` validates the following fields:
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `actor` | Object (`id`, `type`) | Yes | The user, API key, or system entity that performed the action |
+| `action` | Enum string | Yes | The action performed (see [Audit Action Types](#audit-action-types)) |
+| `target` | Object (`id`, `type`) | Yes | The resource affected by the action |
+| `status` | `success` or `failure` | Yes | Outcome of the operation |
+| `timestamp` | ISO-8601 datetime | Yes | Time the action occurred |
+| `organizationId` | String | Yes | Organization where the action occurred |
+| `ipAddress` | String | No | Client IP address (present only when `AUDIT_LOG_GET_USER_IP=1`) |
+| `changes` | Record | No | Changed fields (see below) |
+| `eventId` | String | No | Correlation ID for error logs |
+| `apiUrl` | URL | No | API endpoint URL if the event originated from an API call |
+
+> Source: `apps/web/modules/ee/audit-logs/types/audit-log.ts` — `ZAuditLogEventSchema`
+
+### Sensitive Data Redaction
+
+Before an audit event is written, sensitive fields — including emails, access tokens, and passwords — are automatically redacted and replaced with `"********"`. The `redactPII()` function is applied to both old and new object snapshots, ensuring that personally identifiable information never reaches log storage.
+
+> Source: `apps/web/modules/ee/audit-logs/lib/handler.ts` — `redactPII()`
+
+### Change Tracking
+
+When a resource is updated, Formbricks captures only the fields that actually changed by computing a diff between the old and new objects using `deepDiff()`. This minimizes log size and makes it straightforward to see exactly what was modified. If only a new object is available (e.g., on creation), the entire object is recorded after PII redaction.
+
+> Source: `apps/web/modules/ee/audit-logs/lib/handler.ts` — `deepDiff(oldObject, newObject)`
+
+---
+
+## Audit Target Types
+
+Every audit event references a **target** — the type of resource that was affected. The following 21 target types are supported:
+
+| Target Type | Description |
+|------------|-------------|
+| `segment` | User segments for targeting |
+| `survey` | Survey definitions |
+| `webhook` | Webhook configurations |
+| `user` | User accounts |
+| `contactAttributeKey` | Contact attribute key definitions |
+| `projectTeam` | Project-team assignments |
+| `team` | Teams |
+| `actionClass` | Action class definitions |
+| `response` | Survey responses |
+| `contact` | Contact records |
+| `organization` | Organizations |
+| `tag` | Response tags |
+| `project` | Projects |
+| `language` | Language configurations |
+| `invite` | Membership invitations |
+| `membership` | Organization memberships |
+| `twoFactorAuth` | Two-factor authentication settings |
+| `apiKey` | API keys |
+| `integration` | Integration configurations |
+| `file` | Uploaded files |
+| `quota` | Quota settings |
+
+> Source: `apps/web/modules/ee/audit-logs/types/audit-log.ts` — `ZAuditTarget`
+
+---
+
+## Audit Action Types
+
+Every audit event records an **action** that describes what operation was performed. The following 25 action types are supported:
+
+| Action Type | Description |
+|------------|-------------|
+| `created` | Resource created |
+| `updated` | Resource updated |
+| `deleted` | Resource deleted |
+| `signedIn` | User signed in |
+| `merged` | Resources merged (e.g., tags) |
+| `verificationEmailSent` | Email verification sent |
+| `createdFromCSV` | Resource created from CSV import |
+| `copiedToOtherEnvironment` | Resource copied to another environment |
+| `addedToResponse` | Item added to a response (e.g., tag) |
+| `removedFromResponse` | Item removed from a response |
+| `createdUpdated` | Resource created or updated (upsert) |
+| `subscriptionAccessed` | Billing subscription accessed |
+| `subscriptionUpdated` | Billing subscription updated |
+| `twoFactorVerified` | Two-factor authentication verified |
+| `emailVerified` | Email address verified |
+| `jwtTokenCreated` | JWT token created |
+| `authenticationAttempted` | Authentication attempted |
+| `authenticationSucceeded` | Authentication succeeded |
+| `passwordVerified` | Password verified |
+| `twoFactorAttempted` | Two-factor authentication attempted |
+| `twoFactorRequired` | Two-factor authentication required |
+| `emailVerificationAttempted` | Email verification attempted |
+| `userSignedOut` | User signed out |
+| `passwordReset` | Password reset |
+| `bulkCreated` | Resources bulk created |
+
+> Source: `apps/web/modules/ee/audit-logs/types/audit-log.ts` — `ZAuditAction`
+
+---
+
+## Actor Types
+
+Each audit event identifies the **actor** — the entity responsible for triggering the action. There are three actor types:
+
+| Actor Type | Description |
+|-----------|-------------|
+| `user` | Action performed by a human user via the UI |
+| `api` | Action performed via API key authentication |
+| `system` | Action performed by the system automatically |
+
+> Source: `apps/web/modules/ee/audit-logs/types/audit-log.ts` — `ZActor`
+
+---
+
+## Understanding The Log Format
 
 Audit logs are **JSON Lines** (one JSON object per line). A typical entry looks like this:
 
@@ -67,7 +196,7 @@ Key fields:
 
 ---
 
-## Centralized logging and compliance
+## Centralized Logging And Compliance
 
 Formbricks audit logs are designed to work with modern centralized logging architectures:
 
@@ -76,7 +205,7 @@ Formbricks audit logs are designed to work with modern centralized logging archi
 - **Platform-level security**: Access controls and tamper detection are provided by your logging infrastructure
 - **SOC2 compliance**: Most SOC2 auditors accept centralized logging without application-level integrity mechanisms
 
-## Additional details
+## Additional Details
 
 - **Redacted secrets:** Sensitive fields (e‑mails, access tokens, passwords…) are replaced with `"********"` before being written.
 - **Failure events count:** Both successful *and* failed operations are logged.

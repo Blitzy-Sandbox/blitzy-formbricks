@@ -1,3 +1,78 @@
 ---
 openapi: post /api/v1/management/storage
 ---
+
+## Upload Workflow
+
+This endpoint does **not** accept file data directly. Instead, it follows a two-step presigned URL workflow:
+
+<Steps>
+  <Step title="Request a Presigned URL">
+    Send a `POST` request to this endpoint with the file metadata (`fileName`, `fileType`, `environmentId`). The API returns a `signedUrl` and `presignedFields` for S3-compatible storage.
+  </Step>
+  <Step title="Upload File to Storage">
+    Use the returned `signedUrl` and `presignedFields` to upload the file directly to the S3-compatible storage (S3 or MinIO) via a `multipart/form-data` POST request. The client uploads the file directly to storage — it does not pass through the Formbricks API server.
+  </Step>
+</Steps>
+
+## Upload Example
+
+**Step 1: Get presigned URL**
+
+```bash
+curl -X POST 'https://app.formbricks.com/api/v1/management/storage' \
+  -H 'x-api-key: <your-api-key>' \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "fileName": "background.png",
+    "fileType": "image/png",
+    "environmentId": "<your-environment-id>"
+  }'
+```
+
+**Step 2: Upload file to S3 using presigned URL**
+
+```bash
+curl -X POST '<signedUrl from step 1>' \
+  -F 'Policy=<from presignedFields>' \
+  -F 'X-Amz-Algorithm=<from presignedFields>' \
+  -F 'X-Amz-Credential=<from presignedFields>' \
+  -F 'X-Amz-Date=<from presignedFields>' \
+  -F 'X-Amz-Signature=<from presignedFields>' \
+  -F 'key=<from presignedFields>' \
+  -F 'file=@/path/to/background.png'
+```
+
+After a successful upload, the file is accessible at the `fileUrl` returned in step 1.
+
+## File Size Limits
+
+This endpoint enforces a **5 MB** maximum file size for all public file uploads, regardless of plan tier.
+
+<Note>
+  This limit applies to public file uploads via the Management API (e.g., survey background images, logo uploads). Survey response file uploads (submitted by respondents) have different limits based on your plan:
+
+  | Plan | Response File Upload Limit |
+  |------|---------------------------|
+  | Free | 10 MB |
+  | Startup | 10 MB |
+  | Enterprise | 1 GB |
+</Note>
+
+## Supported File Extensions
+
+You can optionally restrict uploads to specific file types using the `allowedFileExtensions` field. The following extensions are supported:
+
+| Category | Extensions |
+|----------|-----------|
+| Images | `heic`, `png`, `jpeg`, `jpg`, `webp`, `ico` |
+| Documents | `pdf`, `eml`, `doc`, `docx`, `xls`, `xlsx`, `ppt`, `pptx`, `txt`, `csv` |
+| Video | `mp4`, `mov`, `avi`, `mkv`, `webm` |
+| Audio | `mp3` |
+| Archives | `zip`, `rar`, `7z`, `tar` |
+
+If `allowedFileExtensions` is not provided, all supported extensions are allowed.
+
+<Note>
+  This endpoint requires authentication via the `x-api-key` header. The API key must have **write** or **manage** permission for the specified environment. See [Generate API Key](/api-reference/generate-key) for setup instructions.
+</Note>

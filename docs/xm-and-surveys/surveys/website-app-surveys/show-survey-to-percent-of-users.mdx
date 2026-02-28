@@ -6,7 +6,7 @@ icon: "percent"
 
 To target specific segments of your audience or manage survey exposure, Formbricks allows you to display surveys to only a random selection of your targeted users.
 
-## How to set up percentage-based visibility
+## How To Set Up Percentage-Based Visibility
 
 <Steps>
   <Step title="Open settings in survey editor">
@@ -34,20 +34,42 @@ To target specific segments of your audience or manage survey exposure, Formbric
   users who see the survey.
 </Note>
 
-### **Example Usage**
+## Understanding The displayPercentage Configuration
+
+Under the hood, the percentage-based visibility is controlled by the `displayPercentage` property on each survey configuration:
+
+| Property | Type | Range | Default | Location |
+|----------|------|-------|---------|----------|
+| `displayPercentage` | `number` | 0 to 100 | 100 (show to all targeted users) | Survey Settings → Survey Trigger card |
+
+The `displayPercentage` value supports granularity down to **0.01%**, allowing fine-tuned control over survey exposure.
+
+### How Random Sampling Works
+
+Each time a user matches the survey's targeting criteria and a trigger fires, the Formbricks SDK generates a cryptographically secure random number and compares it against the configured `displayPercentage` value. If the random number falls at or below the threshold, the survey is displayed to that user.
+
+Because the sampling is probabilistic and evaluated independently on each trigger event, slight statistical variations from the exact configured percentage are expected — especially at smaller sample sizes. As your sample size grows, the observed display rate converges closer to the configured value.
+
+<Note>
+  The random sampling uses `crypto.getRandomValues()` for cryptographically secure randomness, ensuring an even and unpredictable distribution across your user base.
+</Note>
+
+*Source: `packages/js-core/src/types/config.ts` — `TEnvironmentStateSurvey.displayPercentage`, `packages/js-core/src/lib/common/utils.ts` — `shouldDisplayBasedOnPercentage()`*
+
+### Example Usage
 
 For instance, if you want to expose your survey to only half of your targeted user base, simply adjust the slider to show the survey to 50% of your users. This functionality allows you to conduct A/B testing or control the rollout of new surveys to gauge initial reactions before a wider release.
 
-### **Application**
+### Application
 
 It's effective for:
 
-* **A/B Testing**: Compare different user experiences by showing different surveys or survey variations to different segments of your audience.
+* **A/B Testing**: Create two surveys with different questions or content and set each to 50% `displayPercentage` to evenly split your audience. Compare response patterns across both surveys to determine which version resonates better. You can also use unequal splits (e.g., 80/20) for more conservative experiments where you want to limit exposure to an untested variant.
 
-* **Gradual Rollouts**: Gradually introduce a new survey to a portion of your users to monitor initial responses and adjust based on feedback before full deployment.
+* **Gradual Rollouts**: Start by setting `displayPercentage` to 10–20% to test a new survey with a small segment of your audience. Monitor response quality and completion rates, then gradually increase to 50% and eventually 100% as you gain confidence in the survey's effectiveness and user reception.
 
-* **Load Management**: Manage server load and response processing by limiting the number of responses collected at any given time.
+* **Load Management**: Manage server load and response processing by limiting the number of responses collected at any given time. Lower the `displayPercentage` during peak traffic periods to control the volume of incoming responses.
 
-## **Conclusion**
+## Conclusion
 
 Using the **Show Survey to % of Users** feature allows for precise control over who sees your Formbricks surveys, making it an invaluable feature for targeted data collection and user experience management. By adjusting survey visibility settings, you can strategically engage segments of your audience, enhance survey testing phases, and optimize overall survey effectiveness.

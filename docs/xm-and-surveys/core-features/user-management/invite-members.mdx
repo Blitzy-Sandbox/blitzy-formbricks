@@ -1,5 +1,5 @@
 ---
-title: "Invite members"
+title: "Invite Members"
 description: "Learn how to invite new members to your organization individually or in bulk, and manage invitation workflows."
 icon: "user-plus"
 ---
@@ -13,98 +13,146 @@ To invite members, you need:
 - **Owner** or **Manager** role in the organization
 - Valid email addresses for the people you want to invite
 
-## Individual invitations
+## Individual Invitations
 
 Use this method when inviting a few people or when you need to carefully control each invitation.
 
-### Steps to invite individual members
+### Steps To Invite Individual Members
 
 <Steps>
-  <Step title="Navigate to Organization Settings > Access Control">
+  <Step title="Navigate To Organization Members">
     Go to the organization settings page and click on the "Access Control" tab.
     ![Access Control Tab](/images/xm-and-surveys/core-features/access-roles/access-control.webp)
   </Step>
-  
-  <Step title="Start the invitation process">
-    Click on the `Add member` button:
-
+  <Step title="Enter Member Email">
+    Click the `Add member` button to open the invitation modal.
     ![Add member Button Position](/images/xm-and-surveys/core-features/access-roles/add-member.webp)
-
   </Step>
-  
-  <Step title="Fill in member details">
-    In the modal, add the Name, Email and Role of the organization member you want to invite:
-
+  <Step title="Select Role">
+    In the modal, add the Name, Email and Role of the organization member you want to invite. Available roles: **Owner**, **Manager**, **Member**, **Billing**.
     ![Individual Invite Modal Tab](/images/xm-and-surveys/core-features/access-roles/individual-invite.webp)
-
   </Step>
-  
-  <Step title="Send the invitation">
+  <Step title="Send Invitation">
     Click the invite button to send the invitation email.
   </Step>
 </Steps>
 
-### What happens next
+### What Happens Next
 
-1. Formbricks sends an email to the organization member with an invitation link
-2. The organization member can accept the invitation or create a new account by clicking on the link
-3. Once accepted, they'll have access based on the role you assigned
+1. Formbricks sends an email to the member with an invitation link
+2. The member clicks the link — if they already have an account, they join the organization; if not, they can create a new account
+3. Once accepted, they have access based on the role assigned during invitation
 
-## Bulk invitations
+## Bulk Invitations
 
 Use bulk invitations when you need to invite many people at once, such as when onboarding an entire team or department.
 
-### Steps to invite members in bulk
+### Steps To Invite Members In Bulk
 
 <Steps>
-  <Step title="Navigate to Organization Settings">
+  <Step title="Navigate To Organization Settings">
     Go to the organization settings page and click on the "Access Control" tab.
   </Step>
-  
-  <Step title="Start the bulk invitation process">
+  <Step title="Start The Bulk Invitation Process">
     Click on the `Add member` button:
 
     ![Add member Button Position](/images/xm-and-surveys/core-features/access-roles/add-member.webp)
-
   </Step>
-  
-  <Step title="Switch to bulk invite">
-    In the modal, switch to `Bulk Invite`. You can download an example .CSV file to fill in the Name, Email and Role of the organization members you want to invite:
+  <Step title="Switch To Bulk Invite">
+    In the modal, switch to `Bulk Invite`. You can download an example CSV file by clicking the "Download CSV template" button. The template file is named `formbricks-organization-members-template.csv`.
 
-    ![Individual Invite Modal Tab](/images/xm-and-surveys/core-features/access-roles/bulk-invite.webp)
+    ![Bulk Invite Modal Tab](/images/xm-and-surveys/core-features/access-roles/bulk-invite.webp)
+  </Step>
+  <Step title="Prepare Your CSV File">
+    The CSV file uses the following column headers (mapped internally via the `transformHeader` function):
 
+    | CSV Column Header | Internal Field | Description |
+    | ----------------- | -------------- | ----------- |
+    | **Full Name**     | `name`         | Full name of the person |
+    | **Email Address** | `email`        | Valid email address |
+    | **Role**          | `role`         | One of: Owner, Manager, Member, Billing |
+
+    Example CSV content:
+
+    ```csv
+    Full Name,Email Address,Role
+    Jane Doe,jane@example.com,Manager
+    John Smith,john@example.com,Member
+    Alice Lee,alice@example.com,Owner
+    ```
+
+    {/* Source: apps/web/modules/organization/settings/teams/components/invite-member/bulk-invite-tab.tsx */}
   </Step>
-  
-  <Step title="Prepare your CSV file">
-    The CSV file should include three columns:
-    - **Name**: Full name of the person
-    - **Email**: Valid email address
-    - **Role**: One of the available organization roles (Owner, Manager, Billing, Member)
-  </Step>
-  
-  <Step title="Upload and send invitations">
-    Upload the filled .CSV file and invite the organization members in bulk ✅
+  <Step title="Upload And Send Invitations">
+    Upload the filled CSV file and click the invite button to send invitations in bulk.
   </Step>
 </Steps>
 
-### What happens next
+<Note>
+  When access control is not available (Community Edition, **Free**, or **Startup** plans), all bulk-invited members are assigned the **Owner** role regardless of the role specified in the CSV file.
+</Note>
 
-- Formbricks sends an email to each organization member in the CSV
-- Each member can accept the invitation or create a new account by clicking on the link
+<Note>
+  On self-hosted instances (non-cloud), the **Billing** role is automatically converted to **Owner** since billing management is not applicable outside the cloud environment.
+
+  {/* Source: apps/web/modules/organization/settings/teams/components/invite-member/bulk-invite-tab.tsx */}
+</Note>
+
+### What Happens Next
+
+- Formbricks sends an invitation email to each organization member listed in the CSV
+- Each member can accept the invitation or create a new account by clicking the invitation link
 - All invitations are processed simultaneously
+- Invitations are validated before sending — invalid entries (e.g., malformed email addresses or missing fields) will display an error and will not be sent
 
-## Managing invitations
+## Role Assignment During Invitation
 
-### Pending invitations
+The role for each member is selected at invitation time, for both individual and bulk invitations. The four available organization roles are:
 
-- View pending invitations in the Organization Settings > Members section
-- Resend invitations if needed
-- Cancel pending invitations before they're accepted
+- **Owner** — Full organizational control including billing, integrations, and member management
+- **Manager** — Management access to teams and projects, can invite members (as Member role only)
+- **Member** — Basic access to assigned projects and teams
+- **Billing** — Billing and payment management only (cloud environments)
 
-### Invitation status
+After a member joins the organization, their role can be changed by an Owner or Manager from the **Organization Settings > Access Control** page.
 
-Monitor the status of your invitations:
+### Privilege Escalation Prevention
 
-- **Pending**: Invitation sent but not yet accepted
-- **Accepted**: User has joined the organization
-- **Expired**: Invitation has expired and needs to be resent
+To maintain security, role assignment follows strict escalation rules:
+
+- **Owners** can assign any role up to Owner level
+- **Managers** can only assign the **Member** role — they cannot escalate users to Manager or Owner
+- **Members** cannot invite or assign roles
+
+For a detailed breakdown of all role permissions, see [Organizations And Roles](/xm-and-surveys/core-features/user-management/organizations-and-roles).
+
+{/* Source: packages/types/memberships.ts — Organization roles enum: z.enum(["owner", "manager", "member", "billing"]) */}
+
+## Managing Pending Invitations
+
+All pending invitations are visible in **Organization Settings > Access Control**. From this page, you can view, resend, or revoke invitations.
+
+### View Pending Invitations
+
+- All pending invitations are listed alongside current organization members in the Access Control tab
+- Each invitation displays the invitee name, email address, assigned role, and the date the invitation was sent
+
+### Resend Invitation Emails
+
+- If an invitation has not been accepted, it can be resent from the Access Control page
+- This is useful when the original invitation email was lost, filtered to spam, or has expired
+
+### Revoke Pending Invitations
+
+- Cancel a pending invitation at any time before it has been accepted
+- Once revoked, the invitation link becomes invalid and the invitee can no longer use it to join the organization
+
+### Invitation Status
+
+Monitor the status of each invitation:
+
+| Status       | Description |
+| ------------ | ----------- |
+| **Pending**  | Invitation sent but not yet accepted by the recipient |
+| **Accepted** | The user has joined the organization and is now an active member |
+| **Expired**  | The invitation has expired and must be resent to remain valid |

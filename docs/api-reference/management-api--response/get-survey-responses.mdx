@@ -1,3 +1,28 @@
 ---
 openapi: get /api/v1/management/responses
 ---
+
+<Note>
+  This endpoint requires a valid `x-api-key` header. Generate your API key in the Formbricks app under **Organization Settings** > **API Keys**. See [Generate API Key](/api-reference/generate-key) for setup instructions.
+</Note>
+
+## Response Data Structure
+
+Response data is keyed by question IDs. Each response object contains the survey answers mapped to their respective question identifiers:
+
+```json
+{
+  "clx1234abcdef": "User's answer to this question",
+  "clx5678ghijkl": ["Option A", "Option B"]
+}
+```
+
+## Filtering And Pagination
+
+- Pass `surveyId` as a query parameter to filter responses for a specific survey
+- Use `limit` and `skip` query parameters for pagination
+- If no `surveyId` is provided, responses across all accessible environments are returned
+
+## Partial Submissions
+
+Responses with `finished: false` represent partial submissions where the respondent did not complete all questions. These are included in the response listing by default.

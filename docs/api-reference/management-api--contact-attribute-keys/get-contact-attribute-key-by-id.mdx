@@ -1,3 +1,37 @@
 ---
 openapi: get /api/v1/management/contact-attribute-keys/{contactAttributeKeyId}
 ---
+
+<Note>
+  Contact attribute keys are an **Enterprise Edition** feature. You must have an active Enterprise license to use this endpoint. Without it, the API returns a `403 Forbidden` response.
+</Note>
+
+## Path Parameter
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `contactAttributeKeyId` | string | Yes | The unique identifier of the contact attribute key to retrieve |
+
+## Response Fields
+
+The response wraps the contact attribute key object in a `data` field:
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `data.id` | string | Unique identifier for the attribute key |
+| `data.key` | string | Machine-readable identifier (lowercase letters, numbers, underscores) |
+| `data.name` | string | Human-readable display name |
+| `data.type` | string | Attribute type: `"default"` (system-provided) or `"custom"` (user-created) |
+| `data.description` | string | Description of what this attribute represents |
+| `data.isUnique` | boolean | Whether this attribute must have unique values across contacts |
+| `data.environmentId` | string | ID of the environment this key belongs to |
+| `data.createdAt` | datetime | Timestamp when the key was created |
+| `data.updatedAt` | datetime | Timestamp of last update |
+
+## Error Responses
+
+| Status Code | Code | Description |
+|------------|------|-------------|
+| `403` | `forbidden` | Enterprise license not active or contacts feature disabled |
+| `404` | `not_found` | No contact attribute key found with the specified ID |
+| `401` | `unauthorized` | API key missing or does not have permission for the key's environment |

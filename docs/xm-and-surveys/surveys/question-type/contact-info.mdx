@@ -32,10 +32,73 @@ Optionally, add a description to give additional context.
 
 ### Toggle Fields
 
-You can choose to show and require any or all of the following fields:
+The Contact Info element includes five configurable fields. Each field uses a toggle input configuration with the following properties:
 
-- First Name
-- Last Name
-- Email
-- Phone Number
-- Company
+- **show** (boolean) — Controls whether the field is displayed to the respondent.
+- **required** (boolean) — Controls whether the field must be filled in before proceeding.
+- **placeholder** — Optional placeholder text displayed inside the input when empty.
+
+Each field can be independently configured as shown or hidden and required or optional, giving you full control over which contact details you collect.
+
+| Field Name   | Schema Key  | Show/Hide | Required/Optional |
+| ------------ | ----------- | --------- | ----------------- |
+| First Name   | `firstName` | Toggle    | Toggle            |
+| Last Name    | `lastName`  | Toggle    | Toggle            |
+| Email        | `email`     | Toggle    | Toggle            |
+| Phone Number | `phone`     | Toggle    | Toggle            |
+| Company      | `company`   | Toggle    | Toggle            |
+
+<Note>
+  At least one field should have **show** enabled so that the respondent sees at least one input to fill in. When **required** is enabled for a field, the respondent must provide a value before they can continue to the next question.
+</Note>
+
+### Validation Rules
+
+Contact Info elements support text-based validation rules that can be applied to enforce data quality on collected responses. The following validation rules are available:
+
+| Rule              | Parameters                          | Description                                    |
+| ----------------- | ----------------------------------- | ---------------------------------------------- |
+| `minLength`       | `{ min: number }`                   | Minimum character length for the input value   |
+| `maxLength`       | `{ max: number }`                   | Maximum character length for the input value   |
+| `pattern`         | `{ pattern: string, flags?: string }` | Regex pattern the input value must match       |
+| `email`           | _none_                              | Validates that the input is a valid email format |
+| `url`             | _none_                              | Validates that the input is a valid URL format   |
+| `phone`           | _none_                              | Validates that the input is a valid phone format |
+| `equals`          | `{ value: string }`                 | Input must exactly match the specified value     |
+| `doesNotEqual`    | `{ value: string }`                 | Input must not match the specified value         |
+| `contains`        | `{ value: string }`                 | Input must contain the specified substring       |
+| `doesNotContain`  | `{ value: string }`                 | Input must not contain the specified substring   |
+
+#### Field-Specific Validation
+
+Validation rules can be targeted to a specific sub-field using the optional `field` property on each rule. The `field` value corresponds to one of the five Contact Info field keys:
+
+- `firstName`
+- `lastName`
+- `email`
+- `phone`
+- `company`
+
+This means you can apply different validation rules to different fields within the same Contact Info element. For example, you could require the `email` field to pass email format validation while applying a `minLength` rule only to the `firstName` field. When the `field` property is omitted, the rule applies broadly to the element.
+
+When multiple validation rules are configured, they are combined using a logic operator (`and` or `or`) to determine whether the overall validation passes.
+
+### Response Data Format
+
+When a respondent completes a Contact Info element, the response is stored as an object with keys matching the five field names. Each key contains the text value entered by the respondent for that field:
+
+```json
+{
+  "firstName": "Jane",
+  "lastName": "Doe",
+  "email": "jane.doe@example.com",
+  "phone": "+1-555-0100",
+  "company": "Acme Corp"
+}
+```
+
+Only fields that have **show** enabled and that the respondent filled in will contain values. Fields that are hidden or left empty may be omitted or returned as empty strings.
+
+---
+
+_Source: `packages/types/surveys/elements.ts` (ZSurveyContactInfoElement, ZToggleInputConfig), `packages/types/surveys/validation-rules.ts` (CONTACT_INFO_RULES, ZContactInfoField)_

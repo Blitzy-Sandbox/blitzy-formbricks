@@ -1,0 +1,53 @@
+---
+title: "Integration Configuration"
+description: "Configure third-party integrations on your self-hosted Formbricks instance."
+icon: "bridge"
+---
+
+Self-hosted Formbricks instances require manual configuration for each native OAuth integration. This involves creating OAuth app credentials on the third-party platform and setting the corresponding environment variables in your Formbricks deployment.
+
+<Note>
+  If you are using **Formbricks Cloud**, native integrations work out of the box — no manual configuration is needed. See the [Cloud integration guides](/xm-and-surveys/core-features/integrations/overview) instead.
+</Note>
+
+## Available Integration Guides
+
+Select the integration you want to configure on your self-hosted instance:
+
+<CardGroup cols={2}>
+  <Card title="Slack" icon="slack" href="/self-hosting/configuration/integrations/slack">
+    Send survey responses automatically to a Slack channel.
+  </Card>
+  <Card title="Google Sheets" icon="table-cells" href="/self-hosting/configuration/integrations/google-sheets">
+    Write survey responses to a Google Spreadsheet.
+  </Card>
+  <Card title="Notion" icon="database" href="/self-hosting/configuration/integrations/notion">
+    Create Notion database entries from survey responses.
+  </Card>
+  <Card title="Airtable" icon="table-columns" href="/self-hosting/configuration/integrations/airtable">
+    Map survey responses to Airtable records.
+  </Card>
+  <Card title="Zapier" icon="bolt" href="/self-hosting/configuration/integrations/zapier">
+    Connect Formbricks with 5,000+ apps through Zapier.
+  </Card>
+  <Card title="n8n" icon="diagram-project" href="/self-hosting/configuration/integrations/n8n">
+    Build workflows with n8n's open-source automation platform.
+  </Card>
+  <Card title="Activepieces" icon="puzzle-piece" href="/self-hosting/configuration/integrations/activepieces">
+    Automate workflows with the open-source Activepieces tool.
+  </Card>
+</CardGroup>
+
+## General Configuration Requirements
+
+All native OAuth integrations (Slack, Google Sheets, Notion, Airtable) require:
+
+1. **An OAuth application** registered on the third-party platform with the correct redirect URI pointing to your Formbricks instance
+2. **Client credentials** (Client ID and Client Secret) stored as environment variables
+3. **HTTPS** enabled on your Formbricks instance — OAuth providers require secure redirect URIs
+
+Webhook-based integrations (Zapier, n8n, Activepieces) use Formbricks webhook endpoints and do not require OAuth configuration. See each guide for specific setup steps.
+
+## Environment Variables Overview
+
+Each integration uses its own set of environment variables. Refer to the individual guides above for the complete list, or see the [Environment Variables](/self-hosting/configuration/environment-variables) page for a consolidated reference.

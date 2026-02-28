@@ -2,7 +2,7 @@
 title: "Single Select"
 description:
   "Single select questions allow respondents to select one answer from a list"
-icon: "list"
+icon: "circle-dot"
 ---
 
 Single select questions allow respondents to select one answer from a list. Displays a title and a list of radio buttons for the respondent to choose from.
@@ -27,23 +27,60 @@ Single select questions allow respondents to select one answer from a list. Disp
 
 ### Title
 
-Add a clear title to inform the respondent what information you are asking for.
+Add a clear title to inform the respondent what information you are asking for. This maps to the `headline` field in the survey schema and supports multi-language translations (I18n strings) when the [multi-language surveys](/xm-and-surveys/surveys/general-features/multi-language-surveys) feature is enabled.
 
 ### Description
 
-Provide an optional description with further instructions.
+Provide an optional description with further instructions. This maps to the `subheader` field in the survey schema and is optional. Like the title, descriptions support multi-language translations for internationalized surveys.
 
 ### Options
 
-The list of answers the respondent can choose from.
+The list of answers the respondent can choose from. In the schema, this is represented by the `choices` field — an array of choice objects, each containing:
+
+| Property | Type | Description |
+|----------|------|-------------|
+| `id` | `string` | A unique identifier for the choice |
+| `label` | I18n string | The display text shown to the respondent |
+
+A minimum of **2 choices** is required for every Single Select question. Each choice label supports multi-language translations when the [multi-language surveys](/xm-and-surveys/surveys/general-features/multi-language-surveys) feature is enabled.
+
+### Display Type
+
+The `displayType` field controls how the choices are rendered to the respondent. This is an optional setting with two available modes:
+
+| Display Type | Description |
+|-------------|-------------|
+| **List** (default) | Standard radio button list layout. Each choice is displayed as a separate radio button. This is the default when no display type is explicitly set. |
+| **Dropdown** | Dropdown select layout. All choices are collapsed into a single dropdown menu. This is useful when there are many options and you want to reduce visual clutter on the page. |
+
+<Note>
+  The dropdown display type is particularly helpful for questions with long lists of options (e.g., country selection, industry lists) where a radio button list would take up excessive vertical space.
+</Note>
 
 ### Additional Actions
 
-- Add “Other”: Adds an “Other” option to allow respondents to enter a custom answer. This will show two inputs, one for the label text and one for the placeholder.
+- **Add "Other"**: Adds an "Other" option to allow respondents to type a custom answer. In the schema, the "Other" choice uses a special `id` value of `"other"`. When enabled, the survey editor shows two inputs — one for the label text and one for the placeholder text (the `otherOptionPlaceholder` field). This lets respondents provide an answer that is not included in your predefined list of choices.
 
-- Convert to Multiple Select: Converts the question to a multiple select question. This will show checkboxes instead of radio buttons.
+- **Convert To Multiple Select**: Converts the question to a [multiple select](/xm-and-surveys/surveys/question-type/select-multiple) question with a single click. This changes radio buttons to checkboxes, allowing respondents to select more than one answer.
 
-- Order dropdown: Allows you to choose the order in which the options are displayed.
-  - Keep current order: Options will be displayed in the order you added them.
-  - Randomize all: Options will be displayed in a random order.
-  - Randomize all except last option: Options will be displayed in a random order, except for the last one.
+### Choice Randomization
+
+The `shuffleOption` field controls the order in which choices are presented to each respondent. Randomizing choice order helps reduce order bias in survey responses. The available options are:
+
+| Option | Schema Value | Description |
+|--------|-------------|-------------|
+| **Keep Current Order** | `none` | Choices appear in the exact order you added them in the survey editor. |
+| **Randomize All** | `all` | All choices are shuffled into a random order for each respondent. |
+| **Randomize All Except Last** | `exceptLast` | All choices are randomized except the last one, which stays in its original position. This is useful when the last choice is an "Other" or "None of the above" option that should always appear at the end. |
+
+## Response Behavior
+
+The Single Select question always captures exactly **one selected choice** as the response. If the respondent selects a predefined choice, the response contains that choice's `id`. If the respondent uses the "Other" option, the response contains their custom text value.
+
+<Note>
+  The Single Select element does not have additional validation rules beyond requiring a response when the question is marked as required. Unlike some other question types (such as Free Text or Multi Select), there is no `validation` field in the schema for this element.
+</Note>
+
+---
+
+*Source: `packages/types/surveys/elements.ts` — `ZSurveyMultipleChoiceSingleElement`*

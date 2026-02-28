@@ -4,61 +4,124 @@ description: How to set up Formbricks in a Gitpod workspace
 icon: "code"
 ---
 
-### Gitpod Setup
+<Note>This guide explains how to set up Formbricks in a **Gitpod** cloud workspace. Gitpod provides a fully configured development environment in the browser, with Docker support for running all required services.</Note>
 
-<Info>This guide explains how to set up Formbricks in a **Gitpod** workspace.</Info>
+## Requirements
 
-**Requirements:**
+| Tool | Version | Notes |
+|------|---------|-------|
+| Node.js | ≥20.0.0 | LTS recommended (source: `package.json` engines) |
+| pnpm | 10.28.2 | Managed via `packageManager` field (source: `package.json`) |
+| Turborepo | 2.5.3 | Build orchestration devDependency (source: `package.json`) |
+| Docker | Latest | Required for dev database, cache, storage, and mail services |
 
-- A Gitpod workspace with Node.JS, pnpm, and Docker support.
+You also need a Gitpod workspace with Node.js, pnpm, and Docker support enabled.
 
-**Steps:**
+## Gitpod Configuration
 
-1. **Open the repository in Gitpod. The workspace typically clones the repo automatically. If not:**
+The repository does not include a `.gitpod.yml` file at the root. Instead, Gitpod initialization is handled by scripts in the `.gitpod/` directory:
 
-   ```bash
-   git clone https://github.com/formbricks/formbricks && cd formbricks
-   ```
+- **`.gitpod/init.bash`** — Main initialization script that reads Docker images from `docker-compose.dev.yml` using `yq`, pulls all images in parallel, and runs `pnpm install` in the background. This script is designed for Gitpod prebuilds to speed up workspace startup.
+- **`.gitpod/setup-demo.bash`** — Sets up the demo app by running Turborepo tasks for the `@formbricks/demo` package based on `turbo.json` pipeline dependencies.
+- **`.gitpod/setup-web.bash`** — Sets up the web app by running Turborepo tasks for the `@formbricks/web` package based on `turbo.json` pipeline dependencies.
 
-2. **Setup NodeJS with nvm:**
+These scripts automate Docker image pulling and dependency installation so that Gitpod prebuilds complete faster and workspaces start with all services ready.
 
-   ```bash
-   nvm install && nvm use
-   ```
+Source: `.gitpod/init.bash`, `.gitpod/setup-demo.bash`, `.gitpod/setup-web.bash`
 
-3. **Install dependencies:**
+## Docker Development Services
 
-   ```bash
-   pnpm install
-   ```
+The following Docker services are defined in `docker-compose.dev.yml` and started automatically by `pnpm go` (which runs `pnpm db:up` → `docker compose -f docker-compose.dev.yml up -d`):
 
-4. **Create a `.env` file:**
+| Service | Image | Port(s) | Purpose |
+|---------|-------|---------|---------|
+| PostgreSQL | `pgvector/pgvector:pg17` | 5432 | Database with pgvector extension on PostgreSQL 17 |
+| Valkey | `valkey/valkey` | 6379 | Redis-compatible cache (replaces Redis) |
+| MinIO | `minio/minio:RELEASE.2025-09-07T16-13-09Z` | 9000 (S3 API), 9001 (Console) | S3-compatible object storage |
+| MailHog | `arjenz/mailhog` | 1025 (SMTP), 8025 (Web UI) | Local email testing |
 
-   ```bash
-   cp .env.example .env
-   ```
+Source: `docker-compose.dev.yml`
 
-5. **Generate & set secret values:**
+## Setup Steps
 
-   ```bash
-   sed -i '/^ENCRYPTION_KEY=/c\ENCRYPTION_KEY='$(openssl rand -hex 32) .env
-   sed -i '/^NEXTAUTH_SECRET=/c\NEXTAUTH_SECRET='$(openssl rand -hex 32) .env
-   sed -i '/^CRON_SECRET=/c\CRON_SECRET='$(openssl rand -hex 32) .env
-   ```
+<Steps>
+  <Step title="Open Repository In Gitpod">
+    Open the Formbricks repository in Gitpod. The workspace typically clones the repo automatically. The `.gitpod/init.bash` script handles Docker image pulling and dependency installation during prebuild.
 
-6. **Generate the Next.js AGENTS.md file (optional, for AI-assisted development):**
+    If manual setup is needed:
 
-   This step generates an `AGENTS.md` file at the repository root that provides Next.js documentation context for AI coding assistants (e.g. Cursor, GitHub Copilot). It runs `npx @next/codemod agents-md` under the hood. Re-run it whenever you upgrade Next.js.
+    ```bash
+    git clone https://github.com/formbricks/formbricks && cd formbricks
+    ```
+  </Step>
 
-   ```bash
-   pnpm agents:update
-   ```
+  <Step title="Setup Node.js With nvm">
+    Install and activate the required Node.js version using nvm. The `.nvmrc` file in the repository root specifies Node.js 22.1.0:
 
-7. **Run the development setup:**
-   ```bash
-   pnpm go
-   ```
+    ```bash
+    nvm install && nvm use
+    ```
+  </Step>
 
-Access the running app via the forwarded port (typically [http://localhost:3000](http://localhost:3000) inside Gitpod).
+  <Step title="Install Dependencies">
+    Install all monorepo dependencies with pnpm:
 
-<Tip>Check your Gitpod settings to ensure Docker is enabled if required.</Tip>
+    ```bash
+    pnpm install
+    ```
+  </Step>
+
+  <Step title="Create Environment File">
+    Copy the example environment file to create your local configuration:
+
+    ```bash
+    cp .env.example .env
+    ```
+  </Step>
+
+  <Step title="Generate Secret Values">
+    Generate cryptographically secure values for the required secret environment variables:
+
+    ```bash
+    sed -i '/^ENCRYPTION_KEY=/c\ENCRYPTION_KEY='$(openssl rand -hex 32) .env
+    sed -i '/^NEXTAUTH_SECRET=/c\NEXTAUTH_SECRET='$(openssl rand -hex 32) .env
+    sed -i '/^CRON_SECRET=/c\CRON_SECRET='$(openssl rand -hex 32) .env
+    ```
+  </Step>
+
+  <Step title="Run Database Migrations">
+    Apply the Prisma database migrations to set up the PostgreSQL schema:
+
+    ```bash
+    pnpm db:migrate:dev
+    ```
+  </Step>
+
+  <Step title="Generate AGENTS.md File">
+    This step is optional and useful for AI-assisted development. It generates an `AGENTS.md` file at the repository root that provides Next.js documentation context for AI coding assistants (e.g., Cursor, GitHub Copilot). It runs `npx @next/codemod agents-md` under the hood. Re-run it whenever you upgrade Next.js.
+
+    ```bash
+    pnpm agents:update
+    ```
+  </Step>
+
+  <Step title="Start Development Setup">
+    Start Docker services and all development servers concurrently:
+
+    ```bash
+    pnpm go
+    ```
+
+    This command starts the Docker development services (PostgreSQL, Valkey, MinIO, MailHog) and launches the Next.js dev server along with other workspace tasks.
+  </Step>
+</Steps>
+
+## After Setup
+
+<Note>
+  On first launch, you will need to create a new account through the Formbricks onboarding flow. Access the running app via the Gitpod forwarded port — typically [http://localhost:3000](http://localhost:3000) inside the workspace.
+</Note>
+
+<Warning>
+  Ensure Docker is enabled in your Gitpod workspace settings. Without Docker support, the development database, cache, storage, and mail services will not start. Check **Gitpod Settings → Feature Flags → Docker** to confirm it is active.
+</Warning>

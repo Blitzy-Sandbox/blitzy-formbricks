@@ -1,3 +1,25 @@
 ---
 openapi: delete /api/v1/management/people/{personId}
 ---
+
+<Warning>
+  The People API endpoints are maintained for backward compatibility. In newer versions of Formbricks, the terminology has shifted from "People" to "Contacts." For new integrations, consider using the [Contacts API](/api-reference/management-api--contacts/get-all-contacts) instead.
+</Warning>
+
+## Endpoint Details
+
+This endpoint permanently deletes an identified person from your Formbricks environment using their internal person ID.
+
+### Path Parameters
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `personId` | `string` | Yes | The internal Formbricks person ID |
+
+### Authentication
+
+This endpoint requires a valid API key passed via the `x-api-key` header with appropriate permissions. See [Generate API Key](/api-reference/generate-key) for setup instructions.
+
+<Note>
+  Deleting a person is irreversible. All associated attributes and response metadata linked to this person will be removed.
+</Note>

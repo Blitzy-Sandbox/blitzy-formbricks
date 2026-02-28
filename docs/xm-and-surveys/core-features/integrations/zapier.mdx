@@ -1,13 +1,14 @@
 ---
 title: "Zapier"
-description: "Master the integration of Formbricks with Zapier using our detailed guide. Seamlessly connect your surveys to 5000+ apps, automate data transfers, and enhance feedback management. Start optimizing your workflow today."
+description: "Master the integration of Formbricks with Zapier using our detailed guide. Seamlessly connect your surveys to 7,000+ apps, automate data transfers, and enhance feedback management. Start optimizing your workflow today."
+icon: "bolt"
 ---
 
 <Note>
   Nail down your survey first? Any changes in the survey cause additional work in the Zap. It makes sense to first settle on the survey you want to run and then get to setting up Zapier.
 </Note>
 
-## Step 1: Setup your survey incl. `questionId` for every question
+## Step 1: Setup Your Survey Incl. `questionId` For Every Question
 
 When setting up the Zap your life will be easier when you change the `questionId`s of your survey questions. You can only do so **before** you publish your survey.
 
@@ -22,13 +23,13 @@ When setting up the Zap your life will be easier when you change the `questionId
   ![Duplicate Survey](/images/xm-and-surveys/core-features/integrations/zapier/duplicate-survey.webp)
 </Note>
 
-## Step 2: Send a test response
+## Step 2: Send A Test Response
 
 In order to set up Zapier you’ll need a test response. This allows you to select the individual values of each response in your Zap.
 
 ![Submit Test Response](/images/xm-and-surveys/core-features/integrations/zapier/submit-test-response.webp)
 
-## Step 3: Setup your Zap
+## Step 3: Setup Your Zap
 
 Go to [zapier.com](https://zapier.com) and create a new Zap. Search for “Formbricks” to get started:
 
@@ -38,7 +39,7 @@ Then, choose the event you want to trigger the Zap on:
 
 ![Choose Event](/images/xm-and-surveys/core-features/integrations/zapier/choose-event.webp)
 
-## Step 4: Connect Formbricks with Zapier
+## Step 4: Connect Formbricks With Zapier
 
 Now, you have to connect Zapier with Formbricks via an API Key:
 
@@ -46,7 +47,7 @@ Now, you have to connect Zapier with Formbricks via an API Key:
 
 ![Connect with Formbricks - 2](/images/xm-and-surveys/core-features/integrations/zapier/connect-with-formbricks-2.webp)
 
-Now you need an API key. Please refer to the [API Key Setup](/api-reference/rest-api#how-to-generate-an-api-key) page to learn how to create one.
+Now you need an API key. Please refer to the [API Key Setup](/api-reference/generate-key) page to learn how to create one.
 
 Once you copied it in the newly opened Zapier window, you will be connected:
 
@@ -58,7 +59,7 @@ Next, you can choose from all the surveys you have created in this environment:
 
 ![Select Survey](/images/xm-and-surveys/core-features/integrations/zapier/select-survey.webp)
 
-## Step 6: Test your trigger
+## Step 6: Test Your Trigger
 
 Once you hit “Test” you will see the three most recent submissions for this survey. If you don’t have any submissions in the survey, submit one to continue setting up your Zap:
 
@@ -66,7 +67,7 @@ Once you hit “Test” you will see the three most recent submissions for this 
 
 *Now you're happy that you updated the questionId's*
 
-## Step 7: Set up your Zap
+## Step 7: Set Up Your Zap
 
 Now you have all the data you need at hand. The next steps depend on what you want to do with it. In this tutorial, we will send submissions to a Slack channel:
 
@@ -76,6 +77,26 @@ In the action itself we can determine the data and layout of the message. Here, 
 
 ![Slack Message](/images/xm-and-surveys/core-features/integrations/zapier/slack-message.webp)
 
-We now receive a notifcation in our Slack channel whenever a Churn survey is completed:
+We now receive a notification in our Slack channel whenever a Churn survey is completed:
 
 ![Zapier Message](/images/xm-and-surveys/core-features/integrations/zapier/zapier-message.webp)
+
+## Data Mapping
+
+When a survey response triggers your Zap, the Formbricks trigger delivers the full webhook payload. Response data is keyed by each question's `questionId`, which is why setting meaningful question IDs in Step 1 is important for readability.
+
+The payload contains the following top-level field groups:
+
+| Field Group | Description |
+|------------|-------------|
+| `data.*` | Survey response values keyed by `questionId` (e.g., `data.satisfaction`, `data.feedback`) |
+| `meta.country` | The country from which the response was submitted |
+| `meta.userAgent` | Browser and operating system information of the respondent |
+| `survey.title` | The name of the survey that received the response |
+| `survey.type` | The survey distribution type (e.g., `link` or `app`) |
+
+Use these fields in subsequent Zapier action steps to route and transform data. For example, you can map `data.*` fields to columns in a Google Sheet, include `survey.title` in a Slack notification message, or filter Zaps based on `meta.country`.
+
+<Note>
+  The available trigger events are `responseCreated`, `responseUpdated`, and `responseFinished`. Choose the event that best fits your workflow — `responseFinished` fires only when all required questions are answered and the survey is submitted.
+</Note>

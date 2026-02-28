@@ -8,47 +8,89 @@ icon: "user"
 
 ## Metadata Captured
 
+Formbricks automatically collects the following metadata fields for each survey response:
+
 - **Source**: The source from where the user filled the survey. This could be an App, Link, or a Webpage.
 
 - **URL**: The URL of the page where the user filled the survey.
 
-- **Browser**: The browser used by the user to fill the survey.
+- **Browser**: The browser used by the user to fill the survey (e.g., Chrome, Firefox, Safari).
 
-- **OS**: The operating system of the device used by the user to fill the survey.
+- **OS**: The operating system of the device used by the user to fill the survey (e.g., Windows, macOS, Linux, iOS, Android).
 
-- **Device**: The device used by the user to fill the survey.
+- **Device**: The device used by the user to fill the survey (e.g., mobile, tablet, or PC / Generic device).
 
-- **Country**: The country of the user.
+- **Country**: The country of the user, determined from their connection.
 
 - **Action**: The action that triggered the survey. This is only available for App surveys.
 
+- **IP Address**: The IP address of the respondent. This field is only captured when the **Capture IP Address** toggle is enabled in the survey's response options. It is hidden by default to respect user privacy.
+
+- **Language**: The language in which the respondent completed the survey. This is displayed when a multi-language survey is used and the respondent selects a non-default language.
+
 ## View Response Metadata
 
-1. Go to the Responses tab of your survey.
+<Steps>
+  <Step title="Open The Responses Tab">
+    Go to the **Responses** tab of your survey.
+  </Step>
 
-2. Hover over the profile icon of the user on the response card & you should see a tooltip opening up with the metadata details.
+  <Step title="Hover Over The Profile Icon">
+    Hover over the profile icon of the user on the response card. You should see a tooltip opening up with the metadata details including browser, OS, device, URL, source, country, and IP address (if enabled).
+  </Step>
+</Steps>
 
-![Metadata Card on Response Tab](/images/xm-and-surveys/surveys/general-features/metadata/metadata-card.webp)
+![Response card showing user metadata tooltip with browser, OS, device, URL, source, and country information](/images/xm-and-surveys/surveys/general-features/metadata/metadata-card.webp)
 
-## Filter Responses by Metadata
+## Filter Responses By Metadata
 
-1. Go to the Responses tab of your survey.
+You can narrow down your responses by filtering on any captured metadata field.
 
-2. Click on the Filter button.
+<Steps>
+  <Step title="Open The Responses Tab">
+    Go to the **Responses** tab of your survey.
+  </Step>
 
-3. Scroll down & Select the metadata field you want to filter by.
+  <Step title="Click The Filter Button">
+    Click on the **Filter** button at the top of the responses list.
+  </Step>
 
-4. Select the condition & the value you want to filter by.
+  <Step title="Select A Metadata Field">
+    Scroll down and select the metadata field you want to filter by (e.g., Browser, OS, Country, Source).
+  </Step>
 
-![Apply Filters on Metadata](/images/xm-and-surveys/surveys/general-features/metadata/filters.webp)
+  <Step title="Set The Filter Condition">
+    Select the condition (equals, not equals, contains, does not contain, starts with, ends with, etc.) and the value you want to filter by.
+  </Step>
 
+  <Step title="View Filtered Results">
+    The responses list updates to show only responses matching your selected metadata filter. You can combine multiple metadata filters for more precise results.
+  </Step>
+</Steps>
 
-1. Now you should see the responses filtered based on the metadata you selected. If you want to see a walkthrough, view the video above to see how you can view & filter responses by metadata.
+![Response filter panel showing metadata filter options for browser, OS, country, and source](/images/xm-and-surveys/surveys/general-features/metadata/filters.webp)
+
+<Note>
+  For a visual walkthrough of viewing and filtering responses by metadata, watch the video at the top of this page.
+</Note>
 
 ## Export Metadata
 
-You can export the metadata of your responses along with the response data. When you export responses, you will see the metadata fields in the exported CSV file.
+You can export the metadata of your responses along with the response data. When you export responses, you will see the metadata fields (Source, URL, Browser, OS, Device, Country, Action, IP Address, and Language) included as columns in the exported CSV file.
+
+## Metadata In Analytics And Reporting
+
+Metadata plays a key role in analyzing survey results and understanding respondent behavior:
+
+- **Source Analysis**: Identify which distribution channels (App, Link, or Webpage) drive the most survey responses, helping you optimize your outreach strategy.
+- **Device and Browser Insights**: Understand which devices and browsers your respondents use, ensuring your surveys render correctly across all platforms.
+- **Geographic Breakdown**: Use the Country field to segment responses by region for localized insights.
+- **Action Tracking**: For App surveys, the Action field reveals which in-app triggers generate the highest response rates.
+
+## Custom Metadata With Hidden Fields
+
+Formbricks captures the metadata fields listed above automatically. If you need to attach additional custom data to responses (such as a user ID, payment plan, or internal reference), use [Hidden Fields](/xm-and-surveys/surveys/general-features/hidden-fields) instead. Hidden fields allow you to pass custom key-value pairs with each survey submission without requiring the respondent to fill them in manually.
 
 ---
 
-**Need help?** [Reach out in Github Discussions](https://github.com/formbricks/formbricks/discussions)
+**Need help?** [Reach out in Github Discussions](https://github.com/formbricks/formbricks/discussions)

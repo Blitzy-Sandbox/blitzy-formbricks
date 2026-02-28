@@ -4,12 +4,119 @@ description: "Granularly control which users have access to specific projects an
 icon: "user"
 ---
 
-Each User can be a member of any number of Teams.
+<Note>
+  This feature requires an active Formbricks Enterprise License. [Learn more about licensing](/self-hosting/advanced/license).
+</Note>
 
-Each Team can have Read, Write or Manage access to any number of Projects.
+## Overview
 
-In the Community Edition, each User has Admin rights.
+Formbricks provides a team-based, role-based access control (RBAC) system that enables organizations to granularly control which users have access to specific projects and surveys.
 
-In the Enterprise Edition, you can granularly assign Roles and Memberships to users.
+Each User can be a member of any number of Teams. Each Team can have Read, Read & Write, or Manage access to any number of Projects. This allows organizations to create flexible permission structures tailored to their workflows.
 
-Here are [all details of user management](https://formbricks.com/docs/xm-and-surveys/core-features/user-management#memberships)
+In the Community Edition, each User has Admin rights and can access all projects and surveys within the organization. In the Enterprise Edition, you can granularly assign Roles and Memberships to users, restricting access to only the projects and surveys relevant to their work.
+
+For detailed user management documentation, see [Teams And Roles](/xm-and-surveys/core-features/user-management/teams-and-roles).
+
+## Organizational Hierarchy
+
+Formbricks uses a hierarchical structure to organize access control. Understanding this hierarchy is essential for configuring team-based permissions effectively.
+
+- **Organization** — The top-level entity that contains all Users, Teams, and Projects
+  - **Users** — Members of the organization, each with an organization-level role (Owner, Manager, Member, or Billing)
+  - **Teams** — Groups of Users within the organization that share project access
+    - **Team Members** — Users assigned to a team, each with a team-level role (Admin or Contributor)
+    - **Project Assignments** — Projects linked to a team, each with a specific permission level (Read, Read & Write, or Manage)
+  - **Projects** — Accessible by users through their team assignments and the associated permission levels
+
+This hierarchy enables organizations to control which users can access which projects by grouping users into teams and assigning those teams to projects with specific permission levels. Organization-level roles (such as Owner and Manager) can override team-level restrictions, providing an additional layer of administrative control.
+
+{/* Source: apps/web/modules/ee/teams/team-list/types/team.ts — ZTeamDetails schema defines the team-members-projects relationship */}
+
+## Team Roles
+
+Each team member is assigned one of two team-level roles that determine their management capabilities within the team.
+
+{/* Source: apps/web/modules/ee/teams/team-list/types/team.ts — ZTeamRole = z.enum(["admin", "contributor"]) */}
+
+| Role | Description | Capabilities |
+|------|-------------|-------------|
+| **Admin** | Full team management capabilities | Create teams, manage team members, assign team roles, manage project assignments for the team |
+| **Contributor** | Standard team member access | View and work on projects assigned to the team based on the project's permission level |
+
+<Note>
+  Team roles control what a user can do **within a team** (e.g., manage membership). The actual access level to projects is determined separately by the project permission levels described below.
+</Note>
+
+## Project Permission Levels
+
+When a project is assigned to a team, a permission level is set that determines what team members can do within that project.
+
+{/* Source: apps/web/modules/ee/teams/project-teams/types/team.ts — ZTeamPermission = z.enum(["read", "readWrite", "manage"]) */}
+
+| Permission | Description |
+|-----------|-------------|
+| **Read** | View-only access to the project's surveys, responses, and analytics. Cannot create, edit, or delete surveys or modify project settings. |
+| **Read & Write** | View and edit surveys, collect and manage responses, download survey data within the project. Cannot modify project settings or manage integrations. |
+| **Manage** | Full project management including settings, API keys, integrations, team assignments, and all read/write capabilities. |
+
+<Warning>
+  If a user belongs to multiple teams that each have access to the same project, the **highest permission level** wins. For example, if Team A grants "Read" access and Team B grants "Manage" access to the same project, the user will have "Manage" access.
+</Warning>
+
+{/* Source: apps/web/modules/ee/teams/lib/roles.ts — getProjectPermissionByUserId function iterates memberships and selects the highest permission */}
+
+## Managing Teams
+
+Follow these steps to set up and manage teams within your organization.
+
+<Steps>
+  <Step title="Create A Team">
+    Navigate to **Organization Settings → Teams** in the Formbricks dashboard. Click **"Create Team"** and provide a descriptive team name (e.g., "Marketing", "Product Research", "Customer Success").
+  </Step>
+
+  <Step title="Add Members To The Team">
+    Select users from your organization to add as team members. For each member, assign either the **Admin** or **Contributor** role:
+
+    - **Admin** — Can manage team membership, roles, and project assignments
+    - **Contributor** — Can work on projects assigned to the team
+
+    At least one member is required per team. You can add or remove members at any time after team creation.
+  </Step>
+
+  <Step title="Assign Projects To The Team">
+    Select one or more projects from your organization and set the permission level for each:
+
+    - **Read** — View-only access to surveys and responses
+    - **Read & Write** — Create, edit surveys, and manage responses
+    - **Manage** — Full project control including settings and integrations
+
+    At least one project assignment is required per team.
+  </Step>
+
+  <Step title="Manage Team Settings">
+    Team admins can update the team at any time:
+
+    - Rename the team
+    - Add or remove team members
+    - Change member roles (Admin ↔ Contributor)
+    - Add, remove, or modify project assignments and their permission levels
+  </Step>
+</Steps>
+
+{/* Source: apps/web/modules/ee/teams/team-list/ — contains team creation and management components */}
+
+## Community Edition Vs Enterprise Edition
+
+| Capability | Community Edition | Enterprise Edition |
+|-----------|-------------------|-------------------|
+| Team creation and management | Not available — all users have Admin rights | Full team-based RBAC with granular permissions |
+| Project-level permission control | All users can access all projects | Per-team, per-project Read / Read & Write / Manage permissions |
+| Team roles (Admin, Contributor) | Not available | Fully supported |
+| Multiple team memberships | Not available | Users can belong to any number of teams |
+
+In the Community Edition, every user in the organization has full administrative access to all projects and surveys. Upgrading to the Enterprise Edition unlocks team-based access control, enabling you to restrict project access to specific groups of users with configurable permission levels.
+
+<Note>
+  Want to try the Enterprise Edition? [Request a free Enterprise Edition Trial](https://formbricks.com/enterprise-license?source=docs) License to evaluate team-based access control and other enterprise features.
+</Note>

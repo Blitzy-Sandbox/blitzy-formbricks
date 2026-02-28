@@ -24,12 +24,51 @@ icon: "check"
 
 ### Title
 
-A bold statement or question asking for user consent, displayed prominently at the top of the card.
+A bold statement or question asking for user consent, displayed prominently at the top of the card. This maps to the `headline` field in the consent element schema (`ZSurveyConsentElement`). The headline supports internationalization (I18n), so you can provide translations for each of your supported languages when using [multi-language surveys](/xm-and-surveys/surveys/general-features/multi-language-surveys).
 
 ### Description
 
-A short explanation or additional context for the consent request, displayed below the title. The text can be formatted, and hyperlinks are allowed within the description.
+A short explanation or additional context for the consent request, displayed below the title. The description area uses an optional `html` field that supports rich text HTML content, allowing you to include formatted text, bold or italic emphasis, and embedded hyperlinks. This makes the description ideal for presenting legal text, terms of service summaries, or privacy policy disclaimers with links to full documents.
 
 ### Checkbox
 
-At the bottom of the card, users can confirm their agreement by checking the box, indicating their consent to the question or statement above. The label for the checkbox is also editable.
+At the bottom of the card, a checkbox allows respondents to confirm their agreement to the statement or question above.
+
+**Label Customization**
+
+The checkbox label is fully customizable through the `label` field, which is an I18n string defined in `ZSurveyConsentElement`. You can edit the label text to clearly state what the respondent is consenting to — for example, "I agree to the Terms of Service and Privacy Policy" or "I consent to the processing of my personal data." The label also supports multi-language translations via the internationalization system, enabling you to provide localized consent text for each of your supported languages.
+
+**Required Behavior**
+
+The consent checkbox must be checked before the respondent can proceed to the next question. When the checkbox is left unchecked and the respondent attempts to continue, they are blocked from advancing. This required behavior is inherent to the consent element type and is controlled by the `required` field on the element, ensuring that explicit user agreement is always captured before the survey continues.
+
+## Legal Text Configuration
+
+The description area of the consent card supports rich text HTML content, making it well-suited for legal and compliance text. You can use this area to:
+
+- Present a summary of your terms of service or privacy policy
+- Include formatted text with bold, italic, or underlined emphasis for key clauses
+- Embed hyperlinks that point to full legal documents hosted on your website
+- Provide data processing disclosures required by regulations such as GDPR
+
+<Note>
+**Best Practice:** Keep the consent card description concise. Use it for a brief summary of what the user is consenting to, and link to the full legal document for complete details. This balances legal compliance with a good user experience.
+</Note>
+
+## GDPR And Compliance Use Cases
+
+The consent question type is designed for regulatory compliance scenarios where explicit user agreement is required. Common use cases include:
+
+| Use Case | Description |
+|----------|-------------|
+| **Data Processing Consent** | Obtain explicit consent before processing personal data (GDPR Article 6) |
+| **Terms Of Service Acceptance** | Require users to agree to your terms before submitting a survey |
+| **Privacy Policy Acknowledgment** | Ensure respondents acknowledge your data handling practices |
+| **Marketing Communication Opt-In** | Collect consent for sending marketing emails or newsletters |
+| **Cookie Consent** | Capture agreement for cookie usage within survey embeds |
+
+<Note>
+**GDPR Tip:** The checkbox label should clearly and specifically state what the user is consenting to. Avoid vague language like "I agree" — instead, use descriptive labels such as "I consent to the processing of my personal data as described in the Privacy Policy." Use the description area to link to your full legal documents so respondents can review the complete terms before providing consent.
+</Note>
+
+*Source: `packages/types/surveys/elements.ts` — `ZSurveyConsentElement`*

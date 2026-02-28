@@ -4,10 +4,82 @@ description: "Automatically close your survey after reaching a set number of res
 icon: "lock"
 ---
 
-- **How to**: Open the Survey Editor, switch to the Settings tab. Scroll down to **Response Options**, and toggle the **“Close survey on response limit”**.
+## Overview
+
+Submission limits allow you to automatically close a survey once it has collected a predefined number of responses. When the limit is reached, Formbricks stops accepting new submissions and marks the survey as closed. This gives you precise control over sample sizes without having to manually monitor response counts.
+
+Submission limits are available on all plans and apply on a per-survey basis. They are independent of your plan-level monthly response quotas, giving you fine-grained control over individual survey collection targets.
+
+## How To Set Up Submission Limits
+
+<Steps>
+  <Step title="Open The Survey Editor">
+    Navigate to the survey you want to limit and open it in the Survey Editor.
+  </Step>
+  <Step title="Switch To The Settings Tab">
+    Click on the **Settings** tab at the top of the editor to access survey-level configuration options.
+  </Step>
+  <Step title="Scroll To Response Options">
+    Scroll down to the **Response Options** section within the settings panel.
+  </Step>
+  <Step title="Toggle Close Survey On Response Limit">
+    Enable the **"Close survey on response limit"** toggle to activate submission limiting for this survey.
+  </Step>
+  <Step title="Set The Desired Number Of Responses">
+    Enter the maximum number of responses you want to collect. The survey will automatically close once this count is reached.
+  </Step>
+  <Step title="Save The Survey">
+    Click **Save** (or publish) to apply the submission limit. The limit takes effect immediately for active surveys.
+  </Step>
+</Steps>
 
 ![Limit Submissions](/images/xm-and-surveys/surveys/general-features/limit-submissions/limit-submissions.webp)
 
-- **Details**: Set a specific number of responses after which the survey automatically closes.
+## Behavior When The Limit Is Reached
 
-- **Use Case**: Perfect for limited offers, exclusive surveys, or when you need a precise sample size for statistical significance.
+Once the configured response limit is reached, the following behavior applies:
+
+- **Survey Automatically Closes**: Formbricks marks the survey status as closed. No new respondents can start the survey after closure.
+- **Closed Survey Message**: New visitors who attempt to access the survey see a "survey closed" message indicating that the survey is no longer accepting responses.
+- **In-Progress Responses**: Respondents who have already started filling out the survey before the limit was reached may still complete and submit their response. This prevents data loss for users who are mid-submission.
+
+<Note>
+  The response count used for the limit includes only completed submissions. Partial responses that have not been finalized do not count toward the limit threshold.
+</Note>
+
+## Plan-Specific Response Limits
+
+In addition to per-survey submission limits, Formbricks enforces monthly response quotas at the plan level. These quotas cap the total number of responses you can collect across all surveys in a billing period:
+
+| Plan | Monthly Responses | Projects | Monthly Identified Users (MIU) |
+|------|-------------------|----------|-------------------------------|
+| **Free** | 1,500 | 3 | 2,000 |
+| **Startup** | 5,000 | 3 | 7,500 |
+| **Enterprise** | Unlimited | Unlimited | Unlimited |
+
+<Note>
+  Per-survey submission limits and plan-level response quotas operate independently. A survey will close when **either** its per-survey limit is reached **or** when your plan-level monthly quota is exhausted — whichever comes first.
+</Note>
+
+Source: `apps/web/lib/constants.ts` — `BILLING_LIMITS` constant
+
+## Submission Limits And Quota Management
+
+For advanced response collection control, Formbricks also offers **Quota Management**, which lets you set limits on specific respondent segments rather than overall response counts. While submission limits cap the total number of responses for a survey, quota management allows you to control how many responses you collect from particular groups (for example, by demographic, hidden field value, or answer combination).
+
+You can use both features together:
+
+- **Submission Limits**: Set an overall cap for total responses (e.g., 1,000 responses maximum).
+- **Quota Management**: Define segment-level limits within that cap (e.g., 500 from mobile users, 500 from desktop users).
+
+For detailed information on configuring segment-based quotas, see the [Quota Management](/xm-and-surveys/surveys/general-features/quota-management) guide.
+
+## Use Cases
+
+Submission limits are ideal for a wide range of survey scenarios:
+
+- **Limited Offers And Promotions**: Cap responses to match the number of available rewards, discount codes, or promotional slots. Once all slots are filled, the survey closes automatically.
+- **Fixed Sample Size Research**: When you need a precise number of responses for statistical significance (for example, 384 responses for a 95% confidence level with ±5% margin of error), set the limit to your target sample size.
+- **Exclusive Surveys**: Create invite-only or VIP surveys where only a fixed number of participants can respond, ensuring exclusivity.
+- **Research Panel Management**: When running panels with a finite number of participants, use submission limits to prevent over-collection and manage panel quotas effectively. For more advanced panel workflows, see the [Research Panel](/xm-and-surveys/xm/best-practices/research-panel) best practices guide.
+- **Budget-Conscious Data Collection**: Prevent collecting more responses than your analysis plan requires, helping you stay within plan limits and avoid unnecessary data processing.

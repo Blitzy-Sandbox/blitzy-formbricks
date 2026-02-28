@@ -6,63 +6,159 @@ icon: code
 
 ## TypeScript
 
-Our codebase follows the Vercel Engineering Style Guide conventions.
+TypeScript is the **sole primary language** for the Formbricks codebase. Strict mode is enforced across all workspaces, ensuring maximum type safety and code reliability. The codebase follows the Vercel Engineering Style Guide conventions as a foundation, extended with Formbricks-specific patterns.
+
+- **TypeScript version:** 5.8.3 (source: `packages/config-typescript/package.json`)
+- **Type definitions:** `@types/node` 22.15.18, `@types/react` 19.1.4, `@types/react-dom` 19.1.5
+
+### TypeScript Configuration
+
+The monorepo maintains shared TypeScript configurations in `packages/config-typescript/` to ensure consistency across all workspaces:
+
+- `base.json` — Base configuration for all workspaces
+- `js-library.json` — For JavaScript library packages
+- `nextjs.json` — For the Next.js application (`apps/web`)
+- `node16.json` — For Node.js 16+ compatible packages
+- `react-library.json` — For React library packages
+- `react-native-library.json` — For React Native packages
+
+The base configuration enforces strict type checking (source: `packages/config-typescript/base.json`):
+
+```json
+{
+  "compilerOptions": {
+    "composite": false,
+    "declaration": true,
+    "declarationMap": true,
+    "esModuleInterop": true,
+    "forceConsistentCasingInFileNames": true,
+    "inlineSources": false,
+    "isolatedModules": true,
+    "moduleResolution": "node",
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "preserveWatchOutput": true,
+    "skipLibCheck": true,
+    "strict": true,
+    "strictNullChecks": true
+  }
+}
+```
+
+Setting `strict: true` enables a comprehensive set of strict checks including `noImplicitAny`, `strictFunctionTypes`, `strictBindCallApply`, `strictPropertyInitialization`, `noImplicitThis`, and `alwaysStrict`. The `strictNullChecks: true` flag is explicitly set for additional safety even though it is implied by `strict`. The `noUnusedLocals` and `noUnusedParameters` flags enforce clean code by flagging any unused declarations.
+
+Each workspace package extends from the appropriate configuration. For example, a typical workspace `tsconfig.json` might include:
+
+```json
+{
+  "extends": "@formbricks/tsconfig/nextjs.json"
+}
+```
+
+<Note>Each workspace package in the monorepo extends from the appropriate TypeScript configuration. Check the package's `tsconfig.json` to see which base config it uses.</Note>
 
 ### ESLint Configuration
 
-We maintain three primary ESLint configurations for different project types:
+Three primary ESLint configurations are maintained in `packages/config-eslint/`, all extending the `@vercel/style-guide/eslint/*` presets (source: `packages/config-eslint/`):
 
-1. **Library Configuration** (for packages):
-
-```javascript
-extends: [
-"@vercel/style-guide/eslint/node",
-"@vercel/style-guide/eslint/typescript"
-]
-```
-
-2. **React Configuration** (for React applications):
+1. **Library Configuration** (`library.js`) — For shared packages:
 
 ```javascript
 extends: [
-"@vercel/style-guide/eslint/node",
-"@vercel/style-guide/eslint/typescript",
-"@vercel/style-guide/eslint/browser",
-"@vercel/style-guide/eslint/react",
-"@vercel/style-guide/eslint/next"
+  "@vercel/style-guide/eslint/node",
+  "@vercel/style-guide/eslint/typescript",
 ]
 ```
 
-3. **Next.js Configuration** (for Next.js applications):
+2. **React Configuration** (`react.js`) — For React library applications:
 
 ```javascript
 extends: [
-"@vercel/style-guide/eslint/node",
-"@vercel/style-guide/eslint/typescript",
-"@vercel/style-guide/eslint/browser",
-"@vercel/style-guide/eslint/react",
-"@vercel/style-guide/eslint/next"
+  "@vercel/style-guide/eslint/browser",
+  "@vercel/style-guide/eslint/typescript",
+  "@vercel/style-guide/eslint/react",
 ]
 ```
+
+3. **Next.js Configuration** (`next.js`) — For the Next.js application:
+
+```javascript
+extends: [
+  "@vercel/style-guide/eslint/node",
+  "@vercel/style-guide/eslint/typescript",
+  "@vercel/style-guide/eslint/browser",
+  "@vercel/style-guide/eslint/react",
+  "@vercel/style-guide/eslint/next",
+  "eslint-config-turbo",
+]
+```
+
+Legacy variants also exist — `legacy-library.js`, `legacy-next.js`, `legacy-react.js` — used for workspaces not yet migrated to the latest configuration format. All configurations include the `@vitest` plugin to enforce consistent test naming with the `consistent-test-it` rule.
 
 ### Key Conventions
 
 1. **TypeScript Usage**
 
-   - Strict TypeScript checking enabled
-   - Explicit type annotations when necessary
-   - Proper interface and type naming (prefix with T for types, I for interfaces when helpful)
-   - No use of `any` type unless absolutely necessary
+   - Strict TypeScript checking enabled (`strict: true` in base tsconfig)
+   - Explicit type annotations required for all exported functions
+   - **No `any` types** — avoid `any` and use shared types from `@formbricks/types` (source: `AGENTS.md`)
+   - Type naming conventions:
+     - `Z` prefix for Zod schemas: `ZSurvey`, `ZDocument`, `ZResponse`
+     - `T` prefix for TypeScript types (derived from Zod): `TSurvey`, `TResponseData`, `TDocument`
+   - All external data validated through Zod schemas (schema-first approach)
+   - Types derived from Zod schemas using `z.infer<>` pattern
+
+```typescript
+// Zod schema-first approach
+// Source: packages/types/surveys/types.ts
+import { z } from "zod";
+
+export const ZSurvey = z.object({
+  id: z.string().cuid2(),
+  name: z.string(),
+  status: z.enum(["draft", "inProgress", "paused", "completed"]),
+  // ...
+});
+
+// Type derived from Zod schema
+export type TSurvey = z.infer<typeof ZSurvey>;
+```
+
+```typescript
+// Explicit return types on exported functions
+export async function getSurvey(surveyId: string): Promise<TSurvey | null> {
+  // implementation...
+}
+```
 
 2. **Imports/Exports**
 
-   - Follow strict import ordering:
-     1. Mocks (for testing)
-     2. Server-only imports
-     3. Third-party modules
-     4. Internal `@formbricks/*` modules
-     5. Local aliases (`~/*`)
-     6. Relative imports
+   - Follow strict import ordering enforced by `@trivago/prettier-plugin-sort-imports` v5.2.2 (configured in `packages/config-prettier/prettier-preset.js`):
+     1. Mocks (`(.*)/__mocks__/(.*)`) — **must be at top** for `vi.mock` calls
+     2. `server-only` imports
+     3. `<THIRD_PARTY_MODULES>` — Third-party packages
+     4. `^@formbricks/(.*)$` — Internal `@formbricks/*` package imports
+     5. `^~/(.*)$` — Local tilde aliases
+     6. `^@/(.*)$` — Local @ aliases
+     7. `^[./]` — Relative imports
+
+```typescript
+// Correct import ordering example
+import { vi } from "vitest";
+import { mockSurvey } from "./__mocks__/survey";
+
+import "server-only";
+
+import { z } from "zod";
+import { Prisma } from "@prisma/client";
+
+import { TSurvey } from "@formbricks/types/surveys";
+import { prisma } from "@formbricks/database";
+
+import { getOrganization } from "~/lib/organization";
+
+import { SurveyEditor } from "./components/SurveyEditor";
+```
 
 3. **Error Handling**
 
@@ -75,30 +171,81 @@ extends: [
 
    - Prefer async/await over raw promises
    - Proper error handling in async functions
-   - Use Promise.all for parallel operations
+   - Use `Promise.all` for parallel operations — especially for independent Prisma queries that can execute concurrently (see [Framework Usage](/development/standards/technical/framework-usage) for Prisma-specific guidance)
 
 5. **React Specific**
    - Functional components with TypeScript
    - Proper use of hooks
    - Consistent prop typing
    - Server Components by default in Next.js App Router
+   - Context providers should guard against missing provider usage and use cleanup patterns that snapshot refs inside `useEffect` to avoid React hooks warnings (source: `AGENTS.md`)
+
+### Zod Schema-First Approach
+
+The Formbricks codebase follows a strict Zod schema-first approach for all data validation. This ensures that TypeScript types and runtime validation are always kept in sync through a single source of truth.
+
+- All external data (API inputs, form data, environment variables) is validated through Zod schemas
+- Types are always derived from Zod schemas using `z.infer<typeof ZSchema>` — never manually duplicated
+- Schema naming convention: `Z` prefix (e.g., `ZSurvey`, `ZDocument`, `ZResponseData`)
+- Type naming convention: `T` prefix (e.g., `TSurvey`, `TDocument`, `TResponseData`)
+- Schemas live in `packages/types/` and are shared across the entire monorepo
+
+```typescript
+// Source: packages/types/
+import { z } from "zod";
+
+// Define the Zod schema with runtime validation rules
+export const ZResponseData = z.record(z.string(), z.union([z.string(), z.number(), z.array(z.string())]));
+
+// Derive the TypeScript type from the schema
+export type TResponseData = z.infer<typeof ZResponseData>;
+```
+
+<Note>Never define TypeScript types manually when a Zod schema exists. Always derive types from schemas using `z.infer<>` to maintain a single source of truth.</Note>
 
 ### Code Formatting
 
-We use Prettier with specific configurations:
+We use Prettier with specific configurations managed in `packages/config-prettier/prettier-preset.js`. The key formatting rules are:
+
+- Two-space indentation (source: `AGENTS.md`)
+- 110-character print width
+- Semicolons required
+- Double quotes (not single quotes)
+
+The complete Prettier configuration (source: `packages/config-prettier/prettier-preset.js`):
 
 ```javascript
-{
-bracketSpacing: true,
-bracketSameLine: true,
-singleQuote: false,
-jsxSingleQuote: false,
-trailingComma: "es5",
-semi: true,
-printWidth: 110,
-arrowParens: "always"
-}
+// Source: packages/config-prettier/prettier-preset.js
+module.exports = {
+  bracketSpacing: true,
+  bracketSameLine: true,
+  singleQuote: false,
+  jsxSingleQuote: false,
+  trailingComma: "es5",
+  semi: true,
+  printWidth: 110,
+  arrowParens: "always",
+  importOrder: [
+    "(.*)/__mocks__/(.*)",
+    "server-only",
+    "<THIRD_PARTY_MODULES>",
+    "^@formbricks/(.*)$",
+    "^~/(.*)$",
+    "^@/(.*)$",
+    "^[./]",
+  ],
+  importOrderSeparation: false,
+  importOrderSortSpecifiers: true,
+};
 ```
+
+Additional Prettier plugins used in the codebase:
+
+- `@trivago/prettier-plugin-sort-imports` v5.2.2 — Enforces the import ordering defined above
+- `prettier-plugin-tailwindcss` v0.6.11 — Automatically sorts Tailwind CSS utility classes
+- `prettier-plugin-sort-json` v4.1.1 — Sorts JSON files consistently
+
+<Note>The following sections document conventions for the mobile SDKs. The primary Formbricks web platform is built exclusively with TypeScript. Mobile SDK development may follow additional platform-specific guidelines.</Note>
 
 ## Swift (iOS SDK)
 

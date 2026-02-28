@@ -234,6 +234,7 @@
             }
           }
         },
+        "security": [],
         "summary": "Update Contact (Attributes)",
         "tags": ["Client API - Contacts"]
       }
@@ -432,6 +433,7 @@
             }
           }
         },
+        "security": [],
         "summary": "Create Display",
         "tags": ["Client API - Display"]
       }
@@ -636,6 +638,7 @@
             }
           }
         },
+        "security": [],
         "summary": "Update Display",
         "tags": ["Client API - Display"]
       }
@@ -1055,6 +1058,7 @@
             "description": "Internal Server Error"
           }
         },
+        "security": [],
         "summary": "Get Environment State",
         "tags": ["Client API - Environment"]
       }
@@ -1229,6 +1233,7 @@
             "description": "Internal Server Error"
           }
         },
+        "security": [],
         "summary": "Get Contact State",
         "tags": ["Client API - Contacts"]
       }
@@ -1317,7 +1322,7 @@
                 }
               }
             },
-            "description": "Bad Request — invalid request body or parameters"
+            "description": "Bad Request \u2014 invalid request body or parameters"
           },
           "500": {
             "content": {
@@ -1335,6 +1340,7 @@
             "description": "Internal Server Error"
           }
         },
+        "security": [],
         "summary": "Create Person",
         "tags": ["Client API - Contacts"]
       }
@@ -1557,6 +1563,7 @@
             }
           }
         },
+        "security": [],
         "summary": "Update Person Attributes",
         "tags": ["Client API - Contacts"]
       }
@@ -1886,6 +1893,7 @@
             }
           }
         },
+        "security": [],
         "summary": "Create Response",
         "tags": ["Client API - Response"]
       }
@@ -2088,6 +2096,7 @@
             }
           }
         },
+        "security": [],
         "summary": "Update Response",
         "tags": ["Client API - Response"]
       }
@@ -2498,6 +2507,7 @@
             }
           }
         },
+        "security": [],
         "summary": "Create or Identify User",
         "tags": ["Client API - User"]
       }
@@ -6581,19 +6591,19 @@
                             {
                               "id": "xpoxuu3sifk1ee8he67ctf5i",
                               "label": {
-                                "default": "Sun ☀️"
+                                "default": "Sun \u2600\ufe0f"
                               }
                             },
                             {
                               "id": "hnsovcdmxtcbly6tig1az3qc",
                               "label": {
-                                "default": "Ocean 🌊"
+                                "default": "Ocean \ud83c\udf0a"
                               }
                             },
                             {
                               "id": "kcnelzdxknvwo8fq20d3nrr5",
                               "label": {
-                                "default": "Palms 🌴"
+                                "default": "Palms \ud83c\udf34"
                               }
                             }
                           ],
@@ -6768,19 +6778,19 @@
                           {
                             "id": "xpoxuu3sifk1ee8he67ctf5i",
                             "label": {
-                              "default": "Sun ☀️"
+                              "default": "Sun \u2600\ufe0f"
                             }
                           },
                           {
                             "id": "hnsovcdmxtcbly6tig1az3qc",
                             "label": {
-                              "default": "Ocean 🌊"
+                              "default": "Ocean \ud83c\udf0a"
                             }
                           },
                           {
                             "id": "kcnelzdxknvwo8fq20d3nrr5",
                             "label": {
-                              "default": "Palms 🌴"
+                              "default": "Palms \ud83c\udf34"
                             }
                           }
                         ],
@@ -6990,19 +7000,19 @@
                           {
                             "id": "xpoxuu3sifk1ee8he67ctf5i",
                             "label": {
-                              "default": "Sun ☀️"
+                              "default": "Sun \u2600\ufe0f"
                             }
                           },
                           {
                             "id": "hnsovcdmxtcbly6tig1az3qc",
                             "label": {
-                              "default": "Ocean 🌊"
+                              "default": "Ocean \ud83c\udf0a"
                             }
                           },
                           {
                             "id": "kcnelzdxknvwo8fq20d3nrr5",
                             "label": {
-                              "default": "Palms 🌴"
+                              "default": "Palms \ud83c\udf34"
                             }
                           }
                         ],
@@ -7261,19 +7271,19 @@
                           {
                             "id": "xpoxuu3sifk1ee8he67ctf5i",
                             "label": {
-                              "default": "Sun ☀️"
+                              "default": "Sun \u2600\ufe0f"
                             }
                           },
                           {
                             "id": "hnsovcdmxtcbly6tig1az3qc",
                             "label": {
-                              "default": "Ocean 🌊"
+                              "default": "Ocean \ud83c\udf0a"
                             }
                           },
                           {
                             "id": "kcnelzdxknvwo8fq20d3nrr5",
                             "label": {
-                              "default": "Palms 🌴"
+                              "default": "Palms \ud83c\udf34"
                             }
                           }
                         ],
@@ -7519,19 +7529,19 @@
                           {
                             "id": "xpoxuu3sifk1ee8he67ctf5i",
                             "label": {
-                              "default": "Sun ☀️"
+                              "default": "Sun \u2600\ufe0f"
                             }
                           },
                           {
                             "id": "hnsovcdmxtcbly6tig1az3qc",
                             "label": {
-                              "default": "Ocean 🌊"
+                              "default": "Ocean \ud83c\udf0a"
                             }
                           },
                           {
                             "id": "kcnelzdxknvwo8fq20d3nrr5",
                             "label": {
-                              "default": "Palms 🌴"
+                              "default": "Palms \ud83c\udf34"
                             }
                           }
                         ],
@@ -7727,19 +7737,19 @@
                           {
                             "id": "xpoxuu3sifk1ee8he67ctf5i",
                             "label": {
-                              "default": "Sun ☀️"
+                              "default": "Sun \u2600\ufe0f"
                             }
                           },
                           {
                             "id": "hnsovcdmxtcbly6tig1az3qc",
                             "label": {
-                              "default": "Ocean 🌊"
+                              "default": "Ocean \ud83c\udf0a"
                             }
                           },
                           {
                             "id": "kcnelzdxknvwo8fq20d3nrr5",
                             "label": {
-                              "default": "Palms 🌴"
+                              "default": "Palms \ud83c\udf34"
                             }
                           }
                         ],
@@ -8623,9 +8633,10 @@
                 }
               }
             },
-            "description": "Internal Server Error — application or database connectivity issue"
+            "description": "Internal Server Error \u2014 application or database connectivity issue"
           }
         },
+        "security": [],
         "summary": "Health Check",
         "tags": ["Health"]
       }

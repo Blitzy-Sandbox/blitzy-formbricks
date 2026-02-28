@@ -36,7 +36,7 @@ Each Formbricks plan includes a monthly response allowance that governs how many
 | Startup | 5,000 | 7,500 | 3 |
 | Custom / Enterprise | Unlimited | Unlimited | Unlimited |
 
-<!-- Source: apps/web/lib/constants.ts — BILLING_LIMITS constant -->
+{/* Source: apps/web/lib/constants.ts — BILLING_LIMITS constant */}
 
 <Note>
   Plan-level response limits apply to your entire organization. Quota management lets you further control how those responses are distributed across specific segments within individual surveys.
@@ -76,7 +76,7 @@ Configure what happens when a quota reaches its limit:
   </Tab>
 </Tabs>
 
-<!-- Source: packages/types/quota.ts — ZSurveyQuotaAction: "endSurvey" | "continueSurvey" -->
+{/* Source: packages/types/quota.ts — ZSurveyQuotaAction: "endSurvey" | "continueSurvey" */}
 
 ## Quota Enforcement Behavior
 
@@ -89,7 +89,7 @@ Formbricks evaluates quotas in real time as responses are submitted. Understandi
 3. **Count Check**: For quotas where conditions match, the system counts existing screened-in responses. Depending on your configuration, either all responses or only completed responses are counted.
 4. **Action Trigger**: If the count meets or exceeds the quota limit, the configured action fires — the survey ends with a specific ending card, or the response is marked as screened out while the respondent continues.
 
-<!-- Source: apps/web/modules/ee/quotas/lib/evaluation-service.ts, apps/web/modules/ee/quotas/lib/utils.ts -->
+{/* Source: apps/web/modules/ee/quotas/lib/evaluation-service.ts, apps/web/modules/ee/quotas/lib/utils.ts */}
 
 ### In-Progress Responses
 
@@ -158,7 +158,7 @@ Quota Limit: 50 responses
 
 This means if a respondent starts but does not complete the survey, they may still count toward your quota if they have answered the qualifying questions. When **Count Partial Submissions** is disabled, only responses marked as `finished: true` are counted toward the quota limit.
 
-<!-- Source: apps/web/modules/ee/quotas/lib/utils.ts — countPartialSubmissions filter in handleQuotas -->
+{/* Source: apps/web/modules/ee/quotas/lib/utils.ts — countPartialSubmissions filter in handleQuotas */}
 
 ## Quota Monitoring
 
@@ -180,7 +180,7 @@ If you are approaching your plan's monthly response limit, you can upgrade to un
 | Free → Startup | 1,500 → 5,000 responses/month | Increased MIU from 2,000 to 7,500 |
 | Startup → Custom | 5,000 → Unlimited responses/month | Unlimited projects, MIU, and responses |
 
-<!-- Source: apps/web/lib/constants.ts — BILLING_LIMITS constant -->
+{/* Source: apps/web/lib/constants.ts — BILLING_LIMITS constant */}
 
 To upgrade your plan:
 

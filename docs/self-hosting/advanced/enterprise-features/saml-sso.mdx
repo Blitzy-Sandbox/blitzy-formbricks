@@ -10,7 +10,7 @@ icon: "key"
 
 SAML (Security Assertion Markup Language) enables enterprise-grade Single Sign-On, allowing your organization's users to authenticate with Formbricks using their existing Identity Provider (IdP) credentials. Formbricks uses the **BoxyHQ saml-jackson** library (v1.52.2) for its SAML SSO implementation. This integration supports popular identity providers including Okta, Azure AD, OneLogin, and any other SAML 2.0-compliant IdP.
 
-<!-- Source: apps/web/modules/ee/sso/lib/providers.ts — SAML provider configuration (id: "saml", name: "BoxyHQ SAML") -->
+{/* Source: apps/web/modules/ee/sso/lib/providers.ts — SAML provider configuration (id: "saml", name: "BoxyHQ SAML") */}
 
 ## How SAML SSO Works
 
@@ -95,7 +95,7 @@ The `SAML_DATABASE_URL` environment variable must be configured to point to this
     | `firstName` | User's first name |
     | `lastName` | User's last name |
 
-    <!-- Source: apps/web/lib/constants.ts — SAML_AUDIENCE = "https://saml.formbricks.com", SAML_PATH = "/api/auth/saml/callback" -->
+    {/* Source: apps/web/lib/constants.ts — SAML_AUDIENCE = "https://saml.formbricks.com", SAML_PATH = "/api/auth/saml/callback" */}
   </Step>
 
   <Step title="Set Additional Environment Variables">

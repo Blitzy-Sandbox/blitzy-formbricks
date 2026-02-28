@@ -12,7 +12,7 @@ OpenID Connect (OIDC) enables Single Sign-On (SSO) with any OIDC-compliant ident
 
 When configured, an OIDC login button appears on the Formbricks sign-in page, redirecting users to your identity provider for authentication before returning them to Formbricks with a valid session.
 
-<!-- Source: apps/web/modules/ee/sso/lib/providers.ts — OIDC provider configuration (lines 38-56) -->
+{/* Source: apps/web/modules/ee/sso/lib/providers.ts — OIDC provider configuration (lines 38-56) */}
 
 ## OIDC Environment Variables
 
@@ -26,7 +26,7 @@ Configure the following environment variables in your deployment to enable OIDC 
 | `OIDC_DISPLAY_NAME` | String | `"OpenId"` | Display name shown on the login button |
 | `OIDC_SIGNING_ALGORITHM` | String | `RS256` | Token signing algorithm (`RS256` is the default) |
 
-<!-- Source: apps/web/modules/ee/sso/lib/providers.ts lines 38-56 — the OIDC provider object uses these constants imported from @/lib/constants -->
+{/* Source: apps/web/modules/ee/sso/lib/providers.ts lines 38-56 — the OIDC provider object uses these constants imported from @/lib/constants */}
 
 <Note>
   The `wellKnown` URL is automatically derived as `{OIDC_ISSUER}/.well-known/openid-configuration`. Ensure your OIDC issuer exposes this endpoint.
@@ -81,7 +81,7 @@ Formbricks enforces several security mechanisms during the OIDC authentication f
 - **PKCE and state checks:** Proof Key for Code Exchange (PKCE) and state parameter checks are enforced for additional security, mitigating authorization code interception and cross-site request forgery attacks.
 - **Profile attributes extracted:** Formbricks extracts the following attributes from the ID token: `sub` (mapped as the user ID), `name`, and `email`.
 
-<!-- Source: apps/web/modules/ee/sso/lib/providers.ts lines 43-53 -->
+{/* Source: apps/web/modules/ee/sso/lib/providers.ts lines 43-53 */}
 
 ## Detailed Configuration Guide
 

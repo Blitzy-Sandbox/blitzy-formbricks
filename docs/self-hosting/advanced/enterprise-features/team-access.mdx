@@ -31,13 +31,13 @@ Formbricks uses a hierarchical structure to organize access control. Understandi
 
 This hierarchy enables organizations to control which users can access which projects by grouping users into teams and assigning those teams to projects with specific permission levels. Organization-level roles (such as Owner and Manager) can override team-level restrictions, providing an additional layer of administrative control.
 
-<!-- Source: apps/web/modules/ee/teams/team-list/types/team.ts — ZTeamDetails schema defines the team-members-projects relationship -->
+{/* Source: apps/web/modules/ee/teams/team-list/types/team.ts — ZTeamDetails schema defines the team-members-projects relationship */}
 
 ## Team Roles
 
 Each team member is assigned one of two team-level roles that determine their management capabilities within the team.
 
-<!-- Source: apps/web/modules/ee/teams/team-list/types/team.ts — ZTeamRole = z.enum(["admin", "contributor"]) -->
+{/* Source: apps/web/modules/ee/teams/team-list/types/team.ts — ZTeamRole = z.enum(["admin", "contributor"]) */}
 
 | Role | Description | Capabilities |
 |------|-------------|-------------|
@@ -52,7 +52,7 @@ Each team member is assigned one of two team-level roles that determine their ma
 
 When a project is assigned to a team, a permission level is set that determines what team members can do within that project.
 
-<!-- Source: apps/web/modules/ee/teams/project-teams/types/team.ts — ZTeamPermission = z.enum(["read", "readWrite", "manage"]) -->
+{/* Source: apps/web/modules/ee/teams/project-teams/types/team.ts — ZTeamPermission = z.enum(["read", "readWrite", "manage"]) */}
 
 | Permission | Description |
 |-----------|-------------|
@@ -64,7 +64,7 @@ When a project is assigned to a team, a permission level is set that determines 
   If a user belongs to multiple teams that each have access to the same project, the **highest permission level** wins. For example, if Team A grants "Read" access and Team B grants "Manage" access to the same project, the user will have "Manage" access.
 </Warning>
 
-<!-- Source: apps/web/modules/ee/teams/lib/roles.ts — getProjectPermissionByUserId function iterates memberships and selects the highest permission -->
+{/* Source: apps/web/modules/ee/teams/lib/roles.ts — getProjectPermissionByUserId function iterates memberships and selects the highest permission */}
 
 ## Managing Teams
 
@@ -104,7 +104,7 @@ Follow these steps to set up and manage teams within your organization.
   </Step>
 </Steps>
 
-<!-- Source: apps/web/modules/ee/teams/team-list/ — contains team creation and management components -->
+{/* Source: apps/web/modules/ee/teams/team-list/ — contains team creation and management components */}
 
 ## Community Edition Vs Enterprise Edition
 

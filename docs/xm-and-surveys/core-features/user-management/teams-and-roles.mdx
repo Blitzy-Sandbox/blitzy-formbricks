@@ -28,7 +28,7 @@ Formbricks uses a two-tier permission system:
 
 Each team member is assigned one of two roles: **Admin** or **Contributor**. These roles determine what a user can do within the team itself.
 
-<!-- Source: apps/web/modules/ee/teams/lib/roles.ts — ZTeamRole = z.enum(["admin", "contributor"]) -->
+{/* Source: apps/web/modules/ee/teams/lib/roles.ts — ZTeamRole = z.enum(["admin", "contributor"]) */}
 
 ### Admin
 
@@ -56,13 +56,13 @@ Each team member is assigned one of two roles: **Admin** or **Contributor**. The
 | Assign Projects to Team | ✅ | ❌ |
 | Manage Team Settings | ✅ | ❌ |
 
-<!-- Source: apps/web/modules/ee/teams/lib/roles.ts -->
+{/* Source: apps/web/modules/ee/teams/lib/roles.ts */}
 
 ## Project-Level Permissions
 
 Within each project, team members can have one of three permission levels. These permissions are assigned when a project is linked to a team.
 
-<!-- Source: apps/web/modules/ee/teams/project-teams/types/team.ts — ZTeamPermission = z.enum(["read", "readWrite", "manage"]) -->
+{/* Source: apps/web/modules/ee/teams/project-teams/types/team.ts — ZTeamPermission = z.enum(["read", "readWrite", "manage"]) */}
 
 ### Read
 
@@ -108,7 +108,7 @@ To create a new team in your organization:
   </Step>
 </Steps>
 
-<!-- Source: apps/web/modules/ee/teams/team-list/components/create-team-modal.tsx -->
+{/* Source: apps/web/modules/ee/teams/team-list/components/create-team-modal.tsx */}
 
 ## Member Assignment
 
@@ -120,7 +120,7 @@ Team membership is managed by Team Admins and organization-level Owners or Manag
 - Each team member is assigned a team role: **Admin** or **Contributor**
 - A user can belong to multiple teams simultaneously with different roles in each
 
-<!-- Source: apps/web/modules/ee/teams/team-list/components/team-settings/member-row.tsx -->
+{/* Source: apps/web/modules/ee/teams/team-list/components/team-settings/member-row.tsx */}
 
 ## Project Access Scoping
 
@@ -131,8 +131,8 @@ Teams control which projects are visible to their members and what level of acce
 - If a user belongs to multiple teams that are assigned the same project with different permission levels, the **highest permission takes precedence**
 - Organization Owners and Managers bypass team-based scoping and have implicit access to all projects
 
-<!-- Source: apps/web/modules/ee/teams/lib/roles.ts — getProjectPermissionByUserId iterates all project memberships and returns the highest permission -->
-<!-- Source: apps/web/modules/ee/teams/project-teams/types/team.ts — ZProjectTeam type -->
+{/* Source: apps/web/modules/ee/teams/lib/roles.ts — getProjectPermissionByUserId iterates all project memberships and returns the highest permission */}
+{/* Source: apps/web/modules/ee/teams/project-teams/types/team.ts — ZProjectTeam type */}
 
 ## Permission Examples
 

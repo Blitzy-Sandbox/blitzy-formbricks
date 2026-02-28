@@ -73,7 +73,7 @@ During installation, the script will prompt you to provide some details:
 - **Overwriting Docker GPG Keys**:
   If Docker GPG keys already exist, the script will ask whether you want to overwrite them.
 
-```
+```text
 🚀 Executing default step of installing Formbricks
 🧱 Welcome to the Formbricks Setup Script
 
@@ -89,7 +89,7 @@ File '/etc/apt/keyrings/docker.gpg' exists. Overwrite? (y/N)
 - **Domain Name**:
   Enter the domain name where you’ll host Formbricks. The domain will be used to generate an SSL certificate. Do not include the protocol (http/https).
 
-```
+```text
 🚀 Executing default step of installing Formbricks
 🧱 Welcome to the Formbricks Setup Script
 
@@ -113,7 +113,7 @@ File '/etc/apt/keyrings/docker.gpg' exists. Overwrite? (y/N) y
 - **HTTPS Certificate Setup**:
   The script will ask if you’d like to create an HTTPS certificate for your domain. Enter `Y` to proceed (highly recommended for secure access).
 
-```
+```text
 🚀 Executing default step of installing Formbricks
 🧱 Welcome to the Formbricks Setup Script
 
@@ -138,7 +138,7 @@ my.hosted.url.com
 
 - **DNS Setup Prompt**: Ensure that your domain's DNS is correctly configured and ports 80 and 443 are open. Confirm this by entering `Y`. This step is crucial for proper SSL certificate issuance and secure server access.
 
-```
+```text
 🚀 Executing default step of installing Formbricks
 🧱 Welcome to the Formbricks Setup Script
 
@@ -166,7 +166,7 @@ Y
 - **Email Address for SSL Certificate**:
   Provide an email address to register the SSL certificate. Notifications regarding the certificate will be sent to this address.
 
-```
+```text
 🚀 Executing default step of installing Formbricks
 🧱 Welcome to the Formbricks Setup Script
 
@@ -196,7 +196,7 @@ Y
 - **Enforce HTTPS with HSTS**:
   Enabling HTTP Strict Transport Security (HSTS) ensures all communication with your server is encrypted. It’s a recommended best practice. Enter `Y` to enforce HTTPS.
 
-```
+```text
 🚀 Executing default step of installing Formbricks
 🧱 Welcome to the Formbricks Setup Script
 
@@ -227,7 +227,7 @@ docs@formbricks.com
 
 - **Email Service Setup Prompt**: The script will ask if you want to set up the email service. Enter `Y` to proceed.(default is `N`). You can skip this step if you don't want to set up the email service. You will still be able to use Formbricks without setting up the email service.
 
-```
+```text
 🚀 Executing default step of installing Formbricks
 🧱 Welcome to the Formbricks Setup Script
 
@@ -265,7 +265,7 @@ Y
 - **File Upload Configuration**:
   The script will ask if you want to configure file uploads. If you skip this step, features like adding images to surveys, file upload question types, project logos, and custom organization logos in emails will be disabled.
 
-```
+```text
 📁 Do you want to configure file uploads?
    If you skip this, the following features will be disabled:
    - Adding images to surveys (e.g., in questions or as background)
@@ -277,7 +277,7 @@ Configure file uploads now? [Y/n]
 
   If you choose `Y` (default), the script then asks whether to use an external S3-compatible storage or the bundled MinIO:
 
-```
+```text
 🗄️  Do you want to use an external S3-compatible storage (AWS S3/DO Spaces/etc.)? [y/N]
 ```
 
@@ -298,7 +298,7 @@ Configure file uploads now? [Y/n]
 
 **That's it**! After running the command and providing the required information, visit the domain name you entered, and you should see the Formbricks home wizard!
 
-```
+```text
 🚀 Executing default step of installing Formbricks
 🧱 Welcome to the Formbricks Setup Script
 
@@ -354,7 +354,7 @@ Y
 
 To update Formbricks, simply run the following command:
 
-```
+```bash
 ./formbricks.sh update
 ```
 
@@ -364,7 +364,7 @@ The script will automatically pull the latest version of Formbricks from GitHub 
 
 To stop Formbricks, simply run the following command:
 
-```
+```bash
 ./formbricks.sh stop
 ```
 
@@ -374,7 +374,7 @@ The script will automatically stop all the Formbricks related containers and bri
 
 To restart Formbricks, simply run the following command:
 
-```
+```bash
 ./formbricks.sh restart
 ```
 
@@ -386,7 +386,7 @@ During the one-click setup, a temporary `minio-init` service configures MinIO (b
 
 If you prefer to remove the `minio-init` service and its references after a successful setup, run:
 
-```
+```bash
 ./formbricks.sh cleanup-minio-init
 ```
 
@@ -396,7 +396,7 @@ This only removes the init job and its Compose references; it does not delete an
 
 To uninstall Formbricks, simply run the following command, but keep in mind that this will delete all your data!
 
-```
+```bash
 ./formbricks.sh uninstall
 ```
 
@@ -406,7 +406,7 @@ The script will automatically stop all the Formbricks related containers, remove
 
 If you encounter any issues, you can check the logs of the containers with:
 
-```
+```bash
 ./formbricks.sh logs
 ```
 

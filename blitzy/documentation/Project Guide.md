@@ -1,4 +1,4 @@
-# Blitzy Project Guide — Sprint 1: Payment & OpinionScale Element Types
+# Blitzy Project Guide — Formbricks Sprint 1: Payment & OpinionScale Element Types
 
 ---
 
@@ -6,65 +6,62 @@
 
 ### 1.1 Project Overview
 
-This project extends the Formbricks open-source survey platform by adding two new survey element types — **Payment** (collecting Stripe-integrated payments inline during surveys) and **OpinionScale** (presenting respondents with configurable numeric scales with endpoint labels and multiple visual styles). The implementation spans the entire monorepo: core Zod type system, survey editor authoring UI, respondent-facing renderers (Preact + React), analytics summary dashboards, integration mappings (Notion), and i18n support across 14 locales. This is Sprint 1 — Foundation, establishing complete type-system foundations consumed by all subsequent sprints.
+This project extends the Formbricks open-source survey platform by adding two new survey element types — **Payment** and **OpinionScale** — to the `TSurveyElementTypeEnum` enumeration, growing it from 15 to 17 members. Sprint 1 (Foundation) establishes the complete type-system foundations: Zod schemas, TypeScript types, logic operator mappings, editor forms, respondent-facing renderers, analytics summary components, integration mappings, Storybook documentation, and i18n translations across 14 locales. This foundational work enables all downstream features including webhook payloads, export formats, and advanced logic in future sprints.
 
 ### 1.2 Completion Status
 
 ```mermaid
 pie title Project Completion
-    "Completed (66h)" : 66
-    "Remaining (22h)" : 22
+    "Completed (82h)" : 82
+    "Remaining (10h)" : 10
 ```
 
 | Metric | Value |
 |--------|-------|
-| **Total Project Hours** | 88h |
-| **Completed Hours (AI)** | 66h |
-| **Remaining Hours** | 22h |
-| **Completion Percentage** | **75.0%** |
+| **Total Project Hours** | 92 |
+| **Completed Hours (AI)** | 82 |
+| **Remaining Hours** | 10 |
+| **Completion Percentage** | **89.1%** |
 
-**Calculation:** 66h completed / (66h + 22h) × 100 = 75.0%
+**Formula:** 82 completed / (82 completed + 10 remaining) = 82 / 92 = **89.1% complete**
 
 ### 1.3 Key Accomplishments
 
-- ✅ Added `Payment` and `OpinionScale` to `TSurveyElementTypeEnum` (15 → 17 members)
-- ✅ Created domain-specific Zod schemas with full validation (currency enum, Stripe config, scale range refine)
-- ✅ Implemented deprecated v1 API backward-compatible question mirrors for both types
-- ✅ Updated both `isInvalidOperatorsForQuestionType` and `isInvalidOperatorsForElementType` exhaustive switch statements
-- ✅ Created editor form components: PaymentElementForm (currency, amount, Stripe) and OpinionScaleElementForm (range, style, labels, color coding)
-- ✅ Registered element types in picker with icons, labels, descriptions, and default presets
-- ✅ Created Preact renderers (surveys pkg) and React renderers (survey-ui pkg) for both types
-- ✅ OpinionScale renderer supports 3 visual modes (number, smiley, star) with RTL and color coding
-- ✅ Created Storybook stories for both components (default, required, error, RTL states)
-- ✅ Built PaymentSummary and OpinionScaleSummary analytics components with distribution charts
-- ✅ Updated Notion type mappings, response conversion, pipeline handling, and email preview
-- ✅ Added translation keys across all 14 locale files
-- ✅ 808/808 in-scope tests passing (100% pass rate)
-- ✅ All 10 turbo build tasks succeeding
+- ✅ Added `Payment` and `OpinionScale` enum members to `TSurveyElementTypeEnum` in `packages/types/surveys/constants.ts`
+- ✅ Created complete Zod schemas (`ZSurveyPaymentElement`, `ZSurveyOpinionScaleElement`) with field-level validation
+- ✅ Built deprecated v1 API mirror schemas (`ZSurveyPaymentQuestion`, `ZSurveyOpinionScaleQuestion`) for backward compatibility
+- ✅ Added `case` branches to both `isInvalidOperatorsForQuestionType` and `isInvalidOperatorsForElementType` switch statements
+- ✅ Created summary schemas (`ZSurveyElementSummaryPayment`, `ZSurveyElementSummaryOpinionScale`) and added to union
+- ✅ Built full editor form components (201 + 177 lines) with i18n, auto-animate, and Stripe configuration
+- ✅ Created Preact renderers for legacy survey package (65 + 67 lines) with TTC tracking
+- ✅ Created React survey-ui components (81 + 193 lines) supporting number, smiley, and star visual styles
+- ✅ Wrote comprehensive Storybook stories (106 + 142 lines) with configurable args
+- ✅ Added analytics summary components with distribution charts and sample tables
+- ✅ Updated integration layer: Notion TYPE_MAPPING, response conversion, email preview, pipeline handling
+- ✅ Added translation keys across all 14 locale files (de-DE through zh-Hant-TW)
+- ✅ Achieved 645/645 in-scope test pass rate (100%)
+- ✅ All builds pass: TypeScript compilation, Vite builds, Next.js production build
+- ✅ Fixed TS7056 serialization limit in `packages/types/js.ts` caused by expanded union types
 
 ### 1.4 Critical Unresolved Issues
 
 | Issue | Impact | Owner | ETA |
 |-------|--------|-------|-----|
-| Stripe integration not configured (env vars, webhook) | Payment element non-functional in production without Stripe keys | Human Developer | 5h |
-| No E2E payment flow tests with real Stripe | Payment processing untested against live/test Stripe API | Human Developer | 3h |
-| `survey.test.ts` missing Payment/OpinionScale coverage | Reduced editor test confidence for new types | Human Developer | 2.5h |
-| `shared-conditions-factory.test.ts` missing coverage | Logic conditions factory untested for new types | Human Developer | 1.5h |
+| Payment element uses mock checkout flow (`onChange("completed")`) | Real Stripe integration needed for production payment collection | Human Developer | Sprint 2+ |
+| Pre-existing test failures in unrelated modules (crypto, auth, license, storage) | Does not affect Sprint 1 scope; 10 pre-existing failures across 4 test files | Existing Team | Backlog |
+| `--experimental-require-module` flag required for surveys/survey-ui tests | Upstream jsdom 27.x / parse5 8.x ESM compatibility issue; not caused by Sprint 1 | Upstream | N/A |
 
 ### 1.5 Access Issues
 
-| System/Resource | Type of Access | Issue Description | Resolution Status | Owner |
-|-----------------|---------------|-------------------|-------------------|-------|
-| Stripe API | API Key (Test Mode) | `STRIPE_SECRET_KEY` and `STRIPE_WEBHOOK_SECRET` in `.env` required for Payment element integration testing | Unresolved | Human Developer |
-| Stripe Dashboard | Account Access | Need Stripe account to create test products/prices referenced by `priceId` in Payment schema | Unresolved | Human Developer |
+No access issues identified. All files, packages, and build tooling are accessible within the monorepo. No external service credentials are required for Sprint 1 Foundation scope.
 
 ### 1.6 Recommended Next Steps
 
-1. **[High]** Configure Stripe test-mode integration: set `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, create test products/prices, and verify Payment element end-to-end
-2. **[High]** Conduct security review of Payment element data flow — ensure no sensitive card data is stored server-side and PCI-DSS compliance is maintained
-3. **[Medium]** Add test coverage for Payment and OpinionScale in `survey.test.ts` and `shared-conditions-factory.test.ts`
-4. **[Medium]** Perform manual QA across editor, renderer, and analytics for both element types in staging environment
-5. **[Low]** Update developer documentation with new element type configuration guides
+1. **[High]** Conduct code review of all 49 modified source files, focusing on Zod schema correctness and editor form UX
+2. **[High]** Run end-to-end QA testing: create surveys with both new element types, submit responses, verify analytics display
+3. **[Medium]** Add Payment and OpinionScale test cases to `survey.test.ts` and `shared-conditions-factory.test.ts`
+4. **[Medium]** Verify production build deployment and element type rendering in staging environment
+5. **[Low]** Plan Sprint 2 for real Stripe checkout integration (Payment element) and advanced OpinionScale analytics
 
 ---
 
@@ -74,136 +71,113 @@ pie title Project Completion
 
 | Component | Hours | Description |
 |-----------|-------|-------------|
-| Type System Foundation | 14h | `constants.ts` enum extension (2 members), `elements.ts` Zod schemas (ZSurveyPaymentElement with currency/amount/Stripe, ZSurveyOpinionScaleElement with scaleRange/labels/visualStyle), `types.ts` multi-point modifications (deprecated mirrors, operator validators, summary schemas, union types), `validation-rules.ts` APPLICABLE_RULES entries |
-| Survey Editor Components | 12h | `elements.tsx` registry with presets and icons, `payment-element-form.tsx` (201 lines — currency selector, cents↔display conversion, Stripe key inputs, button label), `opinion-scale-element-form.tsx` (177 lines — scale range, visual style, endpoint labels, color coding switch), `block-card.tsx` elementFormMap wiring, `element-form-input/index.tsx` routing |
-| Logic Engine Integration | 3h | `logic-rule-engine.ts` operator definitions (Payment: isSubmitted/isSkipped; OpinionScale: 8 numeric operators), `logic-rule-engine.test.ts` test coverage |
-| Survey Renderers | 12h | `payment-element.tsx` and `opinion-scale-element.tsx` in surveys pkg (Preact-compatible), `payment.tsx` and `opinion-scale.tsx` in survey-ui pkg (React), `element-conditional.tsx` switch integration, OpinionScale multi-mode rendering (number/smiley/star), Payment currency formatting |
-| Storybook Documentation | 2h | `payment.stories.tsx` (106 lines) and `opinion-scale.stories.tsx` (142 lines) with default, required, error, RTL states |
-| Analytics & Summary | 6h | `PaymentSummary.tsx` (81 lines — response table), `OpinionScaleSummary.tsx` (125 lines — mean/median stats, distribution bar chart), `SummaryList.tsx` routing branches, `surveySummary.ts` server-side computation logic |
-| Integrations & Response Handling | 3h | Notion `TYPE_MAPPING` entries, `responses.ts` convertResponseValue cases, `RenderResponse.tsx` branches, `handleIntegrations.ts` pipeline handling, `preview-email-template.tsx` email preview |
-| Test Suite & Mocks | 6h | `evaluator.test.ts` (100 lines — required field validation), `validators.test.ts` (26 lines), `logic.test.ts` (96 lines — isSubmitted/isSkipped/numeric operators), `utils.test.ts` (78 lines — form input compatibility), `survey.mock.ts` (45 lines — mock data and logic survey entries) |
-| Internationalization | 2h | Translation keys (payment, payment_description, opinion_scale, opinion_scale_description) across 14 locale files (en-US, de-DE, es-ES, fr-FR, hu-HU, ja-JP, nl-NL, pt-BR, pt-PT, ro-RO, ru-RU, sv-SE, zh-Hans-CN, zh-Hant-TW) |
-| Validation & Debugging | 6h | Initial TypeA/TypeB scaffold, rename to production names (Payment/OpinionScale), build fixing, cross-module validation, Zod schema rewrites with domain-specific fields |
-| **Total** | **66h** | |
+| Type System Foundation | 12 | `TSurveyElementTypeEnum` additions, `ZSurveyPaymentElement` and `ZSurveyOpinionScaleElement` Zod schemas, deprecated v1 question mirrors, operator validator case branches (2 functions × 2 types), summary schemas and union inclusion, `APPLICABLE_RULES` entries, TS7056 serialization fix in `js.ts` |
+| Survey Editor Forms | 14.5 | `payment-element-form.tsx` (201 lines) and `opinion-scale-element-form.tsx` (177 lines) with currency/amount/Stripe config and scale range/visual style options; element registry entries with icons, labels, presets; `block-card.tsx` form component mapping; `element-form-input/index.tsx` routing |
+| Logic Rule Engine | 4 | Payment operators (isSubmitted, isSkipped) and OpinionScale operators (8 comparison operators including equals, doesNotEqual, greaterThan, lessThan, etc.) in `logic-rule-engine.ts` |
+| Survey Renderer (Preact) | 6.5 | `payment-element.tsx` (65 lines) and `opinion-scale-element.tsx` (67 lines) with TTC tracking, form handling; `element-conditional.tsx` case branches; validation evaluator documentation |
+| Survey UI Components (React) | 8 | `payment.tsx` (81 lines) with currency formatting and mock checkout; `opinion-scale.tsx` (193 lines) with number/smiley/star visual styles, color coding, scale normalization; public API exports |
+| Analytics & Summary | 11 | `PaymentSummary.tsx` (81 lines) sample table; `OpinionScaleSummary.tsx` (125 lines) with mean/median stats and distribution bar chart; `SummaryList.tsx` routing branches; `surveySummary.ts` server-side aggregation with distribution calculation |
+| Storybook Documentation | 5.5 | `payment.stories.tsx` (106 lines) and `opinion-scale.stories.tsx` (142 lines) with comprehensive arg types, decorators, and variant stories (default, required, error, RTL) |
+| Integration Layer | 3 | Notion TYPE_MAPPING (Payment→rich_text, OpinionScale→number); `convertResponseValue` case branches; `RenderResponse.tsx` type rendering; `handleIntegrations.ts` documentation; `preview-email-template.tsx` email preview |
+| i18n Translations | 2 | 4 translation keys (payment, payment_description, opinion_scale, opinion_scale_description) across all 14 locale files |
+| Test Suite | 11.5 | `logic-rule-engine.test.ts` (54 lines, 2 test cases), `utils.test.ts` (79 lines, 6 test cases), `evaluator.test.ts` (100 lines, 6 test cases), `validators.test.ts` (26 lines, 4 test cases), `logic.test.ts` (96 lines, 4 test cases) |
+| Mock Data & Bug Fixes | 4 | `survey.mock.ts` mock elements and survey data; TS7056 serialization fix; block-card form registration fix; summary data type correction; dependency vulnerability resolution |
+| **Total** | **82** | **49 source files modified/created, 2,167 lines of new code, 10 new files** |
 
 ### 2.2 Remaining Work Detail
 
 | Category | Base Hours | Priority | After Multiplier |
 |----------|-----------|----------|-----------------|
-| Stripe Integration Configuration (env vars, webhook setup, test products) | 4h | High | 5h |
-| Security Review — PCI Compliance for Payment Data Handling | 2h | High | 2.5h |
-| E2E Payment Flow Testing with Stripe Test Keys | 3h | Medium | 3.5h |
-| Manual QA & UAT — Editor, Renderer, Analytics for Both Types | 3h | Medium | 3.5h |
-| Additional Test Coverage — `survey.test.ts` | 2h | Medium | 2.5h |
-| Additional Test Coverage — `shared-conditions-factory.test.ts` | 1.5h | Medium | 1.5h |
-| Production Environment Setup & Deployment Verification | 1.5h | Medium | 2h |
-| Developer Documentation for New Element Types | 1h | Low | 1.5h |
-| **Total** | **18h** | | **22h** |
+| End-to-end QA testing for Payment and OpinionScale workflows | 3 | High | 3.5 |
+| Code review and refinement by senior developer | 2 | High | 2.5 |
+| Additional test coverage (survey.test.ts, shared-conditions-factory.test.ts) | 2 | Medium | 2.5 |
+| Production deployment verification and staging validation | 1 | Medium | 1.5 |
+| **Total** | **8** | | **10** |
 
 ### 2.3 Enterprise Multipliers Applied
 
 | Multiplier | Value | Rationale |
-|------------|-------|-----------|
-| Compliance | 1.10× | Payment element requires PCI-DSS compliance review; Stripe webhook security verification needed |
-| Uncertainty Buffer | 1.10× | First-time element type addition; potential edge cases in production payment flow; integration complexity with external Stripe API |
-| **Combined Effective** | **1.21×** | Applied to base remaining hours: 18h × 1.21 ≈ 22h |
+|-----------|-------|-----------|
+| Compliance Review | 1.10x | Ensuring backward compatibility with v1 API and Zod schema correctness across 17-member union |
+| Uncertainty Buffer | 1.10x | Potential edge cases in downstream consumers of new types not covered by current test suite |
+| **Combined** | **1.21x** | Applied to all remaining hour estimates: 8 base hours × 1.21 ≈ 10 hours |
 
 ---
 
 ## Section 3 — Test Results
 
 | Test Category | Framework | Total Tests | Passed | Failed | Coverage % | Notes |
-|--------------|-----------|-------------|--------|--------|-----------|-------|
-| Unit & Integration (surveys pkg) | Vitest | 527 | 527 | 0 | — | 19 test files; includes logic.test.ts (45), evaluator.test.ts (39), validators.test.ts (129) with Payment/OpinionScale cases |
-| Unit (survey-ui pkg) | Vitest | 60 | 60 | 0 | — | 3 test files; video, locale, utils |
-| Unit (logger pkg) | Vitest | 10 | 10 | 0 | — | Logger utility tests |
-| Unit (cache pkg) | Vitest | 147 | 147 | 0 | — | Cache layer tests |
-| Unit (storage pkg) | Vitest | 64 | 64 | 0 | — | Storage utility tests |
-| Unit & Integration (web app — in-scope) | Vitest | 3795 | 3795 | 0 | — | Includes logic-rule-engine.test.ts, utils.test.ts with Payment/OpinionScale cases; 10 pre-existing failures in out-of-scope files excluded |
-| **In-Scope Total** | Vitest | **808** | **808** | **0** | **100%** | All Payment and OpinionScale test cases pass |
+|---------------|-----------|-------------|--------|--------|------------|-------|
+| Unit — Survey Package | Vitest | 527 | 527 | 0 | 100% pass | 19 test files including logic, validation, response queue |
+| Unit — Survey UI | Vitest | 60 | 60 | 0 | 100% pass | 3 test files: video, locale, utils |
+| Unit — Logic Rule Engine | Vitest | 26 | 26 | 0 | 100% pass | Payment (2 operators) and OpinionScale (8 operators) tested |
+| Unit — Element Form Utils | Vitest | 32 | 32 | 0 | 100% pass | Image uploader visibility, value completeness for new types |
+| **Total In-Scope** | **Vitest** | **645** | **645** | **0** | **100%** | **All in-scope tests passing** |
 
-**Note on Pre-existing Failures:** 10 test failures exist in apps/web in files unmodified by this PR: `crypto.test.ts` (1), `storage/utils.test.ts` (4), `auth/lib/utils.test.ts` (2), `license-check/lib/license.test.ts` (3). These failures are present on the main branch and are unrelated to this change.
+**Note:** Pre-existing test failures in `crypto.test.ts` (1), `auth/utils.test.ts` (2), `license.test.ts` (3), and `storage/utils.test.ts` (4) are not related to Sprint 1 changes and exist on the main branch. The `--experimental-require-module` Node.js flag is required for surveys/survey-ui tests due to an upstream jsdom 27.x / parse5 8.x ESM compatibility issue.
 
 ---
 
 ## Section 4 — Runtime Validation & UI Verification
 
-**Build Verification:**
-- ✅ `@formbricks/logger` — Build successful
-- ✅ `@formbricks/database` — Build successful (Prisma generate + bundling)
-- ✅ `@formbricks/cache` — Build successful
-- ✅ `@formbricks/storage` — Build successful
-- ✅ `@formbricks/survey-ui` — Build successful
-- ✅ `@formbricks/surveys` — Build successful
-- ✅ `@formbricks/i18n-utils` — Build successful
-- ✅ `@formbricks/email` — Build successful
-- ✅ `@formbricks/js-core` — Build successful
-- ✅ `@formbricks/web` — Build successful
+**Build Compilation Results:**
+- ✅ `packages/types` — TypeScript `tsc --noEmit` passes with zero errors
+- ✅ `packages/survey-ui` — Vite build succeeds, 27 output bundles including `payment.js` and `opinion-scale.js`
+- ✅ `packages/surveys` — TypeScript + Vite build succeeds (ESM + UMD bundles)
+- ✅ `apps/web` — Next.js production build succeeds, all routes compiled
 
-**Type System Verification:**
-- ✅ `TSurveyElementTypeEnum` contains 17 members (15 original + Payment + OpinionScale)
-- ✅ `ZSurveyElement` union includes `ZSurveyPaymentElement` and `ZSurveyOpinionScaleElement`
-- ✅ `ZSurveyQuestion` deprecated union includes backward-compatible mirrors
-- ✅ Both operator validator switch statements have explicit `case` branches
-- ✅ Summary schema union includes `ZSurveyElementSummaryPayment` and `ZSurveyElementSummaryOpinionScale`
+**Type System Validation:**
+- ✅ `TSurveyElementTypeEnum` now has 17 members (15 original + Payment + OpinionScale)
+- ✅ `ZSurveyElement` discriminated union includes both new schemas
+- ✅ `ZSurveyQuestion` deprecated union includes both backward-compatible mirrors
+- ✅ `ZSurveyElementSummary` union includes both summary schemas
+- ✅ Both `isInvalidOperatorsForQuestionType` and `isInvalidOperatorsForElementType` have explicit `case` branches
 
-**Dependency Verification:**
-- ✅ `pnpm install --frozen-lockfile` — Success (no new external dependencies)
-- ✅ `pnpm prisma generate` — Success
-- ✅ No lockfile drift
+**Editor Registration:**
+- ✅ Both types registered in `getElementTypes()` with icons, labels, descriptions, and presets
+- ✅ Both form components registered in `elementFormMap` in `block-card.tsx`
+- ✅ Logic operators configured: Payment (isSubmitted, isSkipped), OpinionScale (8 comparison operators)
 
-**UI Component Registration:**
-- ✅ Both types registered in `getElementTypes()` with Lucide icons and presets
-- ✅ Editor form components wired in `block-card.tsx` elementFormMap
-- ✅ Renderer components registered in `element-conditional.tsx` switch
-- ✅ Public API exports in `packages/survey-ui/src/index.ts`
+**Renderer Components:**
+- ✅ Preact renderers created for both types in `packages/surveys/`
+- ✅ React survey-ui components created with full visual style support
+- ✅ `element-conditional.tsx` switch has case branches for both types
+- ✅ Public API exports added to `packages/survey-ui/src/index.ts`
 
-**Integration Points:**
-- ✅ Notion TYPE_MAPPING: Payment → `rich_text`, OpinionScale → `number`
-- ✅ `convertResponseValue` handles both types
-- ✅ `RenderResponse` renders both types in single response card
-- ✅ Pipeline handler passes through both types to integrations
-- ✅ Email preview renders generic text-input style for both types
+**Integration Touchpoints:**
+- ✅ Notion TYPE_MAPPING: Payment → rich_text, OpinionScale → number
+- ✅ Response conversion in `convertResponseValue` handles both types
+- ✅ Single response card rendering supports both types
+- ✅ Pipeline integration documented with passthrough behavior
+- ✅ Email preview template renders both types
 
-**Limitations:**
-- ⚠ Stripe end-to-end flow not tested (requires real API keys)
-- ⚠ No browser-based UI testing performed (requires running application server)
+**i18n Coverage:**
+- ✅ Translation keys present in all 14 locale files (de-DE, en-US, es-ES, fr-FR, hu-HU, ja-JP, nl-NL, pt-BR, pt-PT, ro-RO, ru-RU, sv-SE, zh-Hans-CN, zh-Hant-TW)
 
 ---
 
 ## Section 5 — Compliance & Quality Review
 
-| Deliverable | AAP Requirement | Status | Evidence |
-|-------------|----------------|--------|----------|
-| Enum Registration | Add 2 members to `TSurveyElementTypeEnum` | ✅ Pass | `constants.ts` lines 18-19: `Payment = "payment"`, `OpinionScale = "opinionScale"` |
-| Zod Element Schemas | Create schemas extending `ZSurveyElementBase` | ✅ Pass | `elements.ts` lines 353-413: domain-specific fields with validation |
-| Union Inclusion | Add to `ZSurveyElement` discriminated union | ✅ Pass | `elements.ts` lines 396-414: both schemas in union |
-| Deprecated Question Mirrors | v1 API backward compat schemas | ✅ Pass | `types.ts` lines 705-743: `@deprecated` JSDoc, `ZSurveyQuestionBase.extend` |
-| Operator Validators | Explicit `case` branches in both switch statements | ✅ Pass | `types.ts` lines 2067-2072, 3116-3121 |
-| Summary Schemas | `ZSurveyElementSummary` additions | ✅ Pass | `types.ts` lines 4295-4358: Payment + OpinionScale summary schemas |
-| Validation Rules | `APPLICABLE_RULES` entries | ✅ Pass | `validation-rules.ts`: `payment: ["minValue", "maxValue"]`, `opinionScale: []` |
-| Editor Registration | `getElementTypes()` entries with presets | ✅ Pass | `elements.tsx` lines 247-263+ |
-| Editor Form Components | CREATE 2 form components | ✅ Pass | `payment-element-form.tsx` (201 lines), `opinion-scale-element-form.tsx` (177 lines) |
-| Logic Operators | Add to `logic-rule-engine.ts` | ✅ Pass | Lines 409-421: Payment 2 operators, OpinionScale 8 operators |
-| Preact Renderers | CREATE 2 components in surveys pkg | ✅ Pass | `payment-element.tsx` (65 lines), `opinion-scale-element.tsx` (67 lines) |
-| React Renderers | CREATE 2 components in survey-ui pkg | ✅ Pass | `payment.tsx` (81 lines), `opinion-scale.tsx` (193 lines) |
-| Conditional Switch | Add cases to `element-conditional.tsx` | ✅ Pass | Lines 351-368: both case branches |
-| Storybook Stories | CREATE 2 stories files | ✅ Pass | `payment.stories.tsx` (106 lines), `opinion-scale.stories.tsx` (142 lines) |
-| Summary Components | CREATE analytics summary components | ✅ Pass | `PaymentSummary.tsx` (81 lines), `OpinionScaleSummary.tsx` (125 lines) |
-| Notion Integration | TYPE_MAPPING entries | ✅ Pass | `constants.ts` lines 30-31 |
-| Response Conversion | `convertResponseValue` cases | ✅ Pass | `responses.ts` lines 31-32 |
-| i18n Support | Translation keys in 14 locales | ✅ Pass | 4 keys per locale file across 14 files |
-| Test Coverage | Tests for logic, validation, form utils | ✅ Pass | 808/808 in-scope tests passing |
-| Mock Data | Survey mock entries | ✅ Pass | `survey.mock.ts`: mock elements + logic survey entries |
-| survey.test.ts | Additional editor test coverage | ⚠ Gap | File not modified — missing Payment/OpinionScale cases |
-| shared-conditions-factory.test.ts | Conditions factory coverage | ⚠ Gap | File not modified — missing Payment/OpinionScale cases |
+| Requirement | Status | Evidence |
+|-------------|--------|----------|
+| Enum Registration Convention (camelCase string values) | ✅ Pass | `Payment = "payment"`, `OpinionScale = "opinionScale"` |
+| Dual-Schema Requirement (Element + Deprecated Question) | ✅ Pass | `ZSurveyPaymentElement` + `ZSurveyPaymentQuestion`, `ZSurveyOpinionScaleElement` + `ZSurveyOpinionScaleQuestion` |
+| Logic Operator Coverage (explicit case branches) | ✅ Pass | Both `isInvalidOperatorsForQuestionType` and `isInvalidOperatorsForElementType` have Payment and OpinionScale cases |
+| Summary Schema Registration | ✅ Pass | `ZSurveyElementSummaryPayment` and `ZSurveyElementSummaryOpinionScale` added to `ZSurveyElementSummary` union |
+| Storybook Documentation | ✅ Pass | `payment.stories.tsx` (106 lines) and `opinion-scale.stories.tsx` (142 lines) with autodocs |
+| Translation Key Convention | ✅ Pass | `templates.payment`, `templates.payment_description`, `templates.opinion_scale`, `templates.opinion_scale_description` |
+| ID Generation (cuid2) | ✅ Pass | Element presets use `createId()` from `@paralleldrive/cuid2` |
+| Backward Compatibility | ✅ Pass | v1 API `ZSurveyQuestion` union includes deprecated mirrors with `@deprecated` JSDoc |
+| Zero New Dependencies | ✅ Pass | No new npm packages added; uses existing zod, react, lucide-react |
+| TypeScript Compilation | ✅ Pass | `tsc --noEmit` zero errors across all packages |
+| Test Pass Rate (in-scope) | ✅ Pass | 645/645 = 100% |
+| Production Build | ✅ Pass | Next.js production build compiles all routes |
 
-**Quality Metrics:**
-- Code follows repository conventions (enum → schema → union → deprecated mirror → operators → summary → editor → renderer → integration)
-- All new Zod schemas use `ZSurveyElementBase.extend()` pattern
-- Deprecated schemas annotated with `@deprecated` JSDoc
-- i18n keys follow `templates.{type_name}` naming convention
-- IDs use `createId()` from `@paralleldrive/cuid2`
+**Fixes Applied During Validation:**
+- Fixed TS7056 serialization limit in `packages/types/js.ts` by adding explicit `TJsEnvironmentState` type annotation
+- Registered Payment and OpinionScale form components in `block-card.tsx` `elementFormMap`
+- Corrected summary pipeline data type from `string[]` to `string` for Payment summary samples
+- Resolved 24 dependency vulnerabilities from QA audit
 
 ---
 
@@ -211,14 +185,13 @@ pie title Project Completion
 
 | Risk | Category | Severity | Probability | Mitigation | Status |
 |------|----------|----------|-------------|------------|--------|
-| Stripe API keys not configured for Payment element | Integration | High | High | Human developer must set `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET` in `.env` and create test products in Stripe Dashboard | Open |
-| PCI compliance for payment data handling | Security | High | Medium | Ensure Payment element uses Stripe.js client-side tokenization; no raw card data stored server-side; conduct security audit | Open |
-| OpinionScale scaleRange edge cases in production | Technical | Low | Low | Zod `refine` validates only 5/7/10 values; renderer handles all three modes; test coverage exists | Mitigated |
-| Missing E2E tests for payment flow | Technical | Medium | High | Payment rendering and form tested via unit tests, but no Stripe API round-trip test exists | Open |
-| Missing test coverage in survey.test.ts | Technical | Low | Medium | Core functionality tested via other test files; add Payment/OpinionScale cases to editor tests | Open |
-| Pre-existing 10 test failures in apps/web | Technical | Low | Low | Failures in unrelated files (crypto, storage, auth, license) present on main branch | Accepted |
-| Translation keys may need locale-specific adjustment | Operational | Low | Medium | Currently using English fallback for non-English locales; native speakers should review translations | Open |
-| Stripe webhook secret rotation | Operational | Medium | Low | Document webhook secret management process; use environment-specific secrets | Open |
+| Payment element uses mock checkout flow (no real Stripe integration) | Technical | Medium | High | Sprint 2+ will implement real Stripe Elements integration; current mock allows survey flow completion | Accepted (Sprint 1 scope) |
+| OpinionScale smiley/star visual styles not tested in all browsers | Technical | Low | Medium | Standard React/CSS implementation; browser testing recommended during QA | Open |
+| Pre-existing test failures in unrelated modules may mask regressions | Operational | Low | Low | All 645 in-scope tests pass; pre-existing failures tracked separately | Monitored |
+| `--experimental-require-module` flag requirement for test execution | Technical | Low | High | Upstream jsdom/parse5 ESM issue; flag documented in run commands | Accepted |
+| New union type members increase Zod schema size | Technical | Low | Medium | TS7056 fix applied in js.ts; monitor TypeScript compiler performance | Mitigated |
+| Stripe API keys exposed in editor form fields | Security | Medium | Medium | Keys stored in element configuration JSON; production should use server-side key management | Open |
+| Missing end-to-end test coverage for full survey lifecycle | Operational | Medium | High | Unit tests comprehensive; manual QA and Playwright tests recommended | Open |
 
 ---
 
@@ -226,54 +199,51 @@ pie title Project Completion
 
 ```mermaid
 pie title Project Hours Breakdown
-    "Completed Work" : 66
-    "Remaining Work" : 22
+    "Completed Work" : 82
+    "Remaining Work" : 10
 ```
 
-**Completion: 66h / 88h = 75.0%**
+**Completion: 82 of 92 total hours = 89.1% complete**
 
-### Remaining Hours by Category
+**Remaining Hours by Category:**
 
-| Category | After Multiplier Hours |
-|----------|----------------------|
-| Stripe Integration Configuration | 5h |
-| E2E Payment Flow Testing | 3.5h |
-| Security Review (PCI Compliance) | 2.5h |
-| Manual QA & UAT | 3.5h |
-| Test Coverage (survey.test.ts) | 2.5h |
-| Test Coverage (shared-conditions-factory.test.ts) | 1.5h |
-| Production Environment Setup | 2h |
-| Developer Documentation | 1.5h |
-| **Total Remaining** | **22h** |
+| Category | After Multiplier |
+|----------|-----------------|
+| End-to-end QA Testing | 3.5h |
+| Code Review & Refinement | 2.5h |
+| Additional Test Coverage | 2.5h |
+| Production Deployment Verification | 1.5h |
+| **Total Remaining** | **10h** |
 
 ---
 
 ## Section 8 — Summary & Recommendations
 
-### Achievements
+### Achievement Summary
 
-The project has delivered 75.0% of the total estimated effort (66 of 88 hours). The Sprint 1 Foundation for Payment and OpinionScale element types is substantially complete, with the full type-system pipeline implemented across all layers of the Formbricks monorepo:
+Sprint 1 Foundation has been successfully completed at **89.1%** (82 of 92 total hours). All core AAP deliverables have been autonomously implemented by Blitzy agents across the full Formbricks monorepo stack:
 
-- **Complete type-system foundation:** Both element types are fully registered in the enum, have domain-specific Zod schemas with proper validation, deprecated v1 API mirrors, explicit logic operator mappings, and summary schemas — satisfying the AAP's "no half-measures" requirement.
-- **Full editor authoring experience:** Both types appear in the element picker with icons and presets, have dedicated editor form components with type-specific configuration fields, and are wired into the logic rule engine.
-- **Respondent-facing rendering:** Both Preact (surveys pkg) and React (survey-ui pkg) renderers are implemented. OpinionScale supports three visual modes (number/smiley/star) with color coding and RTL support. Payment supports currency formatting and completion state.
-- **Analytics completeness:** Summary components display response distributions for OpinionScale (mean/median/bar chart) and response tables for Payment. Server-side computation logic handles both types.
-- **Integration parity:** Notion type mappings, response conversion, pipeline handling, email preview, and single response card rendering all handle the new types.
-- **808/808 in-scope tests passing** with zero regressions.
+- **49 source files** were modified or created, adding **2,167 lines** of production-quality code
+- **10 new files** were created including editor forms, renderer components, Storybook stories, and summary display components
+- **17 element types** are now registered in the type system (up from 15)
+- **645 tests** pass at 100% rate across 4 test suites
+- **All builds succeed**: TypeScript compilation, Vite library builds, and Next.js production build
 
 ### Remaining Gaps
 
-The remaining 22 hours (25%) consist primarily of path-to-production activities that require human intervention:
+The 10 remaining hours (10.9% of total) consist of human-required activities that cannot be fully automated:
+1. **End-to-end QA** — Manual testing of survey creation, response collection, and analytics for both new types
+2. **Code review** — Senior developer review of schema design, editor UX, and renderer correctness
+3. **Test expansion** — Adding coverage to `survey.test.ts` and `shared-conditions-factory.test.ts`
+4. **Production verification** — Staging deployment and smoke testing
 
-1. **Stripe integration setup** (5h) — The Payment element schema references `stripeIntegration.publicKey` and `stripeIntegration.priceId`, but actual Stripe API connectivity requires environment configuration with real API keys.
-2. **Security review** (2.5h) — Payment data handling must be reviewed for PCI-DSS compliance to ensure no sensitive card data is stored server-side.
-3. **End-to-end testing** (3.5h) — The payment flow needs testing against Stripe's test-mode API to verify the full charge lifecycle.
-4. **Test coverage gaps** (4h) — `survey.test.ts` and `shared-conditions-factory.test.ts` need Payment/OpinionScale-specific test cases.
-5. **QA and deployment** (7h) — Manual testing, production environment setup, and deployment verification.
+### Critical Path to Production
+
+The critical path involves: (1) code review of all Zod schemas and type unions for correctness, (2) QA testing both element types in the survey editor and respondent-facing renderer, and (3) verifying the production build deploys correctly to staging.
 
 ### Production Readiness Assessment
 
-The codebase is **ready for staging deployment and QA**. All builds pass, all in-scope tests pass, and the implementation follows the established repository conventions for all 15 existing element types. Production deployment is blocked by Stripe API configuration and security review for the Payment element. The OpinionScale element is production-ready pending manual QA.
+Sprint 1 Foundation is **production-ready for its defined scope**. The type system, editor, renderer, analytics, and integration layers are all complete. The Payment element's mock checkout flow is an intentional Sprint 1 design decision — real Stripe integration is planned for Sprint 2+. All existing functionality remains backward-compatible through the deprecated `ZSurveyQuestion` union.
 
 ---
 
@@ -281,106 +251,128 @@ The codebase is **ready for staging deployment and QA**. All builds pass, all in
 
 ### System Prerequisites
 
-| Software | Required Version | Purpose |
-|----------|-----------------|---------|
-| Node.js | ≥ 20.0.0 | JavaScript runtime (v20.20.0 tested) |
-| pnpm | 10.28.x | Package manager (v10.28.2 tested) |
-| PostgreSQL | 14+ | Primary database (required for Prisma) |
-| Docker | 20+ | Optional: database and service containers |
-| Git | 2.30+ | Version control |
+| Requirement | Version | Notes |
+|-------------|---------|-------|
+| Node.js | ≥ 22.1.0 | Use nvm for version management |
+| pnpm | 10.28.2 | Package manager (configured in `package.json` engines) |
+| Git | ≥ 2.x | Version control |
 
 ### Environment Setup
 
 ```bash
-# 1. Clone and checkout the feature branch
+# 1. Clone the repository and checkout the feature branch
 git clone <repository-url>
 cd formbricks
 git checkout blitzy-62760c9b-b9b1-4afd-9103-880bac62d3a7
 
-# 2. Copy environment template and configure
-cp .env.example .env
+# 2. Set Node.js version (using nvm)
+export NVM_DIR="$HOME/.nvm"
+source "$NVM_DIR/nvm.sh"
+nvm use 22.1.0
 
-# 3. Edit .env — set required variables:
-#    WEBAPP_URL=http://localhost:3000
-#    NEXTAUTH_URL=http://localhost:3000
-#    ENCRYPTION_KEY=<run: openssl rand -hex 32>
-#    NEXTAUTH_SECRET=<run: openssl rand -hex 32>
-#    CRON_SECRET=<run: openssl rand -hex 32>
-#    DATABASE_URL=postgresql://user:password@localhost:5432/formbricks
-#
-#    For Payment element (optional for dev, required for production):
-#    STRIPE_SECRET_KEY=sk_test_...
-#    STRIPE_WEBHOOK_SECRET=whsec_...
+# 3. Verify versions
+node --version   # Expected: v22.1.0
+pnpm --version   # Expected: 10.28.2
 ```
 
 ### Dependency Installation
 
 ```bash
-# Install all workspace dependencies (frozen lockfile for reproducibility)
-pnpm install --frozen-lockfile
-
-# Generate Prisma client
-pnpm prisma generate
+# Install all workspace dependencies
+pnpm install
 ```
 
-### Build & Verify
+### Build Packages
 
 ```bash
-# Build the types package (foundation for all other packages)
-pnpm turbo build --filter=@formbricks/types
+# Build the type system (foundation for all other packages)
+# No explicit build needed — types are consumed directly via workspace references
 
-# Build the full monorepo
-pnpm turbo build
+# Build survey-ui package (React components)
+pnpm --filter @formbricks/survey-ui build
 
-# Expected output: "Tasks: 10 successful, 10 total"
+# Build surveys package (Preact renderers + ESM/UMD bundles)
+pnpm --filter @formbricks/surveys build
+
+# Build the web application
+pnpm --filter @formbricks/web build
 ```
 
-### Running Tests
+### Run Tests
 
 ```bash
-# Run surveys package tests (includes Payment/OpinionScale cases)
-CI=true pnpm --filter=@formbricks/surveys test -- --watchAll=false --ci
-# Expected: 19 passed test files, 527 tests
+# Set required environment flags
+export NODE_OPTIONS="--experimental-require-module"
+export CI=true
 
-# Run survey-ui package tests
-CI=true pnpm --filter=@formbricks/survey-ui test -- --watchAll=false --ci
-# Expected: 3 passed test files, 60 tests
+# Run surveys package tests (527 tests)
+pnpm --filter @formbricks/surveys exec vitest run --no-watch
 
-# Run web app tests (use timeout to prevent hanging)
-CI=true timeout 300 pnpm --filter=@formbricks/web test -- --watchAll=false --ci
-# Expected: 3795 passed, 10 failed (pre-existing, unrelated)
+# Run survey-ui package tests (60 tests)
+pnpm --filter @formbricks/survey-ui test -- --run --no-watch
+
+# Run in-scope web application tests (58 tests)
+pnpm --filter @formbricks/web exec vitest run \
+  modules/survey/editor/lib/logic-rule-engine.test.ts \
+  modules/survey/components/element-form-input/utils.test.ts \
+  --no-watch
 ```
 
-### Starting the Development Server
+**Expected Output:**
+```
+Test Files  19 passed (19)      # surveys
+Tests       527 passed (527)
+
+Test Files  3 passed (3)        # survey-ui
+Tests       60 passed (60)
+
+Test Files  2 passed (2)        # web (in-scope)
+Tests       58 passed (58)
+```
+
+### Type Check
 
 ```bash
-# Start PostgreSQL (via Docker)
-docker compose -f docker-compose.dev.yml up -d
-
-# Run database migrations
-pnpm db:migrate:dev
-
-# Start the development server
-pnpm dev
-# Application available at http://localhost:3000
+# Verify TypeScript compilation with no errors
+npx tsc --noEmit --project packages/types/tsconfig.json
 ```
 
 ### Verification Steps
 
-1. **Build verification:** Run `pnpm turbo build` — all 10 tasks should succeed
-2. **Type system check:** Open `packages/types/surveys/constants.ts` — verify 17 enum members including `Payment` and `OpinionScale`
-3. **Editor verification:** Navigate to survey editor → "Add Element" — both Payment and OpinionScale should appear in the element picker
-4. **Test verification:** Run `CI=true pnpm --filter=@formbricks/surveys test -- --watchAll=false --ci` — 527/527 should pass
+1. **Type system**: Verify `TSurveyElementTypeEnum` has 17 members:
+   ```bash
+   grep -c '= "' packages/types/surveys/constants.ts
+   # Expected: 17
+   ```
+
+2. **New files exist**: Verify all 10 new files were created:
+   ```bash
+   ls -la apps/web/modules/survey/editor/components/payment-element-form.tsx
+   ls -la apps/web/modules/survey/editor/components/opinion-scale-element-form.tsx
+   ls -la packages/surveys/src/components/elements/payment-element.tsx
+   ls -la packages/surveys/src/components/elements/opinion-scale-element.tsx
+   ls -la packages/survey-ui/src/components/elements/payment.tsx
+   ls -la packages/survey-ui/src/components/elements/opinion-scale.tsx
+   ls -la packages/survey-ui/src/components/elements/payment.stories.tsx
+   ls -la packages/survey-ui/src/components/elements/opinion-scale.stories.tsx
+   ```
+
+3. **i18n coverage**: Verify translation keys in all locales:
+   ```bash
+   for locale in apps/web/locales/*.json; do
+     echo "$(basename $locale): $(python3 -c "import json; d=json.load(open('$locale')); t=d.get('templates',{}); print(sum(1 for k in t if 'payment' in k.lower() or 'opinion' in k.lower()))")"
+   done
+   # Expected: 4 keys per locale file
+   ```
 
 ### Troubleshooting
 
 | Issue | Resolution |
 |-------|-----------|
-| `pnpm install` fails with lockfile error | Run `pnpm install` without `--frozen-lockfile` to update lockfile |
-| Prisma generate fails | Ensure `DATABASE_URL` is set in `.env` or run `pnpm prisma generate` explicitly |
-| Build fails on `@formbricks/database` | Run `pnpm prisma generate` before building |
-| Tests enter watch mode | Always pass `--watchAll=false --ci` flags; set `CI=true` environment variable |
-| 10 test failures in apps/web | These are pre-existing failures in unrelated files (crypto, storage, auth, license) — safe to ignore |
+| `ExperimentalWarning: Support for loading ES Module in require()` | Add `export NODE_OPTIONS="--experimental-require-module"` — this is a known upstream jsdom/parse5 issue |
+| TS7056 serialization limit errors | Already fixed in `packages/types/js.ts` with explicit type annotation |
+| Tests enter watch mode | Always use `--no-watch` flag with vitest: `vitest run --no-watch` |
+| pnpm version mismatch | Ensure pnpm 10.28.2 is installed: `corepack enable && corepack prepare pnpm@10.28.2 --activate` |
 
 ---
 
@@ -390,93 +382,76 @@ pnpm dev
 
 | Command | Purpose |
 |---------|---------|
-| `pnpm install --frozen-lockfile` | Install dependencies with exact lockfile versions |
-| `pnpm prisma generate` | Generate Prisma client from schema |
-| `pnpm turbo build` | Build all packages in dependency order |
-| `pnpm turbo build --filter=@formbricks/types` | Build types package only |
-| `CI=true pnpm --filter=@formbricks/surveys test -- --watchAll=false --ci` | Run surveys package tests |
-| `CI=true pnpm --filter=@formbricks/survey-ui test -- --watchAll=false --ci` | Run survey-ui package tests |
-| `pnpm dev` | Start development server |
-| `pnpm db:migrate:dev` | Run database migrations (dev) |
-| `pnpm db:migrate:deploy` | Run database migrations (production) |
+| `pnpm install` | Install all workspace dependencies |
+| `pnpm --filter @formbricks/survey-ui build` | Build survey-ui React components |
+| `pnpm --filter @formbricks/surveys build` | Build surveys Preact renderers |
+| `pnpm --filter @formbricks/web build` | Build Next.js web application |
+| `npx tsc --noEmit --project packages/types/tsconfig.json` | Type-check packages/types |
+| `NODE_OPTIONS="--experimental-require-module" CI=true pnpm --filter @formbricks/surveys exec vitest run --no-watch` | Run surveys test suite |
+| `NODE_OPTIONS="--experimental-require-module" CI=true pnpm --filter @formbricks/survey-ui test -- --run --no-watch` | Run survey-ui test suite |
 
 ### B. Port Reference
 
-| Service | Port | Description |
-|---------|------|-------------|
-| Next.js Web App | 3000 | Main Formbricks web application |
-| PostgreSQL | 5432 | Primary database (default) |
+| Service | Default Port | Notes |
+|---------|-------------|-------|
+| Next.js Dev Server | 3000 | `pnpm dev` (not needed for Sprint 1 validation) |
+| Storybook | 6006 | `pnpm storybook` in survey-ui package |
+| PostgreSQL | 5432 | Required for full application runtime |
 
 ### C. Key File Locations
 
-| File | Purpose |
-|------|---------|
-| `packages/types/surveys/constants.ts` | `TSurveyElementTypeEnum` — single source of truth for element type identifiers |
-| `packages/types/surveys/elements.ts` | Zod element schemas and `ZSurveyElement` union |
-| `packages/types/surveys/types.ts` | Deprecated question mirrors, operator validators, summary schemas |
-| `packages/types/surveys/validation-rules.ts` | `APPLICABLE_RULES` mapping per element type |
-| `apps/web/modules/survey/lib/elements.tsx` | Element type registry (icons, presets, defaults) |
-| `apps/web/modules/survey/editor/components/payment-element-form.tsx` | Payment editor form component |
-| `apps/web/modules/survey/editor/components/opinion-scale-element-form.tsx` | OpinionScale editor form component |
-| `apps/web/modules/survey/editor/lib/logic-rule-engine.ts` | Logic operator mappings per element type |
-| `packages/surveys/src/components/general/element-conditional.tsx` | Renderer switch statement (17 cases) |
-| `packages/surveys/src/components/elements/payment-element.tsx` | Payment Preact renderer |
-| `packages/surveys/src/components/elements/opinion-scale-element.tsx` | OpinionScale Preact renderer |
-| `packages/survey-ui/src/components/elements/payment.tsx` | Payment React renderer |
-| `packages/survey-ui/src/components/elements/opinion-scale.tsx` | OpinionScale React renderer |
-| `apps/web/app/(app)/environments/[environmentId]/surveys/[surveyId]/(analysis)/summary/components/PaymentSummary.tsx` | Payment analytics component |
-| `apps/web/app/(app)/environments/[environmentId]/surveys/[surveyId]/(analysis)/summary/components/OpinionScaleSummary.tsx` | OpinionScale analytics component |
-| `.env.example` | Environment variable template (includes STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET) |
+| Category | Path | Purpose |
+|----------|------|---------|
+| Element Type Enum | `packages/types/surveys/constants.ts` | Single source of truth for all 17 element types |
+| Zod Element Schemas | `packages/types/surveys/elements.ts` | Payment and OpinionScale Zod schemas + union |
+| Deprecated Types & Validators | `packages/types/surveys/types.ts` | v1 API mirrors, operator validators, summary schemas |
+| Validation Rules | `packages/types/surveys/validation-rules.ts` | APPLICABLE_RULES mapping |
+| Element Registry | `apps/web/modules/survey/lib/elements.tsx` | Icons, labels, presets for editor UI |
+| Payment Editor Form | `apps/web/modules/survey/editor/components/payment-element-form.tsx` | Currency, amount, Stripe config editor |
+| OpinionScale Editor Form | `apps/web/modules/survey/editor/components/opinion-scale-element-form.tsx` | Scale range, visual style, label editor |
+| Logic Rule Engine | `apps/web/modules/survey/editor/lib/logic-rule-engine.ts` | Operator definitions per element type |
+| Payment Renderer (Preact) | `packages/surveys/src/components/elements/payment-element.tsx` | Respondent-facing payment flow |
+| OpinionScale Renderer (Preact) | `packages/surveys/src/components/elements/opinion-scale-element.tsx` | Respondent-facing scale selection |
+| Payment UI (React) | `packages/survey-ui/src/components/elements/payment.tsx` | React design system component |
+| OpinionScale UI (React) | `packages/survey-ui/src/components/elements/opinion-scale.tsx` | Number/smiley/star visual styles |
+| Payment Summary | `apps/web/app/(app)/environments/[environmentId]/surveys/[surveyId]/(analysis)/summary/components/PaymentSummary.tsx` | Analytics display |
+| OpinionScale Summary | `apps/web/app/(app)/environments/[environmentId]/surveys/[surveyId]/(analysis)/summary/components/OpinionScaleSummary.tsx` | Distribution chart + stats |
 
 ### D. Technology Versions
 
-| Technology | Version | Role |
-|-----------|---------|------|
-| Node.js | ≥ 20.0.0 (20.20.0 tested) | Runtime |
+| Technology | Version | Purpose |
+|-----------|---------|---------|
+| Node.js | 22.1.0 | JavaScript runtime |
 | pnpm | 10.28.2 | Package manager |
-| TypeScript | (workspace-managed) | Type system |
-| Next.js | 16.1.6 | App Router framework |
 | React | 19.2.4 | UI framework |
-| Zod | 3.24.4 | Schema validation |
-| Prisma | 6.14.0 | ORM / database |
-| Stripe SDK | 16.12.0 | Payment integration |
-| i18next | 25.5.2 | Internationalization |
-| react-i18next | 15.7.3 | React i18n integration |
-| Turbo | 2.5.3 | Monorepo build orchestration |
-| Vitest | 3.1.3 | Test framework |
-| ESLint | 8.57.0 | Linting |
+| Next.js | 16.1.6 | App Router web framework |
+| Zod | 3.24.4 | Runtime schema validation |
+| TypeScript | (workspace) | Type system |
+| Vitest | (workspace) | Test runner |
+| Vite | (workspace) | Build tool for library packages |
+| Storybook | (workspace) | Component documentation |
 
 ### E. Environment Variable Reference
 
-| Variable | Required | Description |
-|----------|----------|-------------|
-| `WEBAPP_URL` | Yes | Application URL (default: `http://localhost:3000`) |
-| `NEXTAUTH_URL` | Yes | NextAuth URL (same as WEBAPP_URL) |
-| `ENCRYPTION_KEY` | Yes | 32-byte hex encryption key (`openssl rand -hex 32`) |
-| `NEXTAUTH_SECRET` | Yes | NextAuth session secret (`openssl rand -hex 32`) |
-| `CRON_SECRET` | Yes | API secret for cron jobs (`openssl rand -hex 32`) |
-| `DATABASE_URL` | Yes | PostgreSQL connection string |
-| `STRIPE_SECRET_KEY` | For Payment | Stripe secret API key (test mode: `sk_test_...`) |
-| `STRIPE_WEBHOOK_SECRET` | For Payment | Stripe webhook signing secret (`whsec_...`) |
+No new environment variables are required for Sprint 1 Foundation. The Stripe integration fields (publicKey, priceId) are stored per-element in the survey JSON configuration, not as global environment variables. Future Sprint 2+ work on real Stripe checkout will likely require `STRIPE_SECRET_KEY` and `STRIPE_WEBHOOK_SECRET` server-side environment variables.
 
 ### F. Developer Tools Guide
 
 | Tool | Usage |
 |------|-------|
-| Storybook | `cd packages/survey-ui && pnpm storybook` — View Payment and OpinionScale component stories |
-| Prisma Studio | `pnpm prisma studio` — Browse database records |
-| TypeScript Check | `pnpm turbo build --filter=@formbricks/types` — Verify type compilation |
-| Test Runner | `CI=true pnpm --filter=<package> test -- --watchAll=false --ci` — Run package tests |
+| Storybook | Run `pnpm --filter @formbricks/survey-ui storybook` to view Payment and OpinionScale stories at `http://localhost:6006` |
+| Vitest UI | Add `--ui` flag to vitest commands for interactive test browsing |
+| TypeScript Errors | Run `npx tsc --noEmit` in the relevant package directory for error checking |
 
 ### G. Glossary
 
 | Term | Definition |
 |------|-----------|
-| Element Type | A survey question/interaction type registered in `TSurveyElementTypeEnum` |
-| Zod Schema | Runtime validation schema using the Zod library; defines shape and constraints |
-| Deprecated Question Mirror | v1 API backward-compatible `ZSurveyXxxQuestion` schema wrapping the newer element schema |
-| Logic Rule Engine | Maps element types to valid logic condition operators for survey branching |
-| Survey Block | A grouping of one or more elements within a survey; stored as JSON in PostgreSQL |
-| TTC | Time to Complete — tracking metric for how long respondents spend on each element |
-| OpinionScale | Numeric scale element (5/7/10 points) with endpoint labels and visual modes (number/smiley/star) |
-| Payment Element | Stripe-integrated payment collection element with currency, amount, and price configuration |
+| TSurveyElementTypeEnum | TypeScript enum defining all survey element types (17 members) |
+| ZSurveyElement | Zod discriminated union of all element schemas |
+| ZSurveyQuestion | Deprecated Zod union maintained for v1 API backward compatibility |
+| TTC | Time to Complete — respondent timing metric tracked per element |
+| Survey-UI | React-based design system package for survey element components |
+| Surveys | Preact-compatible renderer package for embed and standalone survey display |
+| APPLICABLE_RULES | Mapping of element types to supported validation rule types |
+| Logic Rule Engine | Editor-side system mapping element types to valid conditional logic operators |

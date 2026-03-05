@@ -556,6 +556,8 @@ export const updateResponse = async (
   }
 };
 
+// Note: Only FileUpload elements produce files that need cleanup.
+// Other element types (including OpinionScale, Payment) store simple values and don't have files to delete.
 const findAndDeleteUploadedFilesInResponse = async (response: TResponse, survey: TSurvey): Promise<void> => {
   const elements = getElementsFromBlocks(survey.blocks);
 

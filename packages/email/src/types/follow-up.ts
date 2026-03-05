@@ -4,6 +4,10 @@ export interface ProcessedResponseElement {
   element: string;
   response: string | string[];
   type: TSurveyElementTypeEnum;
+  metadata?: {
+    currency?: string;
+    paymentStatus?: string;
+  };
 }
 
 export interface ProcessedVariable {

@@ -133,6 +133,36 @@ describe("replaceRecallInfo", () => {
     const expected = "Note: $ ;.";
     expect(replaceRecallInfo(text, responseData, variables)).toBe(expected);
   });
+
+  test("should replace recall info with numeric OpinionScale value", () => {
+    const opinionScaleResponseData: TResponseData = {
+      ...responseData,
+      opinionScaleQ: 4,
+    };
+    const text = "Your rating was #recall:opinionScaleQ/fallback:N/A#.";
+    const expected = "Your rating was 4.";
+    expect(replaceRecallInfo(text, opinionScaleResponseData, variables)).toBe(expected);
+  });
+
+  test("should replace recall info with Payment status value", () => {
+    const paymentResponseData: TResponseData = {
+      ...responseData,
+      paymentQ: "paid",
+    };
+    const text = "Payment status: #recall:paymentQ/fallback:pending#.";
+    const expected = "Payment status: paid.";
+    expect(replaceRecallInfo(text, paymentResponseData, variables)).toBe(expected);
+  });
+
+  test("should use fallback when payment value is empty", () => {
+    const emptyPaymentData: TResponseData = {
+      ...responseData,
+      paymentQ: "",
+    };
+    const text = "Payment status: #recall:paymentQ/fallback:not paid#.";
+    const expected = "Payment status: not paid.";
+    expect(replaceRecallInfo(text, emptyPaymentData, variables)).toBe(expected);
+  });
 });
 
 describe("parseRecallInformation", () => {
@@ -265,5 +295,31 @@ describe("parseRecallInformation", () => {
     expect(result.headline.en).toBe("Headline John Doe");
     expect(result.subheader?.fr).toBe("French subheader #recall:productName/fallback:Produit#");
     expect(result.subheader?.en).toBe("");
+  });
+
+  test("should replace recall info from OpinionScale response in headline", () => {
+    const opinionScaleResponseData: TResponseData = {
+      ...responseData,
+      opinionScaleQ: 3,
+    };
+    const question: TSurveyOpenTextElement = {
+      ...baseQuestion,
+      headline: { en: "You selected #recall:opinionScaleQ/fallback:N/A# on the scale" },
+    };
+    const result = parseRecallInformation(question, "en", opinionScaleResponseData, variables);
+    expect(result.headline.en).toBe("You selected 3 on the scale");
+  });
+
+  test("should replace recall info from Payment response in headline", () => {
+    const paymentResponseData: TResponseData = {
+      ...responseData,
+      paymentQ: "paid",
+    };
+    const question: TSurveyOpenTextElement = {
+      ...baseQuestion,
+      headline: { en: "Your payment status is #recall:paymentQ/fallback:pending#" },
+    };
+    const result = parseRecallInformation(question, "en", paymentResponseData, variables);
+    expect(result.headline.en).toBe("Your payment status is paid");
   });
 });

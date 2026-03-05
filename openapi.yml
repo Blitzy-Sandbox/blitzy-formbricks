@@ -491,6 +491,9 @@ components:
     opinionScaleConfig:
       type: object
       description: Configuration for an Opinion Scale survey element
+      required:
+        - scaleRange
+        - visualStyle
       properties:
         scaleRange:
           type: integer
@@ -516,6 +519,10 @@ components:
     paymentConfig:
       type: object
       description: Configuration for a Payment survey element
+      required:
+        - currency
+        - amount
+        - stripeIntegration
       properties:
         currency:
           type: string

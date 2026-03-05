@@ -113,7 +113,8 @@ const getLeftOperandValue = (
         currentQuestion.type === TSurveyElementTypeEnum.Rating
       ) {
         if (responseValue === undefined) return undefined;
-        return typeof responseValue === "number" ? responseValue : Number(responseValue);
+        const numericValue = typeof responseValue === "number" ? responseValue : Number(responseValue);
+        return isNaN(numericValue) ? undefined : numericValue;
       }
 
       if (currentQuestion.type === "multipleChoiceSingle" || currentQuestion.type === "multipleChoiceMulti") {

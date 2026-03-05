@@ -71,6 +71,10 @@ interface PaymentProps {
   dir?: "ltr" | "rtl" | "auto";
   /** Whether the entire component is disabled */
   disabled?: boolean;
+  /** Label displayed while payment is being processed (defaults to "Processing…") */
+  processingLabel?: string;
+  /** Label displayed when payment succeeds (defaults to "Payment Successful") */
+  successLabel?: string;
   /** Image URL displayed above the headline */
   imageUrl?: string;
   /** Video URL displayed above the headline */
@@ -111,6 +115,8 @@ function Payment({
   requiredLabel,
   dir = "auto",
   disabled = false,
+  processingLabel = "Processing\u2026",
+  successLabel = "Payment Successful",
   imageUrl,
   videoUrl,
   children,
@@ -185,7 +191,7 @@ function Payment({
                     d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
                   />
                 </svg>
-                Processing&hellip;
+                {processingLabel}
               </>
             ) : isSuccess ? (
               <>
@@ -200,7 +206,7 @@ function Payment({
                   aria-hidden="true">
                   <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
                 </svg>
-                Payment Successful
+                {successLabel}
               </>
             ) : (
               buttonLabel

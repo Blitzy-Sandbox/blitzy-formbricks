@@ -151,6 +151,21 @@ export const validateRating = (element: TSurveyRatingElement, answer: string): T
   return { isValid: true, type: TSurveyElementTypeEnum.Rating };
 };
 
+export const validateOpinionScale = (element: TSurveyElement, answer: string): TValidationResult => {
+  if (element.type !== TSurveyElementTypeEnum.OpinionScale) {
+    return invalid(TSurveyElementTypeEnum.OpinionScale);
+  }
+  const answerNumber = parseNumber(answer);
+  if (answerNumber === null || answerNumber < 1 || answerNumber > element.scaleRange) {
+    return invalid(TSurveyElementTypeEnum.OpinionScale);
+  }
+  return { isValid: true, type: TSurveyElementTypeEnum.OpinionScale };
+};
+
+export const validatePayment = (): TValidationResult => {
+  return invalid(TSurveyElementTypeEnum.Payment);
+};
+
 export const validatePictureSelection = (
   element: TSurveyPictureSelectionElement,
   answer: string
@@ -217,6 +232,10 @@ export const validateElement = (
         return validateConsent(element, answer);
       case TSurveyElementTypeEnum.Rating:
         return validateRating(element, answer);
+      case TSurveyElementTypeEnum.OpinionScale:
+        return validateOpinionScale(element, answer);
+      case TSurveyElementTypeEnum.Payment:
+        return validatePayment();
       case TSurveyElementTypeEnum.PictureSelection:
         return validatePictureSelection(element, answer);
       default:

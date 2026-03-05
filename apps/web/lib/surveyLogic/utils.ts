@@ -404,6 +404,13 @@ const evaluateSingleCondition = (
           ) {
             return leftValue !== "skipped";
           }
+          if (
+            condition.leftOperand.type === "element" &&
+            (leftField as TSurveyElement).type === TSurveyElementTypeEnum.Payment &&
+            leftValue
+          ) {
+            return leftValue !== "skipped";
+          }
           return leftValue !== "" && leftValue !== null;
         } else if (Array.isArray(leftValue)) {
           return leftValue.length > 0;
@@ -522,6 +529,12 @@ const getLeftOperandValue = (
         if (responseValue === undefined) return undefined;
         if (typeof responseValue === "string" && responseValue.trim() === "") return undefined;
 
+        const numberValue = typeof responseValue === "number" ? responseValue : Number(responseValue);
+        return isNaN(numberValue) ? undefined : numberValue;
+      }
+
+      if (currentElement.type === "opinionScale") {
+        if (responseValue === undefined) return undefined;
         const numberValue = typeof responseValue === "number" ? responseValue : Number(responseValue);
         return isNaN(numberValue) ? undefined : numberValue;
       }

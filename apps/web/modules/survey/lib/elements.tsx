@@ -5,6 +5,7 @@ import {
   CalendarDaysIcon,
   CheckIcon,
   ContactIcon,
+  CreditCardIcon,
   FileDigitIcon,
   FileType2Icon,
   Grid3X3Icon,
@@ -17,6 +18,7 @@ import {
   PhoneIcon,
   PresentationIcon,
   Rows3Icon,
+  SlidersHorizontalIcon,
   StarIcon,
 } from "lucide-react";
 import type { JSX } from "react";
@@ -241,6 +243,36 @@ export const getElementTypes = (t: TFunction): TElement[] => [
       email: { show: true, required: true, placeholder: { default: "Email" } },
       phone: { show: true, required: true, placeholder: { default: "Phone" } },
       company: { show: true, required: true, placeholder: { default: "Company" } },
+    },
+  },
+  {
+    id: TSurveyElementTypeEnum.OpinionScale,
+    label: t("templates.opinion_scale"),
+    description: t("templates.opinion_scale_description"),
+    icon: SlidersHorizontalIcon,
+    preset: {
+      headline: createI18nString("", []),
+      scaleRange: 5,
+      lowerLabel: createI18nString(t("templates.opinion_scale_lower_label_default", "Not at all likely"), []),
+      upperLabel: createI18nString(t("templates.opinion_scale_upper_label_default", "Very likely"), []),
+      visualStyle: "number",
+      isColorCodingEnabled: false,
+    },
+  },
+  {
+    id: TSurveyElementTypeEnum.Payment,
+    label: t("templates.payment"),
+    description: t("templates.payment_description"),
+    icon: CreditCardIcon,
+    preset: {
+      headline: createI18nString("", []),
+      currency: "usd",
+      amount: 0,
+      buttonLabel: createI18nString(t("templates.payment_button_label_default", "Pay now"), []),
+      stripeIntegration: {
+        publicKey: "",
+        priceId: "",
+      },
     },
   },
 ];

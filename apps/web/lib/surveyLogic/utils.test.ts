@@ -1375,4 +1375,248 @@ describe("surveyLogic", () => {
       )
     ).toBe(false);
   });
+
+  test("evaluateLogic handles OpinionScale and Payment element types", () => {
+    const surveyWithNewTypes: TJsEnvironmentStateSurvey = {
+      ...mockSurvey,
+      blocks: [
+        {
+          id: "block1",
+          name: "Block 1",
+          elements: [
+            ...mockSurvey.blocks[0].elements,
+            {
+              id: "opinionScaleQ",
+              type: TSurveyElementTypeEnum.OpinionScale,
+              headline: { default: "Opinion Scale Question" },
+              required: true,
+              scaleRange: 5,
+              lowerLabel: { default: "Not likely" },
+              upperLabel: { default: "Very likely" },
+              visualStyle: "number",
+              isColorCodingEnabled: false,
+            },
+            {
+              id: "paymentQ",
+              type: TSurveyElementTypeEnum.Payment,
+              headline: { default: "Payment Question" },
+              required: true,
+              currency: "usd",
+              amount: 2500,
+              buttonLabel: { default: "Pay Now" },
+              stripeIntegration: {
+                publicKey: "pk_test_123",
+                priceId: "price_123",
+              },
+            },
+            {
+              id: "fileQ",
+              type: TSurveyElementTypeEnum.FileUpload,
+              allowMultipleFiles: false,
+              headline: { default: "File Upload" },
+              required: true,
+            },
+          ],
+        },
+      ],
+      questions: [],
+      variables: [],
+    };
+
+    const data: TResponseData = {
+      opinionScaleQ: 4,
+      paymentQ: "succeeded",
+      fileQ: "file.pdf",
+    };
+
+    const vars: TResponseVariables = {};
+
+    // OpinionScale: equals
+    const opinionScaleEquals: TSingleCondition = {
+      id: "osEquals",
+      leftOperand: { type: "element", value: "opinionScaleQ" },
+      operator: "equals",
+      rightOperand: { type: "static", value: 4 },
+    };
+    expect(
+      evaluateLogic(
+        surveyWithNewTypes,
+        data,
+        vars,
+        { id: "g", connector: "and", conditions: [opinionScaleEquals] },
+        "en"
+      )
+    ).toBe(true);
+
+    // OpinionScale: doesNotEqual
+    const opinionScaleNotEquals: TSingleCondition = {
+      id: "osNotEquals",
+      leftOperand: { type: "element", value: "opinionScaleQ" },
+      operator: "doesNotEqual",
+      rightOperand: { type: "static", value: 3 },
+    };
+    expect(
+      evaluateLogic(
+        surveyWithNewTypes,
+        data,
+        vars,
+        { id: "g", connector: "and", conditions: [opinionScaleNotEquals] },
+        "en"
+      )
+    ).toBe(true);
+
+    // OpinionScale: isGreaterThan (4 > 3 = true)
+    const opinionScaleGt: TSingleCondition = {
+      id: "osGt",
+      leftOperand: { type: "element", value: "opinionScaleQ" },
+      operator: "isGreaterThan",
+      rightOperand: { type: "static", value: 3 },
+    };
+    expect(
+      evaluateLogic(
+        surveyWithNewTypes,
+        data,
+        vars,
+        { id: "g", connector: "and", conditions: [opinionScaleGt] },
+        "en"
+      )
+    ).toBe(true);
+
+    // OpinionScale: isLessThan (4 < 5 = true)
+    const opinionScaleLt: TSingleCondition = {
+      id: "osLt",
+      leftOperand: { type: "element", value: "opinionScaleQ" },
+      operator: "isLessThan",
+      rightOperand: { type: "static", value: 5 },
+    };
+    expect(
+      evaluateLogic(
+        surveyWithNewTypes,
+        data,
+        vars,
+        { id: "g", connector: "and", conditions: [opinionScaleLt] },
+        "en"
+      )
+    ).toBe(true);
+
+    // OpinionScale: isGreaterThanOrEqual (4 >= 4 = true)
+    const opinionScaleGte: TSingleCondition = {
+      id: "osGte",
+      leftOperand: { type: "element", value: "opinionScaleQ" },
+      operator: "isGreaterThanOrEqual",
+      rightOperand: { type: "static", value: 4 },
+    };
+    expect(
+      evaluateLogic(
+        surveyWithNewTypes,
+        data,
+        vars,
+        { id: "g", connector: "and", conditions: [opinionScaleGte] },
+        "en"
+      )
+    ).toBe(true);
+
+    // OpinionScale: isLessThanOrEqual (4 <= 4 = true)
+    const opinionScaleLte: TSingleCondition = {
+      id: "osLte",
+      leftOperand: { type: "element", value: "opinionScaleQ" },
+      operator: "isLessThanOrEqual",
+      rightOperand: { type: "static", value: 4 },
+    };
+    expect(
+      evaluateLogic(
+        surveyWithNewTypes,
+        data,
+        vars,
+        { id: "g", connector: "and", conditions: [opinionScaleLte] },
+        "en"
+      )
+    ).toBe(true);
+
+    // OpinionScale: isSubmitted (numeric, non-null → true)
+    const opinionScaleSubmitted: TSingleCondition = {
+      id: "osSubmitted",
+      leftOperand: { type: "element", value: "opinionScaleQ" },
+      operator: "isSubmitted",
+    };
+    expect(
+      evaluateLogic(
+        surveyWithNewTypes,
+        data,
+        vars,
+        { id: "g", connector: "and", conditions: [opinionScaleSubmitted] },
+        "en"
+      )
+    ).toBe(true);
+
+    // OpinionScale: isSkipped (undefined → true)
+    const opinionScaleSkipped: TSingleCondition = {
+      id: "osSkipped",
+      leftOperand: { type: "element", value: "opinionScaleQ" },
+      operator: "isSkipped",
+    };
+    expect(
+      evaluateLogic(
+        surveyWithNewTypes,
+        {},
+        vars,
+        { id: "g", connector: "and", conditions: [opinionScaleSkipped] },
+        "en"
+      )
+    ).toBe(true);
+
+    // Payment: isSubmitted with "succeeded" → true (follows FileUpload pattern)
+    const paymentSubmitted: TSingleCondition = {
+      id: "paySubmitted",
+      leftOperand: { type: "element", value: "paymentQ" },
+      operator: "isSubmitted",
+    };
+    expect(
+      evaluateLogic(
+        surveyWithNewTypes,
+        data,
+        vars,
+        { id: "g", connector: "and", conditions: [paymentSubmitted] },
+        "en"
+      )
+    ).toBe(true);
+
+    // Payment: isSubmitted with "skipped" → false
+    expect(
+      evaluateLogic(
+        surveyWithNewTypes,
+        { paymentQ: "skipped" },
+        vars,
+        { id: "g", connector: "and", conditions: [paymentSubmitted] },
+        "en"
+      )
+    ).toBe(false);
+
+    // Payment: isSkipped with undefined → true
+    const paymentSkipped: TSingleCondition = {
+      id: "paySkipped",
+      leftOperand: { type: "element", value: "paymentQ" },
+      operator: "isSkipped",
+    };
+    expect(
+      evaluateLogic(
+        surveyWithNewTypes,
+        {},
+        vars,
+        { id: "g", connector: "and", conditions: [paymentSkipped] },
+        "en"
+      )
+    ).toBe(true);
+
+    // Payment: isSkipped with empty string → true
+    expect(
+      evaluateLogic(
+        surveyWithNewTypes,
+        { paymentQ: "" },
+        vars,
+        { id: "g", connector: "and", conditions: [paymentSkipped] },
+        "en"
+      )
+    ).toBe(true);
+  });
 });

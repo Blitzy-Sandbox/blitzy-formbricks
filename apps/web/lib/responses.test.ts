@@ -172,6 +172,53 @@ describe("Response Processing", () => {
       const input = { key1: "value1", key2: "value2" };
       expect(convertResponseValue(input, mockOpenTextQuestion)).toBe("key1: value1\nkey2: value2");
     });
+
+    // Opinion Scale element mock and tests
+    const mockOpinionScaleQuestion = {
+      id: "q1",
+      type: TSurveyElementTypeEnum.OpinionScale as const,
+      headline: { default: "Test Question" },
+      required: true,
+      scaleRange: 5 as const,
+      lowerLabel: { default: "Strongly Disagree" },
+      upperLabel: { default: "Strongly Agree" },
+      visualStyle: "number" as const,
+      isColorCodingEnabled: false,
+    };
+
+    test("should handle opinionScale type with numeric string input", () => {
+      expect(convertResponseValue("3", mockOpinionScaleQuestion)).toBe("3");
+    });
+
+    test("should handle opinionScale type with number input", () => {
+      expect(convertResponseValue(5, mockOpinionScaleQuestion)).toBe("5");
+    });
+
+    // Payment element mock and tests
+    const mockPaymentQuestion = {
+      id: "q1",
+      type: TSurveyElementTypeEnum.Payment as const,
+      headline: { default: "Test Payment" },
+      required: true,
+      currency: "usd" as const,
+      amount: 1000,
+      buttonLabel: { default: "Pay Now" },
+      stripeIntegration: {
+        publicKey: "pk_test_123",
+        priceId: "price_123",
+      },
+    };
+
+    test("should handle payment type with string input", () => {
+      expect(convertResponseValue("completed", mockPaymentQuestion)).toBe("completed");
+    });
+
+    test("should handle payment type with object input", () => {
+      const paymentData = { amount: "1000", currency: "usd", status: "succeeded" };
+      expect(convertResponseValue(paymentData, mockPaymentQuestion)).toBe(
+        "amount: 1000\ncurrency: usd\nstatus: succeeded"
+      );
+    });
   });
 
   describe("getElementResponseMapping", () => {
@@ -508,6 +555,82 @@ describe("Response Processing", () => {
       const mapping = getElementResponseMapping(survey, response);
       expect(mapping).toHaveLength(2);
       expect(mapping[0].element).toBe("Question 1"); // Should fallback to default
+    });
+
+    test("should map opinion scale element responses correctly", () => {
+      const survey = {
+        ...mockSurvey,
+        blocks: [
+          {
+            id: "block1",
+            name: "Block 1",
+            elements: [
+              {
+                id: "q1",
+                type: TSurveyElementTypeEnum.OpinionScale as const,
+                headline: { default: "How likely are you?" },
+                required: true,
+                scaleRange: 5 as const,
+                lowerLabel: { default: "Not likely" },
+                upperLabel: { default: "Very likely" },
+                visualStyle: "number" as const,
+                isColorCodingEnabled: false,
+              },
+            ],
+          },
+        ],
+        questions: [],
+      };
+      const response = {
+        ...mockResponse,
+        data: { q1: 4 },
+      };
+      const mapping = getElementResponseMapping(survey, response);
+      expect(mapping).toHaveLength(1);
+      expect(mapping[0]).toEqual({
+        element: "How likely are you?",
+        response: "4",
+        type: TSurveyElementTypeEnum.OpinionScale,
+      });
+    });
+
+    test("should map payment element responses correctly", () => {
+      const survey = {
+        ...mockSurvey,
+        blocks: [
+          {
+            id: "block1",
+            name: "Block 1",
+            elements: [
+              {
+                id: "q1",
+                type: TSurveyElementTypeEnum.Payment as const,
+                headline: { default: "Pay for service" },
+                required: true,
+                currency: "usd" as const,
+                amount: 2500,
+                buttonLabel: { default: "Pay Now" },
+                stripeIntegration: {
+                  publicKey: "pk_test_123",
+                  priceId: "price_123",
+                },
+              },
+            ],
+          },
+        ],
+        questions: [],
+      };
+      const response = {
+        ...mockResponse,
+        data: { q1: "succeeded" },
+      };
+      const mapping = getElementResponseMapping(survey, response);
+      expect(mapping).toHaveLength(1);
+      expect(mapping[0]).toEqual({
+        element: "Pay for service",
+        response: "succeeded",
+        type: TSurveyElementTypeEnum.Payment,
+      });
     });
   });
 });

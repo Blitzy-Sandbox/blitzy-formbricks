@@ -467,4 +467,76 @@ components:
     responseId:
       type: string
       description: The ID of the response
+    surveyElementType:
+      type: string
+      description: The type of a survey element/question
+      enum:
+        - fileUpload
+        - openText
+        - multipleChoiceSingle
+        - multipleChoiceMulti
+        - nps
+        - cta
+        - rating
+        - consent
+        - pictureSelection
+        - cal
+        - date
+        - matrix
+        - address
+        - ranking
+        - contactInfo
+        - opinionScale
+        - payment
+    opinionScaleConfig:
+      type: object
+      description: Configuration for an Opinion Scale survey element
+      properties:
+        scaleRange:
+          type: integer
+          enum: [5, 7, 10]
+          description: The number of scale points
+        lowerLabel:
+          type: object
+          description: I18n label for the lower end of the scale
+          additionalProperties:
+            type: string
+        upperLabel:
+          type: object
+          description: I18n label for the upper end of the scale
+          additionalProperties:
+            type: string
+        visualStyle:
+          type: string
+          enum: [number, smiley, star]
+          description: Visual rendering style for scale options
+        isColorCodingEnabled:
+          type: boolean
+          description: Whether to enable color coding from red to green
+    paymentConfig:
+      type: object
+      description: Configuration for a Payment survey element
+      properties:
+        currency:
+          type: string
+          enum: [usd, eur, gbp]
+          description: ISO 4217 currency code
+        amount:
+          type: number
+          description: Payment amount in smallest currency unit (e.g., cents)
+        buttonLabel:
+          type: object
+          description: I18n label for the payment button
+          additionalProperties:
+            type: string
+        stripeIntegration:
+          type: object
+          description: Stripe integration configuration
+          properties:
+            publicKey:
+              type: string
+              description: Stripe publishable key
+            priceId:
+              type: string
+              description: Stripe Price ID
 

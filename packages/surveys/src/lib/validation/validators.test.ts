@@ -256,6 +256,40 @@ describe("validators", () => {
     });
   });
 
+  describe("minValue with payment amounts", () => {
+    test("should return valid when payment amount >= min", () => {
+      const result = validators.minValue.check(1000, { min: 500 }, {} as TSurveyElement);
+      expect(result.valid).toBe(true);
+    });
+
+    test("should return valid false when payment amount < min", () => {
+      const result = validators.minValue.check(100, { min: 500 }, {} as TSurveyElement);
+      expect(result.valid).toBe(false);
+    });
+
+    test("should return valid when payment amount equals min exactly", () => {
+      const result = validators.minValue.check(500, { min: 500 }, {} as TSurveyElement);
+      expect(result.valid).toBe(true);
+    });
+  });
+
+  describe("maxValue with payment amounts", () => {
+    test("should return valid when payment amount <= max", () => {
+      const result = validators.maxValue.check(1000, { max: 5000 }, {} as TSurveyElement);
+      expect(result.valid).toBe(true);
+    });
+
+    test("should return valid false when payment amount > max", () => {
+      const result = validators.maxValue.check(10000, { max: 5000 }, {} as TSurveyElement);
+      expect(result.valid).toBe(false);
+    });
+
+    test("should return valid when payment amount equals max exactly", () => {
+      const result = validators.maxValue.check(5000, { max: 5000 }, {} as TSurveyElement);
+      expect(result.valid).toBe(true);
+    });
+  });
+
   describe("minSelections", () => {
     test("should return valid true when selection count >= min", () => {
       const result = validators.minSelections.check(["opt1", "opt2"], { min: 2 }, {} as TSurveyElement);

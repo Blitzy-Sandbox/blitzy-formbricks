@@ -43,6 +43,7 @@ import { getOrganizationByEnvironmentId } from "@/lib/organization/service";
 import { getElementResponseMapping } from "@/lib/responses";
 import { getTranslate } from "@/lingodotdev/server";
 import { resolveStorageUrl } from "@/modules/storage/utils";
+import { getElementsFromBlocks } from "@/modules/survey/lib/client-utils";
 
 export const IS_SMTP_CONFIGURED = Boolean(SMTP_HOST && SMTP_PORT);
 
@@ -243,8 +244,11 @@ export const sendResponseFinishedEmail = async (
   // Pre-process the element response mapping before passing to email
   const elements = getElementResponseMapping(survey, response);
 
-  // Resolve relative storage URLs to absolute URLs for email rendering
-  const elementsWithResolvedUrls = elements.map((element) => {
+  // Get original survey elements for type-specific formatting
+  const surveyElements = getElementsFromBlocks(survey.blocks);
+
+  // Resolve relative storage URLs and format type-specific responses for email rendering
+  const elementsWithResolvedUrls = elements.map((element, index) => {
     if (
       (element.type === TSurveyElementTypeEnum.PictureSelection ||
         element.type === TSurveyElementTypeEnum.FileUpload) &&
@@ -254,6 +258,37 @@ export const sendResponseFinishedEmail = async (
         ...element,
         response: element.response.map((url) => resolveStorageUrl(url)),
       };
+    }
+
+    // Format OpinionScale response as "X/N" (e.g., "4/5")
+    if (element.type === TSurveyElementTypeEnum.OpinionScale) {
+      const originalElement = surveyElements[index];
+      if (originalElement && originalElement.type === TSurveyElementTypeEnum.OpinionScale) {
+        return {
+          ...element,
+          response:
+            typeof element.response === "string" && element.response
+              ? `${element.response}/${String(originalElement.scaleRange)}`
+              : element.response,
+        };
+      }
+    }
+
+    // Format Payment response with currency symbol and amount (e.g., "$10.00")
+    if (element.type === TSurveyElementTypeEnum.Payment) {
+      const originalElement = surveyElements[index];
+      if (originalElement && originalElement.type === TSurveyElementTypeEnum.Payment) {
+        const currencySymbols: Record<string, string> = { usd: "$", eur: "€", gbp: "£" };
+        const symbol = currencySymbols[originalElement.currency] || originalElement.currency.toUpperCase();
+        const formattedAmount = (originalElement.amount / 100).toFixed(2);
+        return {
+          ...element,
+          response:
+            typeof element.response === "string" && element.response
+              ? `Paid (${symbol}${formattedAmount})`
+              : "Not paid",
+        };
+      }
     }
 
     return element;

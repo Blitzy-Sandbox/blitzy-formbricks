@@ -171,6 +171,37 @@ describe("isRTLLanguage", () => {
     const block = { id: "b1", name: "Block", elements: [element] } as TSurveyBlock;
     expect(isRTLLanguage(createJsSurvey([], [block]), "default")).toBe(false);
   });
+
+  test("detects RTL for OpinionScale element with Arabic headline", () => {
+    const opinionScaleElement = {
+      id: "q-os-rtl",
+      type: TSurveyElementTypeEnum.OpinionScale,
+      headline: { default: "ما رأيك؟" },
+      required: false,
+      scaleRange: 5,
+      lowerLabel: { default: "غير موافق" },
+      upperLabel: { default: "موافق" },
+      visualStyle: "number",
+      isColorCodingEnabled: false,
+    } as unknown as TSurveyElement;
+    const block = { id: "b1", name: "Block", elements: [opinionScaleElement] } as TSurveyBlock;
+    expect(isRTLLanguage(createJsSurvey([], [block]), "default")).toBe(true);
+  });
+
+  test("returns false for Payment element with non-RTL headline", () => {
+    const paymentElement = {
+      id: "q-pay-ltr",
+      type: TSurveyElementTypeEnum.Payment,
+      headline: { default: "Complete your payment" },
+      required: false,
+      currency: "usd",
+      amount: 1000,
+      buttonLabel: { default: "Pay now" },
+      stripeIntegration: { publicKey: "pk_test_abc", priceId: "price_abc" },
+    } as unknown as TSurveyElement;
+    const block = { id: "b1", name: "Block", elements: [paymentElement] } as TSurveyBlock;
+    expect(isRTLLanguage(createJsSurvey([], [block]), "default")).toBe(false);
+  });
 });
 
 describe("getElementsFromSurveyBlocks", () => {
@@ -191,5 +222,80 @@ describe("getElementsFromSurveyBlocks", () => {
     const result = getElementsFromSurveyBlocks([block]);
     expect(result).toHaveLength(2);
     expect(result[0].id).toBe("q1");
+  });
+
+  test("extracts OpinionScale elements from blocks", () => {
+    const opinionScaleElement = {
+      id: "q-os",
+      type: TSurveyElementTypeEnum.OpinionScale,
+      headline: { default: "How do you feel?" },
+      required: false,
+      scaleRange: 5,
+      lowerLabel: { default: "Disagree" },
+      upperLabel: { default: "Agree" },
+      visualStyle: "number",
+      isColorCodingEnabled: false,
+    } as unknown as TSurveyElement;
+    const block = { id: "b1", name: "Block", elements: [opinionScaleElement] } as TSurveyBlock;
+    const result = getElementsFromSurveyBlocks([block]);
+    expect(result).toHaveLength(1);
+    expect(result[0].id).toBe("q-os");
+  });
+
+  test("extracts Payment elements from blocks", () => {
+    const paymentElement = {
+      id: "q-pay",
+      type: TSurveyElementTypeEnum.Payment,
+      headline: { default: "Complete payment" },
+      required: false,
+      currency: "usd",
+      amount: 1000,
+      buttonLabel: { default: "Pay" },
+      stripeIntegration: { publicKey: "pk_test_123", priceId: "price_123" },
+    } as unknown as TSurveyElement;
+    const block = { id: "b1", name: "Block", elements: [paymentElement] } as TSurveyBlock;
+    const result = getElementsFromSurveyBlocks([block]);
+    expect(result).toHaveLength(1);
+    expect(result[0].id).toBe("q-pay");
+  });
+
+  test("extracts mixed elements including OpinionScale and Payment from blocks", () => {
+    const openTextElement = {
+      id: "q-ot",
+      type: TSurveyElementTypeEnum.OpenText,
+      headline: { default: "Your feedback" },
+      required: false,
+    } as unknown as TSurveyElement;
+    const opinionScaleElement = {
+      id: "q-os-mix",
+      type: TSurveyElementTypeEnum.OpinionScale,
+      headline: { default: "Rate your experience" },
+      required: false,
+      scaleRange: 7,
+      lowerLabel: { default: "Poor" },
+      upperLabel: { default: "Excellent" },
+      visualStyle: "star",
+      isColorCodingEnabled: true,
+    } as unknown as TSurveyElement;
+    const paymentElement = {
+      id: "q-pay-mix",
+      type: TSurveyElementTypeEnum.Payment,
+      headline: { default: "Pay for service" },
+      required: false,
+      currency: "eur",
+      amount: 2500,
+      buttonLabel: { default: "Submit Payment" },
+      stripeIntegration: { publicKey: "pk_test_456", priceId: "price_456" },
+    } as unknown as TSurveyElement;
+    const block = {
+      id: "b1",
+      name: "Block",
+      elements: [openTextElement, opinionScaleElement, paymentElement],
+    } as TSurveyBlock;
+    const result = getElementsFromSurveyBlocks([block]);
+    expect(result).toHaveLength(3);
+    expect(result[0].id).toBe("q-ot");
+    expect(result[1].id).toBe("q-os-mix");
+    expect(result[2].id).toBe("q-pay-mix");
   });
 });

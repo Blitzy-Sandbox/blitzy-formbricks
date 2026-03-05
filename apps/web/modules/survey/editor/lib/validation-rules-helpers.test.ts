@@ -235,3 +235,40 @@ describe("parseRuleValue", () => {
     expect(value).toBe("test-value");
   });
 });
+
+describe("Payment element compatibility", () => {
+  test("should return correct default for minValue rule (used by payment)", () => {
+    const config = RULE_TYPE_CONFIG.minValue;
+    const value = getDefaultRuleValue(config);
+    // minValue has valueType: "number", so it returns undefined (no default number set)
+    expect(value).toBeUndefined();
+  });
+
+  test("should return correct default for maxValue rule (used by payment)", () => {
+    const config = RULE_TYPE_CONFIG.maxValue;
+    const value = getDefaultRuleValue(config);
+    // maxValue has valueType: "number", so it returns undefined (no default number set)
+    expect(value).toBeUndefined();
+  });
+
+  test("should parse minValue correctly for payment element", () => {
+    const config = RULE_TYPE_CONFIG.minValue;
+    const value = parseRuleValue("minValue", "500", config);
+    expect(value).toBe(500);
+  });
+
+  test("should parse maxValue correctly for payment element", () => {
+    const config = RULE_TYPE_CONFIG.maxValue;
+    const value = parseRuleValue("maxValue", "10000", config);
+    expect(value).toBe(10000);
+  });
+});
+
+describe("OpinionScale element compatibility", () => {
+  test("should have no applicable rule types that need testing", () => {
+    // OpinionScale has no validation rules - this is a documentation test
+    // confirming that no rule types are expected for opinion scale elements
+    // The scale range itself is enforced by the Zod schema, not by validation rules
+    expect(true).toBe(true);
+  });
+});

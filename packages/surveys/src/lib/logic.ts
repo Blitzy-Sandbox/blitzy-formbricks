@@ -104,6 +104,18 @@ const getLeftOperandValue = (
         return isNaN(numberValue) ? undefined : numberValue;
       }
 
+      // Explicit numeric handling for scale-based element types
+      // OpinionScale values are 1-N, NPS values are 0-10, Rating values are 1-N
+      // These are always numeric and should be treated consistently for logic evaluation
+      if (
+        currentQuestion.type === TSurveyElementTypeEnum.OpinionScale ||
+        currentQuestion.type === TSurveyElementTypeEnum.NPS ||
+        currentQuestion.type === TSurveyElementTypeEnum.Rating
+      ) {
+        if (responseValue === undefined) return undefined;
+        return typeof responseValue === "number" ? responseValue : Number(responseValue);
+      }
+
       if (currentQuestion.type === "multipleChoiceSingle" || currentQuestion.type === "multipleChoiceMulti") {
         const isOthersEnabled = currentQuestion.choices.some((c) => c.id === "other");
 

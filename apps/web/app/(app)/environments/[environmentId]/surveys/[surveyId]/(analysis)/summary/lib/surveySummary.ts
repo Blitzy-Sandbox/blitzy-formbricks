@@ -28,6 +28,8 @@ import {
   TSurveyElementSummaryHiddenFields,
   TSurveyElementSummaryMultipleChoice,
   TSurveyElementSummaryOpenText,
+  TSurveyElementSummaryOpinionScale,
+  TSurveyElementSummaryPayment,
   TSurveyElementSummaryPictureSelection,
   TSurveyElementSummaryRanking,
   TSurveyElementSummaryRating,
@@ -989,6 +991,7 @@ export const getElementSummary = async (
         break;
       }
       case TSurveyElementTypeEnum.OpinionScale: {
+        let values: TSurveyElementSummaryOpinionScale["choices"] = [];
         const choiceCountMap: Record<number, number> = {};
         const scaleRange = element.scaleRange;
 
@@ -1011,9 +1014,8 @@ export const getElementSummary = async (
           }
         });
 
-        const choices: { rating: number; count: number; percentage: number }[] = [];
         Object.entries(choiceCountMap).forEach(([label, count]) => {
-          choices.push({
+          values.push({
             rating: Number.parseInt(label),
             count,
             percentage:
@@ -1026,31 +1028,32 @@ export const getElementSummary = async (
           element,
           average: convertFloatTo2Decimal(totalRating / totalResponseCount) || 0,
           responseCount: totalResponseCount,
-          choices,
+          choices: values,
           dismissed: {
             count: dismissed,
           },
         });
 
+        values = [];
         break;
       }
       case TSurveyElementTypeEnum.Payment: {
+        let totalAmount = 0;
         let successCount = 0;
         let skippedCount = 0;
         let totalResponseCount = 0;
 
         responses.forEach((response) => {
           const answer = response.data[element.id];
-          if (answer === "paid") {
+          if (answer === "paid" || (typeof answer === "number" && answer > 0)) {
+            totalResponseCount++;
             successCount++;
-            totalResponseCount++;
+            totalAmount += element.amount;
           } else if (response.ttc && response.ttc[element.id] > 0) {
-            skippedCount++;
             totalResponseCount++;
+            skippedCount++;
           }
         });
-
-        const totalAmount = successCount * element.amount;
 
         summary.push({
           type: element.type,

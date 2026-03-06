@@ -271,6 +271,66 @@ describe("surveys", () => {
       expect(result.elementFilterOptions.some((o) => o.id === "q8")).toBeTruthy();
     });
 
+    test("should handle opinion scale and payment element types correctly", () => {
+      const survey = {
+        id: "survey1",
+        name: "Test Survey",
+        blocks: [
+          {
+            id: "block1",
+            name: "Block 1",
+            elements: [
+              {
+                id: "q1",
+                type: TSurveyElementTypeEnum.OpinionScale,
+                headline: { default: "Opinion Scale Question" },
+                required: false,
+                scaleRange: 5,
+                visualStyle: "number",
+                isColorCodingEnabled: false,
+              },
+              {
+                id: "q2",
+                type: TSurveyElementTypeEnum.Payment,
+                headline: { default: "Payment Question" },
+                required: false,
+                currency: "usd",
+                amount: 1000,
+                buttonLabel: { default: "Pay" },
+                stripeIntegration: { publicKey: "pk_test_123", priceId: "price_123" },
+              },
+            ] as TSurveyElement[],
+          },
+        ],
+        questions: [],
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        environmentId: "env1",
+        status: "draft",
+      } as unknown as TSurvey;
+
+      const result = generateElementAndFilterOptions(survey, undefined, {}, {}, {}, []);
+
+      expect(result.elementFilterOptions.length).toBe(2);
+      expect(result.elementFilterOptions.some((o) => o.id === "q1")).toBeTruthy();
+      expect(result.elementFilterOptions.some((o) => o.id === "q2")).toBeTruthy();
+
+      const opinionScaleFilter = result.elementFilterOptions.find((o) => o.id === "q1");
+      expect(opinionScaleFilter?.filterOptions).toEqual([
+        "Is equal to",
+        "Is less than",
+        "Is more than",
+        "Submitted",
+        "Skipped",
+        "Includes either",
+      ]);
+      expect(opinionScaleFilter?.filterComboBoxOptions).toEqual(["1", "2", "3", "4", "5"]);
+
+      const paymentFilter = result.elementFilterOptions.find((o) => o.id === "q2");
+      expect(paymentFilter?.filterOptions).toEqual(["is"]);
+      expect(paymentFilter?.filterComboBoxOptions).toEqual(["Completed", "Skipped"]);
+    });
+
     test("should provide extended filter options for URL meta field", () => {
       const survey = {
         id: "survey1",
@@ -482,6 +542,25 @@ describe("surveys", () => {
               headline: { default: "Ranking" },
               required: false,
               choices: [{ id: "r1", label: { default: "Option 1" } }],
+            },
+            {
+              id: "opinionScaleQ",
+              type: TSurveyElementTypeEnum.OpinionScale,
+              headline: { default: "Opinion Scale" },
+              required: false,
+              scaleRange: 5,
+              visualStyle: "number",
+              isColorCodingEnabled: false,
+            },
+            {
+              id: "paymentQ",
+              type: TSurveyElementTypeEnum.Payment,
+              headline: { default: "Payment" },
+              required: false,
+              currency: "usd",
+              amount: 1000,
+              buttonLabel: { default: "Pay" },
+              stripeIntegration: { publicKey: "pk_test_123", priceId: "price_123" },
             },
           ] as TSurveyElement[],
         },
@@ -804,6 +883,111 @@ describe("surveys", () => {
       const result = getFormattedFilters(survey, selectedFilter, {} as any);
 
       expect(result.data?.matrixQ).toEqual({ op: "matrix", value: { "Row 1": "Column 1" } });
+    });
+
+    test("should filter by opinion scale questions with equals operation", () => {
+      const selectedFilter: SelectedFilterValue = {
+        responseStatus: "all",
+        filter: [
+          {
+            elementType: {
+              type: "Elements",
+              label: "Opinion Scale",
+              id: "opinionScaleQ",
+              elementType: TSurveyElementTypeEnum.OpinionScale,
+            },
+            filterType: { filterValue: "Is equal to", filterComboBoxValue: "3" },
+          },
+        ],
+      } as any;
+
+      const result = getFormattedFilters(survey, selectedFilter, {} as any);
+
+      expect(result.data?.opinionScaleQ).toEqual({ op: "equals", value: 3 });
+    });
+
+    test("should filter by opinion scale questions with less than operation", () => {
+      const selectedFilter: SelectedFilterValue = {
+        responseStatus: "all",
+        filter: [
+          {
+            elementType: {
+              type: "Elements",
+              label: "Opinion Scale",
+              id: "opinionScaleQ",
+              elementType: TSurveyElementTypeEnum.OpinionScale,
+            },
+            filterType: { filterValue: "Is less than", filterComboBoxValue: "4" },
+          },
+        ],
+      } as any;
+
+      const result = getFormattedFilters(survey, selectedFilter, {} as any);
+
+      expect(result.data?.opinionScaleQ).toEqual({ op: "lessThan", value: 4 });
+    });
+
+    test("should filter by opinion scale questions with more than operation", () => {
+      const selectedFilter: SelectedFilterValue = {
+        responseStatus: "all",
+        filter: [
+          {
+            elementType: {
+              type: "Elements",
+              label: "Opinion Scale",
+              id: "opinionScaleQ",
+              elementType: TSurveyElementTypeEnum.OpinionScale,
+            },
+            filterType: { filterValue: "Is more than", filterComboBoxValue: "2" },
+          },
+        ],
+      } as any;
+
+      const result = getFormattedFilters(survey, selectedFilter, {} as any);
+
+      expect(result.data?.opinionScaleQ).toEqual({ op: "greaterThan", value: 2 });
+    });
+
+    test("should filter by payment questions with completed operation", () => {
+      const selectedFilter: SelectedFilterValue = {
+        responseStatus: "all",
+        filter: [
+          {
+            elementType: {
+              type: "Elements",
+              label: "Payment",
+              id: "paymentQ",
+              elementType: TSurveyElementTypeEnum.Payment,
+            },
+            filterType: { filterComboBoxValue: "Completed" },
+          },
+        ],
+      } as any;
+
+      const result = getFormattedFilters(survey, selectedFilter, {} as any);
+
+      expect(result.data?.paymentQ).toEqual({ op: "submitted" });
+    });
+
+    test("should filter by payment questions with skipped operation", () => {
+      const selectedFilter: SelectedFilterValue = {
+        responseStatus: "all",
+        filter: [
+          {
+            elementType: {
+              type: "Elements",
+              label: "Payment",
+              id: "paymentQ",
+              elementType: TSurveyElementTypeEnum.Payment,
+            },
+            filterType: { filterComboBoxValue: "Skipped" },
+          },
+        ],
+      } as any;
+
+      const result = getFormattedFilters(survey, selectedFilter, {} as any);
+
+      expect(result.data?.paymentQ).toEqual({ op: "skipped" });
     });
 
     test("should filter by hidden fields", () => {

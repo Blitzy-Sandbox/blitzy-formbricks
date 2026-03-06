@@ -65,6 +65,27 @@ describe("Utils Tests", () => {
               columns: [{ id: "col1", label: { default: "Col 1" } }],
               buttonLabel: { default: "Next" },
             },
+            {
+              id: "q4",
+              type: TSurveyElementTypeEnum.OpinionScale,
+              headline: { default: "Q4" },
+              required: false,
+              scaleRange: 5,
+              visualStyle: "number",
+              lowerLabel: { default: "Not likely" },
+              upperLabel: { default: "Very likely" },
+              isColorCodingEnabled: false,
+            },
+            {
+              id: "q5",
+              type: TSurveyElementTypeEnum.Payment,
+              headline: { default: "Q5" },
+              required: false,
+              currency: "usd",
+              amount: 1000,
+              buttonLabel: { default: "Pay" },
+              stripeIntegration: { publicKey: "pk_test_123", priceId: "price_test_123" },
+            },
           ],
         },
       ],
@@ -208,6 +229,50 @@ describe("Utils Tests", () => {
       );
       expect(message).toBe(
         'environments.surveys.summary.added_filter_for_responses_where_answer_to_question {"questionIdx":0,"filterComboBoxValue":"SomeValue","filterValue":"is"}'
+      );
+    });
+
+    test("should construct message for OpinionScale question type with numeric filterComboBoxValue", () => {
+      const message = constructToastMessage(
+        TSurveyElementTypeEnum.OpinionScale,
+        "is",
+        mockSurvey,
+        "q4",
+        mockT,
+        "3"
+      );
+      expect(mockT).toHaveBeenCalledWith(
+        "environments.surveys.summary.added_filter_for_responses_where_answer_to_question",
+        {
+          questionIdx: 4,
+          filterComboBoxValue: "3",
+          filterValue: "is",
+        }
+      );
+      expect(message).toBe(
+        'environments.surveys.summary.added_filter_for_responses_where_answer_to_question {"questionIdx":4,"filterComboBoxValue":"3","filterValue":"is"}'
+      );
+    });
+
+    test("should construct message for Payment question type with status filterComboBoxValue", () => {
+      const message = constructToastMessage(
+        TSurveyElementTypeEnum.Payment,
+        "is",
+        mockSurvey,
+        "q5",
+        mockT,
+        "paid"
+      );
+      expect(mockT).toHaveBeenCalledWith(
+        "environments.surveys.summary.added_filter_for_responses_where_answer_to_question",
+        {
+          questionIdx: 5,
+          filterComboBoxValue: "paid",
+          filterValue: "is",
+        }
+      );
+      expect(message).toBe(
+        'environments.surveys.summary.added_filter_for_responses_where_answer_to_question {"questionIdx":5,"filterComboBoxValue":"paid","filterValue":"is"}'
       );
     });
   });

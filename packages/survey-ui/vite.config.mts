@@ -1,4 +1,5 @@
 /// <reference types="vitest" />
+import path from "node:path";
 import { defineConfig } from "vite";
 import dts from "vite-plugin-dts";
 import tsconfigPaths from "vite-tsconfig-paths";
@@ -17,7 +18,16 @@ import tailwindcss from "@tailwindcss/vite";
  *
  * Related issue: https://github.com/TanStack/query/issues/5175
  */
+
+// Resolve monorepo root React to prevent duplicate copies in tests.
+// The package has react 19.2.1 as devDependency while root has 19.2.3;
+// react-dom and react must share the same instance for hooks to work.
+const monorepoRoot = path.resolve(import.meta.dirname, "../..");
+
 export default defineConfig({
+  resolve: {
+    dedupe: ["react", "react-dom", "react/jsx-runtime"],
+  },
   build: {
     // Keep dist when running watch so surveys (and others) can resolve types during parallel go
     emptyOutDir: false,
@@ -60,6 +70,13 @@ export default defineConfig({
     globals: true,
     include: ["src/**/*.test.{ts,tsx}"],
     exclude: ["dist/**", "node_modules/**"],
+    alias: {
+      // Force all test imports to use a single React copy from the monorepo
+      // root, preventing "Invalid hook call" errors when component tests use
+      // React hooks (useState, useEffect, etc.).
+      react: path.resolve(monorepoRoot, "node_modules/react"),
+      "react-dom": path.resolve(monorepoRoot, "node_modules/react-dom"),
+    },
     coverage: {
       provider: "v8",
       reporter: ["text", "json", "html", "lcov"],

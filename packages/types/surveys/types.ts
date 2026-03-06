@@ -24,6 +24,8 @@ import {
   ZSurveyMultipleChoiceElement,
   ZSurveyNPSElement,
   ZSurveyOpenTextElement,
+  ZSurveyOpinionScaleElement,
+  ZSurveyPaymentElement,
   ZSurveyPictureSelectionElement,
   ZSurveyRankingElement,
   ZSurveyRatingElement,
@@ -1689,6 +1691,80 @@ export const ZSurvey = z
               }
             });
           }
+
+          if (element.type === TSurveyElementTypeEnum.OpinionScale) {
+            if (
+              element.lowerLabel &&
+              element.lowerLabel[defaultLanguageCode] &&
+              element.lowerLabel[defaultLanguageCode].trim() !== "" &&
+              languages.length > 1
+            ) {
+              elementMultiLangIssue = validateElementLabels(
+                "lowerLabel",
+                element.lowerLabel,
+                languages,
+                blockIndex,
+                elementIndex
+              );
+              if (elementMultiLangIssue) {
+                ctx.addIssue(elementMultiLangIssue);
+              }
+            }
+
+            if (
+              element.upperLabel &&
+              element.upperLabel[defaultLanguageCode] &&
+              element.upperLabel[defaultLanguageCode].trim() !== "" &&
+              languages.length > 1
+            ) {
+              elementMultiLangIssue = validateElementLabels(
+                "upperLabel",
+                element.upperLabel,
+                languages,
+                blockIndex,
+                elementIndex
+              );
+              if (elementMultiLangIssue) {
+                ctx.addIssue(elementMultiLangIssue);
+              }
+            }
+          }
+
+          if (element.type === TSurveyElementTypeEnum.Payment) {
+            if (
+              element.buttonLabel &&
+              element.buttonLabel[defaultLanguageCode] &&
+              element.buttonLabel[defaultLanguageCode].trim() !== "" &&
+              languages.length > 1
+            ) {
+              elementMultiLangIssue = validateElementLabels(
+                "buttonLabel",
+                element.buttonLabel,
+                languages,
+                blockIndex,
+                elementIndex
+              );
+              if (elementMultiLangIssue) {
+                ctx.addIssue(elementMultiLangIssue);
+              }
+            }
+
+            if (!element.stripeIntegration.publicKey || element.stripeIntegration.publicKey.trim() === "") {
+              ctx.addIssue({
+                code: z.ZodIssueCode.custom,
+                message: `Element ${String(elementIndex + 1)} in block ${String(blockIndex + 1)}: Stripe publishable key is required for payment elements`,
+                path: ["blocks", blockIndex, "elements", elementIndex, "stripeIntegration", "publicKey"],
+              });
+            }
+
+            if (!element.stripeIntegration.priceId || element.stripeIntegration.priceId.trim() === "") {
+              ctx.addIssue({
+                code: z.ZodIssueCode.custom,
+                message: `Element ${String(elementIndex + 1)} in block ${String(blockIndex + 1)}: Stripe price ID is required for payment elements`,
+                path: ["blocks", blockIndex, "elements", elementIndex, "stripeIntegration", "priceId"],
+              });
+            }
+          }
         });
 
         // Validate block logic (conditions, actions, fallback)
@@ -2981,6 +3057,7 @@ const isInvalidOperatorsForElementType = (
         isInvalidOperator = true;
       }
       break;
+    case TSurveyElementTypeEnum.OpinionScale:
     case TSurveyElementTypeEnum.NPS:
     case TSurveyElementTypeEnum.Rating:
       if (
@@ -2995,6 +3072,11 @@ const isInvalidOperatorsForElementType = (
           "isSkipped",
         ].includes(operator)
       ) {
+        isInvalidOperator = true;
+      }
+      break;
+    case TSurveyElementTypeEnum.Payment:
+      if (!["isSubmitted", "isSkipped"].includes(operator)) {
         isInvalidOperator = true;
       }
       break;
@@ -3146,7 +3228,13 @@ const validateBlockConditions = (
             const validElementTypes: TSurveyElementTypeEnum[] = [TSurveyElementTypeEnum.OpenText];
 
             if (element.inputType === "number") {
-              validElementTypes.push(...[TSurveyElementTypeEnum.Rating, TSurveyElementTypeEnum.NPS]);
+              validElementTypes.push(
+                ...[
+                  TSurveyElementTypeEnum.Rating,
+                  TSurveyElementTypeEnum.NPS,
+                  TSurveyElementTypeEnum.OpinionScale,
+                ]
+              );
             }
 
             if (["equals", "doesNotEqual"].includes(condition.operator)) {
@@ -3289,6 +3377,7 @@ const validateBlockConditions = (
           }
         }
       } else if (
+        element.type === TSurveyElementTypeEnum.OpinionScale ||
         element.type === TSurveyElementTypeEnum.NPS ||
         element.type === TSurveyElementTypeEnum.Rating
       ) {
@@ -3321,6 +3410,14 @@ const validateBlockConditions = (
               issues.push({
                 code: z.ZodIssueCode.custom,
                 message: `Conditional Logic: NPS score should be between 0 and 10 for "${operator}" in logic no: ${String(logicIndex + 1)} of block ${String(blockIndex + 1)}`,
+                path: ["blocks", blockIndex, "logic", logicIndex, "conditions"],
+              });
+            }
+          } else if (element.type === TSurveyElementTypeEnum.OpinionScale) {
+            if (rightOperand.value < 1 || rightOperand.value > element.scaleRange) {
+              issues.push({
+                code: z.ZodIssueCode.custom,
+                message: `Conditional Logic: Opinion Scale value should be between 1 and ${String(element.scaleRange)} for "${operator}" in logic no: ${String(logicIndex + 1)} of block ${String(blockIndex + 1)}`,
                 path: ["blocks", blockIndex, "logic", logicIndex, "conditions"],
               });
             }
@@ -3548,6 +3645,7 @@ const validateBlockActions = (
             TSurveyElementTypeEnum.MultipleChoiceSingle,
             TSurveyElementTypeEnum.Rating,
             TSurveyElementTypeEnum.NPS,
+            TSurveyElementTypeEnum.OpinionScale,
             TSurveyElementTypeEnum.Date,
           ];
 
@@ -3569,6 +3667,7 @@ const validateBlockActions = (
         const allowedElements: TSurveyElementTypeEnum[] = [
           TSurveyElementTypeEnum.Rating,
           TSurveyElementTypeEnum.NPS,
+          TSurveyElementTypeEnum.OpinionScale,
         ];
 
         const selectedElement = allElements.get(action.value.value);
@@ -4203,6 +4302,37 @@ export const ZSurveyElementSummaryRanking = z.object({
 });
 export type TSurveyElementSummaryRanking = z.infer<typeof ZSurveyElementSummaryRanking>;
 
+export const ZSurveyElementSummaryOpinionScale = z.object({
+  type: z.literal(TSurveyElementTypeEnum.OpinionScale),
+  element: ZSurveyOpinionScaleElement,
+  responseCount: z.number(),
+  average: z.number(),
+  choices: z.array(
+    z.object({
+      rating: z.number(),
+      count: z.number(),
+      percentage: z.number(),
+    })
+  ),
+  dismissed: z.object({
+    count: z.number(),
+  }),
+});
+
+export type TSurveyElementSummaryOpinionScale = z.infer<typeof ZSurveyElementSummaryOpinionScale>;
+
+export const ZSurveyElementSummaryPayment = z.object({
+  type: z.literal(TSurveyElementTypeEnum.Payment),
+  element: ZSurveyPaymentElement,
+  responseCount: z.number(),
+  totalAmount: z.number(),
+  currency: z.string(),
+  successCount: z.number(),
+  skippedCount: z.number(),
+});
+
+export type TSurveyElementSummaryPayment = z.infer<typeof ZSurveyElementSummaryPayment>;
+
 export const ZSurveyElementSummary = z.union([
   ZSurveyElementSummaryOpenText,
   ZSurveyElementSummaryMultipleChoice,
@@ -4218,6 +4348,8 @@ export const ZSurveyElementSummary = z.union([
   ZSurveyElementSummaryAddress,
   ZSurveyElementSummaryRanking,
   ZSurveyElementSummaryContactInfo,
+  ZSurveyElementSummaryOpinionScale,
+  ZSurveyElementSummaryPayment,
 ]);
 
 export type TSurveyElementSummary = z.infer<typeof ZSurveyElementSummary>;

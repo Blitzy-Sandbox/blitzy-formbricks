@@ -51,21 +51,21 @@ export default defineConfig({
     tsconfigPaths(),
     dts({
       include: ["src"],
-      exclude: ["**/*.stories.tsx", "**/*.test.ts", "**/story-helpers.tsx"],
+      exclude: ["**/*.stories.tsx", "**/*.test.{ts,tsx}", "**/story-helpers.tsx"],
     }),
     tailwindcss(),
   ],
   test: {
     environment: "node",
     globals: true,
-    include: ["src/**/*.test.ts"],
+    include: ["src/**/*.test.{ts,tsx}"],
     exclude: ["dist/**", "node_modules/**"],
     coverage: {
       provider: "v8",
       reporter: ["text", "json", "html", "lcov"],
       reportsDirectory: "./coverage",
       include: ["src/lib/**/*.ts"],
-      exclude: ["**/*.test.ts", "**/*.stories.tsx"],
+      exclude: ["**/*.test.{ts,tsx}", "**/*.stories.tsx"],
     },
   },
 });

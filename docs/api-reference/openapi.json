@@ -6350,55 +6350,22 @@
                           "enum": ["text", "email", "url", "number", "phone"],
                           "type": "string"
                         },
-                        "rating": {
-                          "properties": {
-                            "range": { "enum": [3, 4, 5, 6, 7, 10], "type": "integer" },
-                            "scale": { "enum": ["number", "smiley", "star"], "type": "string" }
-                          },
-                          "type": "object"
-                        },
-                        "payment": {
-                          "description": "Payment question configuration. Only applicable when type is 'payment'.",
-                          "properties": {
-                            "currency": {
-                              "description": "ISO 4217 currency code for the payment",
-                              "enum": ["usd", "eur", "gbp"],
-                              "type": "string"
-                            },
-                            "amount": {
-                              "description": "Payment amount in the smallest currency unit (e.g., cents)",
-                              "minimum": 1,
-                              "type": "integer"
-                            },
-                            "stripeIntegration": {
-                              "description": "Stripe integration configuration for processing payments",
-                              "properties": {
-                                "publicKey": {
-                                  "description": "Stripe publishable key for client-side integration",
-                                  "type": "string"
-                                },
-                                "priceId": {
-                                  "description": "Stripe Price ID for the payment product",
-                                  "type": "string"
-                                }
-                              },
-                              "required": ["publicKey", "priceId"],
-                              "type": "object"
-                            }
-                          },
-                          "type": "object"
-                        },
                         "opinionScale": {
                           "description": "Opinion scale question configuration. Only applicable when type is 'opinionScale'.",
                           "properties": {
-                            "scaleRange": {
-                              "description": "The range of the opinion scale",
-                              "enum": [5, 7, 10],
-                              "type": "integer"
+                            "isColorCodingEnabled": {
+                              "default": false,
+                              "description": "Whether color coding is enabled for the scale",
+                              "type": "boolean"
                             },
                             "lowerLabel": {
                               "description": "Label for the lower end of the scale",
                               "type": "string"
+                            },
+                            "scaleRange": {
+                              "description": "The range of the opinion scale",
+                              "enum": [5, 7, 10],
+                              "type": "integer"
                             },
                             "upperLabel": {
                               "description": "Label for the upper end of the scale",
@@ -6409,6 +6376,48 @@
                               "enum": ["number", "smiley", "star"],
                               "type": "string"
                             }
+                          },
+                          "type": "object"
+                        },
+                        "payment": {
+                          "description": "Payment question configuration. Only applicable when type is 'payment'.",
+                          "properties": {
+                            "amount": {
+                              "description": "Payment amount in the smallest currency unit (e.g., cents)",
+                              "minimum": 1,
+                              "type": "integer"
+                            },
+                            "buttonLabel": {
+                              "description": "Label text for the payment submit button",
+                              "type": "string"
+                            },
+                            "currency": {
+                              "description": "ISO 4217 currency code for the payment",
+                              "enum": ["usd", "eur", "gbp"],
+                              "type": "string"
+                            },
+                            "stripeIntegration": {
+                              "description": "Stripe integration configuration for processing payments",
+                              "properties": {
+                                "priceId": {
+                                  "description": "Stripe Price ID for the payment product",
+                                  "type": "string"
+                                },
+                                "publicKey": {
+                                  "description": "Stripe publishable key for client-side integration",
+                                  "type": "string"
+                                }
+                              },
+                              "required": ["publicKey", "priceId"],
+                              "type": "object"
+                            }
+                          },
+                          "type": "object"
+                        },
+                        "rating": {
+                          "properties": {
+                            "range": { "enum": [3, 4, 5, 6, 7, 10], "type": "integer" },
+                            "scale": { "enum": ["number", "smiley", "star"], "type": "string" }
                           },
                           "type": "object"
                         },
@@ -7714,18 +7723,18 @@
                     "description": "Optional name for the webhook",
                     "type": "string"
                   },
+                  "payloadFormat": {
+                    "default": "default",
+                    "description": "The format of the webhook payload. Use 'typeform' for Typeform-compatible payload structure, or 'default' for the standard Formbricks format.",
+                    "enum": ["default", "typeform"],
+                    "type": "string"
+                  },
                   "surveyIds": {
                     "description": "Optional list of survey IDs to filter webhook calls",
                     "items": {
                       "type": "string"
                     },
                     "type": "array"
-                  },
-                  "payloadFormat": {
-                    "description": "The format of the webhook payload. Use 'typeform' for Typeform-compatible payload structure, or 'default' for the standard Formbricks format.",
-                    "enum": ["default", "typeform"],
-                    "type": "string",
-                    "default": "default"
                   },
                   "triggers": {
                     "description": "List of events that trigger this webhook",

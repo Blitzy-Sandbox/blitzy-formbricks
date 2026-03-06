@@ -32,6 +32,8 @@ import { MatrixElementForm } from "@/modules/survey/editor/components/matrix-ele
 import { MultipleChoiceElementForm } from "@/modules/survey/editor/components/multiple-choice-element-form";
 import { NPSElementForm } from "@/modules/survey/editor/components/nps-element-form";
 import { OpenElementForm } from "@/modules/survey/editor/components/open-element-form";
+import { OpinionScaleElementForm } from "@/modules/survey/editor/components/opinion-scale-element-form";
+import { PaymentElementForm } from "@/modules/survey/editor/components/payment-element-form";
 import { PictureSelectionForm } from "@/modules/survey/editor/components/picture-selection-form";
 import { RankingElementForm } from "@/modules/survey/editor/components/ranking-element-form";
 import { RatingElementForm } from "@/modules/survey/editor/components/rating-element-form";
@@ -193,6 +195,8 @@ export const BlockCard = ({
     [TSurveyElementTypeEnum.Address]: AddressElementForm,
     [TSurveyElementTypeEnum.Ranking]: RankingElementForm,
     [TSurveyElementTypeEnum.ContactInfo]: ContactInfoElementForm,
+    [TSurveyElementTypeEnum.OpinionScale]: OpinionScaleElementForm,
+    [TSurveyElementTypeEnum.Payment]: PaymentElementForm,
   };
 
   // Elements that need lastElement prop
@@ -202,6 +206,7 @@ export const BlockCard = ({
     TSurveyElementTypeEnum.Rating,
     TSurveyElementTypeEnum.Cal,
     TSurveyElementTypeEnum.ContactInfo,
+    TSurveyElementTypeEnum.OpinionScale,
   ]);
 
   const renderElementForm = (element: TSurveyElement, elementIdx: number) => {
@@ -222,6 +227,7 @@ export const BlockCard = ({
       additionalProps.isFormbricksCloud = isFormbricksCloud;
     }
 
+    // @ts-expect-error — commonProps + additionalProps cover all required fields at runtime; TS cannot narrow the form component union statically
     return <FormComponent {...commonProps} {...additionalProps} />;
   };
 
@@ -416,7 +422,8 @@ export const BlockCard = ({
                             <Collapsible.CollapsibleContent className="flex flex-col gap-4" ref={parent}>
                               {element.type !== TSurveyElementTypeEnum.NPS &&
                               element.type !== TSurveyElementTypeEnum.Rating &&
-                              element.type !== TSurveyElementTypeEnum.CTA ? (
+                              element.type !== TSurveyElementTypeEnum.CTA &&
+                              element.type !== TSurveyElementTypeEnum.OpinionScale ? (
                                 <div className="mt-2 flex space-x-2"></div>
                               ) : null}
                               <AdvancedSettings

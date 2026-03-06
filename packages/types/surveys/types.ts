@@ -1764,6 +1764,14 @@ export const ZSurvey = z
                 path: ["blocks", blockIndex, "elements", elementIndex, "stripeIntegration", "priceId"],
               });
             }
+
+            if (element.amount <= 0) {
+              ctx.addIssue({
+                code: z.ZodIssueCode.custom,
+                message: `Element ${String(elementIndex + 1)} in block ${String(blockIndex + 1)}: Payment amount must be greater than zero`,
+                path: ["blocks", blockIndex, "elements", elementIndex, "amount"],
+              });
+            }
           }
         });
 

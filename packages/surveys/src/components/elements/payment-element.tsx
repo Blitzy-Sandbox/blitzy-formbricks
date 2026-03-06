@@ -1,6 +1,6 @@
 import { CardElement, Elements, useElements, useStripe } from "@stripe/react-stripe-js";
 import { loadStripe } from "@stripe/stripe-js";
-import { useState } from "preact/hooks";
+import { useMemo, useState } from "preact/hooks";
 import { useTranslation } from "react-i18next";
 import { Payment } from "@formbricks/survey-ui";
 import { type TResponseData, type TResponseTtc } from "@formbricks/types/responses";
@@ -26,6 +26,7 @@ interface PaymentElementProps {
 
 interface PaymentFormProps {
   element: TSurveyPaymentElement;
+  value: string;
   onChange: (responseData: TResponseData) => void;
   languageCode: string;
   dir?: "ltr" | "rtl" | "auto";
@@ -69,6 +70,7 @@ const CARD_ELEMENT_OPTIONS = {
  */
 function PaymentForm({
   element,
+  value,
   onChange,
   languageCode,
   dir = "auto",
@@ -79,7 +81,10 @@ function PaymentForm({
   const { t } = useTranslation();
 
   // Payment state machine: idle → processing → success | error
-  const [paymentState, setPaymentState] = useState<"idle" | "processing" | "success" | "error">("idle");
+  // Initialise from value prop so back-navigation restores the completed state
+  const [paymentState, setPaymentState] = useState<"idle" | "processing" | "success" | "error">(
+    value === "paid" ? "success" : "idle"
+  );
   const [paymentError, setPaymentError] = useState<string | null>(null);
 
   /**
@@ -219,7 +224,7 @@ function PaymentForm({
  */
 export function PaymentElement({
   element,
-  value: _value,
+  value,
   onChange,
   languageCode,
   ttc,
@@ -234,8 +239,13 @@ export function PaymentElement({
   // TTC tracking — identical to rating-element.tsx, consent-element.tsx patterns
   useTtc(element.id, ttc, setTtc, startTime, setStartTime, isCurrent);
 
-  // Initialise Stripe with the element's publishable key (never the secret key)
-  const stripePromise = loadStripe(element.stripeIntegration.publicKey);
+  // Initialise Stripe with the element's publishable key (never the secret key).
+  // Memoised to prevent recreating the Stripe object on every render, which would
+  // cause the <Elements> provider to remount and reset the CardElement input.
+  const stripePromise = useMemo(
+    () => loadStripe(element.stripeIntegration.publicKey),
+    [element.stripeIntegration.publicKey]
+  );
 
   /**
    * Form-level submit handler for TTC collection.
@@ -253,6 +263,7 @@ export function PaymentElement({
   const paymentFormNode = (
     <PaymentForm
       element={element}
+      value={value}
       onChange={onChange}
       languageCode={languageCode}
       dir={dir}

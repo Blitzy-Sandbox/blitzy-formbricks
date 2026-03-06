@@ -3,6 +3,7 @@ import {
   TSurveyElement,
   TSurveyElementTypeEnum,
   TSurveyMultipleChoiceElement,
+  TSurveyOpinionScaleElement,
   TSurveyPictureSelectionElement,
   TSurveyRatingElement,
 } from "@formbricks/types/surveys/elements";
@@ -151,7 +152,10 @@ export const validateRating = (element: TSurveyRatingElement, answer: string): T
   return { isValid: true, type: TSurveyElementTypeEnum.Rating };
 };
 
-export const validateOpinionScale = (element: TSurveyElement, answer: string): TValidationResult => {
+export const validateOpinionScale = (
+  element: TSurveyOpinionScaleElement,
+  answer: string
+): TValidationResult => {
   if (element.type !== TSurveyElementTypeEnum.OpinionScale) {
     return invalid(TSurveyElementTypeEnum.OpinionScale);
   }

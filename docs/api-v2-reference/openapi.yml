@@ -5107,7 +5107,6 @@ components:
                         amount:
                           type: integer
                           description: Payment amount in the smallest currency unit (e.g., cents)
-                          minimum: 1
                           example: 1000
                         buttonLabel:
                           type: object
@@ -5194,8 +5193,7 @@ components:
                         - headline
                         - required
                         - scaleRange
-                        - lowerLabel
-                        - upperLabel
+                        - visualStyle
                 minItems: 1
               logic:
                 type: array

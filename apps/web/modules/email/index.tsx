@@ -244,7 +244,9 @@ export const sendResponseFinishedEmail = async (
   // Pre-process the element response mapping before passing to email
   const elements = getElementResponseMapping(survey, response);
 
-  // Get original survey elements for type-specific formatting
+  // Get original survey elements for type-specific formatting.
+  // Index correlation with `elements` is safe because getElementResponseMapping internally
+  // iterates getElementsFromBlocks(survey.blocks) in order, producing a 1:1 positional match.
   const surveyElements = getElementsFromBlocks(survey.blocks);
 
   // Resolve relative storage URLs and format type-specific responses for email rendering

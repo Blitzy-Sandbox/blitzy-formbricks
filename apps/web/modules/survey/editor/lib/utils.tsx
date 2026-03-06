@@ -1235,7 +1235,11 @@ export const getActionValueOptions = (
   } else if (selectedVariable.type === "number") {
     const allowedElements = allElements.filter(
       (element) =>
-        [TSurveyElementTypeEnum.Rating, TSurveyElementTypeEnum.NPS].includes(element.type) ||
+        [
+          TSurveyElementTypeEnum.Rating,
+          TSurveyElementTypeEnum.NPS,
+          TSurveyElementTypeEnum.OpinionScale,
+        ].includes(element.type) ||
         (element.type === TSurveyElementTypeEnum.OpenText && element.inputType === "number")
     );
 

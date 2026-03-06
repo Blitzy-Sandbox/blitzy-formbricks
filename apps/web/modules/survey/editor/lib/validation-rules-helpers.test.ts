@@ -5,6 +5,7 @@ import type {
   TSurveyMultipleChoiceElement,
   TSurveyRankingElement,
 } from "@formbricks/types/surveys/elements";
+import { APPLICABLE_RULES } from "@formbricks/types/surveys/validation-rules";
 import { RULE_TYPE_CONFIG } from "./validation-rules-config";
 import {
   getAddressFields,
@@ -265,10 +266,9 @@ describe("Payment element compatibility", () => {
 });
 
 describe("OpinionScale element compatibility", () => {
-  test("should have no applicable rule types that need testing", () => {
-    // OpinionScale has no validation rules - this is a documentation test
-    // confirming that no rule types are expected for opinion scale elements
-    // The scale range itself is enforced by the Zod schema, not by validation rules
-    expect(true).toBe(true);
+  test("should have no applicable validation rules", () => {
+    // OpinionScale has no validation rules — the scale range is enforced
+    // by the Zod schema, not by runtime validation rules
+    expect(APPLICABLE_RULES.opinionScale).toEqual([]);
   });
 });

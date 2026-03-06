@@ -6384,7 +6384,6 @@
                           "properties": {
                             "amount": {
                               "description": "Payment amount in the smallest currency unit (e.g., cents)",
-                              "minimum": 1,
                               "type": "integer"
                             },
                             "buttonLabel": {

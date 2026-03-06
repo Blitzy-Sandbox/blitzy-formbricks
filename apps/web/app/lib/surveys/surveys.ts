@@ -45,6 +45,10 @@ const conditionOptions: Record<string, string[]> = {
 };
 const filterOptions: Record<string, string[]> = {
   openText: ["Filled out", "Skipped"],
+  // Note: rating and opinionScale filter options are hardcoded to 5 values.
+  // Both types support variable ranges (rating: 1-10, opinionScale: 5/7/10),
+  // but filterOptions is a static dictionary keyed by type, not by element instance.
+  // Making this dynamic per-element would require a structural refactor.
   rating: ["1", "2", "3", "4", "5"],
   nps: ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10"],
   cta: ["Clicked", "Dismissed"],

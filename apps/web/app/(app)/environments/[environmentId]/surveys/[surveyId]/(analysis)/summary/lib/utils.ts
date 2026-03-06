@@ -31,7 +31,19 @@ export const constructToastMessage = (
     return t("environments.surveys.summary.added_filter_for_responses_where_answer_to_question_is_skipped", {
       questionIdx: elementIdx + 1,
     });
+  } else if (
+    elementType === TSurveyElementTypeEnum.OpinionScale ||
+    elementType === TSurveyElementTypeEnum.Payment
+  ) {
+    return t("environments.surveys.summary.added_filter_for_responses_where_answer_to_question", {
+      questionIdx: elementIdx + 1,
+      filterComboBoxValue: Array.isArray(filterComboBoxValue)
+        ? filterComboBoxValue.join(",")
+        : filterComboBoxValue,
+      filterValue,
+    });
   } else {
+    // Handles all remaining element types
     return t("environments.surveys.summary.added_filter_for_responses_where_answer_to_question", {
       questionIdx: elementIdx + 1,
       filterComboBoxValue: Array.isArray(filterComboBoxValue)

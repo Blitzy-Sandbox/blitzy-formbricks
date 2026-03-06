@@ -5109,6 +5109,11 @@ components:
                           description: Payment amount in the smallest currency unit (e.g., cents)
                           minimum: 1
                           example: 1000
+                        buttonLabel:
+                          type: object
+                          additionalProperties:
+                            type: string
+                          description: Label text for the payment submit button (supports i18n)
                         stripeIntegration:
                           type: object
                           description: Stripe integration configuration for processing payments

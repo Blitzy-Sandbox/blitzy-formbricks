@@ -988,6 +988,82 @@ export const getElementSummary = async (
 
         break;
       }
+      case TSurveyElementTypeEnum.OpinionScale: {
+        const choiceCountMap: Record<number, number> = {};
+        const scaleRange = element.scaleRange;
+
+        for (let i = 1; i <= scaleRange; i++) {
+          choiceCountMap[i] = 0;
+        }
+
+        let totalResponseCount = 0;
+        let totalRating = 0;
+        let dismissed = 0;
+
+        responses.forEach((response) => {
+          const answer = response.data[element.id];
+          if (typeof answer === "number") {
+            totalResponseCount++;
+            choiceCountMap[answer]++;
+            totalRating += answer;
+          } else if (response.ttc && response.ttc[element.id] > 0) {
+            dismissed++;
+          }
+        });
+
+        const choices: { rating: number; count: number; percentage: number }[] = [];
+        Object.entries(choiceCountMap).forEach(([label, count]) => {
+          choices.push({
+            rating: Number.parseInt(label),
+            count,
+            percentage:
+              totalResponseCount > 0 ? convertFloatTo2Decimal((count / totalResponseCount) * 100) : 0,
+          });
+        });
+
+        summary.push({
+          type: element.type,
+          element,
+          average: convertFloatTo2Decimal(totalRating / totalResponseCount) || 0,
+          responseCount: totalResponseCount,
+          choices,
+          dismissed: {
+            count: dismissed,
+          },
+        });
+
+        break;
+      }
+      case TSurveyElementTypeEnum.Payment: {
+        let successCount = 0;
+        let skippedCount = 0;
+        let totalResponseCount = 0;
+
+        responses.forEach((response) => {
+          const answer = response.data[element.id];
+          if (answer === "paid") {
+            successCount++;
+            totalResponseCount++;
+          } else if (response.ttc && response.ttc[element.id] > 0) {
+            skippedCount++;
+            totalResponseCount++;
+          }
+        });
+
+        const totalAmount = successCount * element.amount;
+
+        summary.push({
+          type: element.type,
+          element,
+          responseCount: totalResponseCount,
+          totalAmount,
+          currency: element.currency,
+          successCount,
+          skippedCount,
+        });
+
+        break;
+      }
     }
   }
 

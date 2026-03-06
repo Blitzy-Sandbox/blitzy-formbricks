@@ -4284,3 +4284,468 @@ describe("Cal question type tests", () => {
     expect(summary[0].skipped.count).toBe(1); // Counted as skipped
   });
 });
+
+describe("OpinionScale question type tests", () => {
+  test("getQuestionSummary correctly processes OpinionScale question with valid responses", async () => {
+    const question = {
+      id: "opinion-q1",
+      type: TSurveyElementTypeEnum.OpinionScale,
+      headline: { default: "How likely are you to recommend?" },
+      required: true,
+      scaleRange: 5,
+      visualStyle: "number",
+      lowerLabel: { default: "Not likely" },
+      upperLabel: { default: "Very likely" },
+      isColorCodingEnabled: false,
+    };
+
+    const survey = {
+      id: "survey-1",
+      blocks: [
+        {
+          id: "block1",
+          name: "Block 1",
+          elements: [question],
+        },
+      ],
+      questions: [],
+      languages: [],
+      welcomeCard: { enabled: false },
+    } as unknown as TSurvey;
+
+    const responses = [
+      {
+        id: "response-1",
+        data: { "opinion-q1": 5 },
+        updatedAt: new Date(),
+        contact: null,
+        contactAttributes: {},
+        language: null,
+        ttc: {},
+        finished: true,
+      },
+      {
+        id: "response-2",
+        data: { "opinion-q1": 4 },
+        updatedAt: new Date(),
+        contact: null,
+        contactAttributes: {},
+        language: null,
+        ttc: {},
+        finished: true,
+      },
+      {
+        id: "response-3",
+        data: { "opinion-q1": 3 },
+        updatedAt: new Date(),
+        contact: null,
+        contactAttributes: {},
+        language: null,
+        ttc: {},
+        finished: true,
+      },
+      {
+        id: "response-4",
+        data: { "opinion-q1": 5 },
+        updatedAt: new Date(),
+        contact: null,
+        contactAttributes: {},
+        language: null,
+        ttc: {},
+        finished: true,
+      },
+    ];
+
+    const dropOff = [
+      { elementId: "opinion-q1", impressions: 4, dropOffCount: 0, dropOffPercentage: 0 },
+    ] as unknown as TSurveySummary["dropOff"];
+
+    const summary: any = await getElementSummary(
+      survey,
+      getElementsFromBlocks(survey.blocks),
+      responses,
+      dropOff
+    );
+
+    expect(summary).toHaveLength(1);
+    expect(summary[0].type).toBe(TSurveyElementTypeEnum.OpinionScale);
+    expect(summary[0].responseCount).toBe(4);
+
+    // Average = (5 + 4 + 3 + 5) / 4 = 4.25
+    expect(summary[0].average).toBe(4.25);
+
+    // Verify each scale value count and percentage
+    const val5 = summary[0].choices.find((c: any) => c.rating === 5);
+    expect(val5.count).toBe(2);
+    expect(val5.percentage).toBe(50); // 2/4 * 100
+
+    const val4 = summary[0].choices.find((c: any) => c.rating === 4);
+    expect(val4.count).toBe(1);
+    expect(val4.percentage).toBe(25);
+
+    const val3 = summary[0].choices.find((c: any) => c.rating === 3);
+    expect(val3.count).toBe(1);
+    expect(val3.percentage).toBe(25);
+
+    const val2 = summary[0].choices.find((c: any) => c.rating === 2);
+    expect(val2.count).toBe(0);
+    expect(val2.percentage).toBe(0);
+
+    const val1 = summary[0].choices.find((c: any) => c.rating === 1);
+    expect(val1.count).toBe(0);
+    expect(val1.percentage).toBe(0);
+
+    // Verify dismissed
+    expect(summary[0].dismissed.count).toBe(0);
+  });
+
+  test("getQuestionSummary handles OpinionScale question with dismissed responses", async () => {
+    const question = {
+      id: "opinion-q1",
+      type: TSurveyElementTypeEnum.OpinionScale,
+      headline: { default: "How likely are you to recommend?" },
+      required: false,
+      scaleRange: 5,
+      visualStyle: "number",
+      lowerLabel: { default: "Not likely" },
+      upperLabel: { default: "Very likely" },
+      isColorCodingEnabled: false,
+    };
+
+    const survey = {
+      id: "survey-1",
+      blocks: [
+        {
+          id: "block1",
+          name: "Block 1",
+          elements: [question],
+        },
+      ],
+      questions: [],
+      languages: [],
+      welcomeCard: { enabled: false },
+    } as unknown as TSurvey;
+
+    const responses = [
+      {
+        id: "response-1",
+        data: { "opinion-q1": 5 },
+        updatedAt: new Date(),
+        contact: null,
+        contactAttributes: {},
+        language: null,
+        ttc: { "opinion-q1": 3 },
+        finished: true,
+      },
+      {
+        id: "response-2",
+        data: {},
+        updatedAt: new Date(),
+        contact: null,
+        contactAttributes: {},
+        language: null,
+        ttc: { "opinion-q1": 2 },
+        finished: true,
+      },
+      {
+        id: "response-3",
+        data: {},
+        updatedAt: new Date(),
+        contact: null,
+        contactAttributes: {},
+        language: null,
+        ttc: { "opinion-q1": 4 },
+        finished: true,
+      },
+    ] as any;
+
+    const dropOff = [
+      { elementId: "opinion-q1", impressions: 3, dropOffCount: 0, dropOffPercentage: 0 },
+    ] as unknown as TSurveySummary["dropOff"];
+
+    const summary: any = await getElementSummary(
+      survey,
+      getElementsFromBlocks(survey.blocks),
+      responses,
+      dropOff
+    );
+
+    expect(summary).toHaveLength(1);
+    expect(summary[0].type).toBe(TSurveyElementTypeEnum.OpinionScale);
+    expect(summary[0].responseCount).toBe(1);
+    expect(summary[0].average).toBe(5);
+    expect(summary[0].dismissed.count).toBe(2);
+  });
+
+  test("getQuestionSummary handles OpinionScale question with no responses", async () => {
+    const question = {
+      id: "opinion-q1",
+      type: TSurveyElementTypeEnum.OpinionScale,
+      headline: { default: "How likely are you to recommend?" },
+      required: true,
+      scaleRange: 5,
+      visualStyle: "number",
+      lowerLabel: { default: "Not likely" },
+      upperLabel: { default: "Very likely" },
+      isColorCodingEnabled: false,
+    };
+
+    const survey = {
+      id: "survey-1",
+      blocks: [
+        {
+          id: "block1",
+          name: "Block 1",
+          elements: [question],
+        },
+      ],
+      questions: [],
+      languages: [],
+      welcomeCard: { enabled: false },
+    } as unknown as TSurvey;
+
+    const responses = [
+      {
+        id: "response-1",
+        data: { "other-q": "value" },
+        updatedAt: new Date(),
+        contact: null,
+        contactAttributes: {},
+        language: null,
+        ttc: {},
+        finished: true,
+      },
+    ];
+
+    const dropOff = [
+      { elementId: "opinion-q1", impressions: 1, dropOffCount: 1, dropOffPercentage: 100 },
+    ] as unknown as TSurveySummary["dropOff"];
+
+    const summary: any = await getElementSummary(
+      survey,
+      getElementsFromBlocks(survey.blocks),
+      responses,
+      dropOff
+    );
+
+    expect(summary).toHaveLength(1);
+    expect(summary[0].type).toBe(TSurveyElementTypeEnum.OpinionScale);
+    expect(summary[0].responseCount).toBe(0);
+    expect(summary[0].average).toBe(0);
+
+    summary[0].choices.forEach((choice: any) => {
+      expect(choice.count).toBe(0);
+      expect(choice.percentage).toBe(0);
+    });
+
+    expect(summary[0].dismissed.count).toBe(0);
+  });
+});
+
+describe("Payment question type tests", () => {
+  test("getQuestionSummary correctly processes Payment question with valid responses", async () => {
+    const question = {
+      id: "payment-q1",
+      type: TSurveyElementTypeEnum.Payment,
+      headline: { default: "Complete your payment" },
+      required: true,
+      currency: "usd",
+      amount: 1000,
+      buttonLabel: { default: "Pay $10.00" },
+      stripeIntegration: { publicKey: "pk_test_123", priceId: "price_test_123" },
+    };
+
+    const survey = {
+      id: "survey-1",
+      blocks: [
+        {
+          id: "block1",
+          name: "Block 1",
+          elements: [question],
+        },
+      ],
+      questions: [],
+      languages: [],
+      welcomeCard: { enabled: false },
+    } as unknown as TSurvey;
+
+    const responses = [
+      {
+        id: "response-1",
+        data: { "payment-q1": "paid" },
+        updatedAt: new Date(),
+        contact: null,
+        contactAttributes: {},
+        language: null,
+        ttc: { "payment-q1": 5 },
+        finished: true,
+      },
+      {
+        id: "response-2",
+        data: { "payment-q1": "paid" },
+        updatedAt: new Date(),
+        contact: null,
+        contactAttributes: {},
+        language: null,
+        ttc: { "payment-q1": 3 },
+        finished: true,
+      },
+      {
+        id: "response-3",
+        data: {},
+        updatedAt: new Date(),
+        contact: null,
+        contactAttributes: {},
+        language: null,
+        ttc: { "payment-q1": 2 },
+        finished: true,
+      },
+    ] as any;
+
+    const dropOff = [
+      { elementId: "payment-q1", impressions: 3, dropOffCount: 0, dropOffPercentage: 0 },
+    ] as unknown as TSurveySummary["dropOff"];
+
+    const summary: any = await getElementSummary(
+      survey,
+      getElementsFromBlocks(survey.blocks),
+      responses,
+      dropOff
+    );
+
+    expect(summary).toHaveLength(1);
+    expect(summary[0].type).toBe(TSurveyElementTypeEnum.Payment);
+    expect(summary[0].responseCount).toBe(3);
+    expect(summary[0].totalAmount).toBe(2000); // 2 paid * 1000 amount
+    expect(summary[0].currency).toBe("usd");
+    expect(summary[0].successCount).toBe(2);
+    expect(summary[0].skippedCount).toBe(1);
+  });
+
+  test("getQuestionSummary handles Payment question with no responses", async () => {
+    const question = {
+      id: "payment-q1",
+      type: TSurveyElementTypeEnum.Payment,
+      headline: { default: "Complete your payment" },
+      required: false,
+      currency: "eur",
+      amount: 500,
+      buttonLabel: { default: "Pay €5.00" },
+      stripeIntegration: { publicKey: "pk_test_123", priceId: "price_test_123" },
+    };
+
+    const survey = {
+      id: "survey-1",
+      blocks: [
+        {
+          id: "block1",
+          name: "Block 1",
+          elements: [question],
+        },
+      ],
+      questions: [],
+      languages: [],
+      welcomeCard: { enabled: false },
+    } as unknown as TSurvey;
+
+    const responses = [
+      {
+        id: "response-1",
+        data: { "other-q": "value" },
+        updatedAt: new Date(),
+        contact: null,
+        contactAttributes: {},
+        language: null,
+        ttc: {},
+        finished: true,
+      },
+    ];
+
+    const dropOff = [
+      { elementId: "payment-q1", impressions: 1, dropOffCount: 1, dropOffPercentage: 100 },
+    ] as unknown as TSurveySummary["dropOff"];
+
+    const summary: any = await getElementSummary(
+      survey,
+      getElementsFromBlocks(survey.blocks),
+      responses,
+      dropOff
+    );
+
+    expect(summary).toHaveLength(1);
+    expect(summary[0].type).toBe(TSurveyElementTypeEnum.Payment);
+    expect(summary[0].responseCount).toBe(0);
+    expect(summary[0].totalAmount).toBe(0);
+    expect(summary[0].currency).toBe("eur");
+    expect(summary[0].successCount).toBe(0);
+    expect(summary[0].skippedCount).toBe(0);
+  });
+
+  test("getQuestionSummary handles Payment question with all skipped responses", async () => {
+    const question = {
+      id: "payment-q1",
+      type: TSurveyElementTypeEnum.Payment,
+      headline: { default: "Complete your payment" },
+      required: false,
+      currency: "gbp",
+      amount: 2000,
+      buttonLabel: { default: "Pay £20.00" },
+      stripeIntegration: { publicKey: "pk_test_123", priceId: "price_test_123" },
+    };
+
+    const survey = {
+      id: "survey-1",
+      blocks: [
+        {
+          id: "block1",
+          name: "Block 1",
+          elements: [question],
+        },
+      ],
+      questions: [],
+      languages: [],
+      welcomeCard: { enabled: false },
+    } as unknown as TSurvey;
+
+    const responses = [
+      {
+        id: "response-1",
+        data: {},
+        updatedAt: new Date(),
+        contact: null,
+        contactAttributes: {},
+        language: null,
+        ttc: { "payment-q1": 5 },
+        finished: true,
+      },
+      {
+        id: "response-2",
+        data: {},
+        updatedAt: new Date(),
+        contact: null,
+        contactAttributes: {},
+        language: null,
+        ttc: { "payment-q1": 3 },
+        finished: true,
+      },
+    ] as any;
+
+    const dropOff = [
+      { elementId: "payment-q1", impressions: 2, dropOffCount: 0, dropOffPercentage: 0 },
+    ] as unknown as TSurveySummary["dropOff"];
+
+    const summary: any = await getElementSummary(
+      survey,
+      getElementsFromBlocks(survey.blocks),
+      responses,
+      dropOff
+    );
+
+    expect(summary).toHaveLength(1);
+    expect(summary[0].type).toBe(TSurveyElementTypeEnum.Payment);
+    expect(summary[0].responseCount).toBe(2);
+    expect(summary[0].totalAmount).toBe(0);
+    expect(summary[0].successCount).toBe(0);
+    expect(summary[0].skippedCount).toBe(2);
+  });
+});

@@ -1,3 +1,4 @@
+// @vitest-environment happy-dom
 import type { TFunction } from "i18next";
 import { describe, expect, test, vi } from "vitest";
 import type { TResponseData } from "@formbricks/types/responses";
@@ -167,6 +168,97 @@ describe("validateElementResponse", () => {
       const result = validateElementResponse(element, {}, "en");
       expect(result.valid).toBe(false);
       expect(result.errors).toHaveLength(1);
+    });
+
+    test("should return error when required OpinionScale field is empty", () => {
+      const element = {
+        id: "os1",
+        type: TSurveyElementTypeEnum.OpinionScale,
+        headline: { default: "Rate this" },
+        required: true,
+        scaleRange: 5,
+        visualStyle: "number",
+      } as unknown as TSurveyElement;
+
+      const result = validateElementResponse(element, undefined, "en");
+      expect(result.valid).toBe(false);
+      expect(result.errors).toHaveLength(1);
+      expect(result.errors[0].ruleId).toBe("required");
+    });
+
+    test("should return valid when required OpinionScale field has value", () => {
+      const element = {
+        id: "os1",
+        type: TSurveyElementTypeEnum.OpinionScale,
+        headline: { default: "Rate this" },
+        required: true,
+        scaleRange: 5,
+        visualStyle: "number",
+      } as unknown as TSurveyElement;
+
+      const result = validateElementResponse(element, 4, "en");
+      expect(result.valid).toBe(true);
+    });
+
+    test("should NOT apply CTA exemption to OpinionScale", () => {
+      const element = {
+        id: "os1",
+        type: TSurveyElementTypeEnum.OpinionScale,
+        headline: { default: "Rate" },
+        required: true,
+        scaleRange: 5,
+        visualStyle: "number",
+      } as unknown as TSurveyElement;
+
+      const result = validateElementResponse(element, undefined, "en");
+      expect(result.valid).toBe(false);
+    });
+
+    test("should return error when required Payment field is empty", () => {
+      const element = {
+        id: "pay1",
+        type: TSurveyElementTypeEnum.Payment,
+        headline: { default: "Pay now" },
+        required: true,
+        currency: "usd",
+        amount: 1000,
+        stripeIntegration: { publicKey: "pk_test", priceId: "price_test" },
+      } as unknown as TSurveyElement;
+
+      const result = validateElementResponse(element, "", "en");
+      expect(result.valid).toBe(false);
+      expect(result.errors).toHaveLength(1);
+      expect(result.errors[0].ruleId).toBe("required");
+    });
+
+    test("should return valid when required Payment field has value", () => {
+      const element = {
+        id: "pay1",
+        type: TSurveyElementTypeEnum.Payment,
+        headline: { default: "Pay now" },
+        required: true,
+        currency: "usd",
+        amount: 1000,
+        stripeIntegration: { publicKey: "pk_test", priceId: "price_test" },
+      } as unknown as TSurveyElement;
+
+      const result = validateElementResponse(element, "paid", "en");
+      expect(result.valid).toBe(true);
+    });
+
+    test("should NOT apply CTA exemption to Payment", () => {
+      const element = {
+        id: "pay1",
+        type: TSurveyElementTypeEnum.Payment,
+        headline: { default: "Pay" },
+        required: true,
+        currency: "usd",
+        amount: 1000,
+        stripeIntegration: { publicKey: "pk_test", priceId: "price_test" },
+      } as unknown as TSurveyElement;
+
+      const result = validateElementResponse(element, "", "en");
+      expect(result.valid).toBe(false);
     });
   });
 

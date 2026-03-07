@@ -350,6 +350,32 @@ export const ZSurveyContactInfoElement = ZSurveyElementBase.extend({
 
 export type TSurveyContactInfoElement = z.infer<typeof ZSurveyContactInfoElement>;
 
+// Opinion Scale Element
+export const ZSurveyOpinionScaleElement = ZSurveyElementBase.extend({
+  type: z.literal(TSurveyElementTypeEnum.OpinionScale),
+  scaleRange: z.union([z.literal(5), z.literal(7), z.literal(10)]),
+  lowerLabel: ZI18nString.optional(),
+  upperLabel: ZI18nString.optional(),
+  visualStyle: z.enum(["number", "smiley", "star"]),
+  isColorCodingEnabled: z.boolean().optional().default(false),
+});
+
+export type TSurveyOpinionScaleElement = z.infer<typeof ZSurveyOpinionScaleElement>;
+
+// Payment Element
+export const ZSurveyPaymentElement = ZSurveyElementBase.extend({
+  type: z.literal(TSurveyElementTypeEnum.Payment),
+  currency: z.enum(["usd", "eur", "gbp"]),
+  amount: z.number().int().positive().min(1),
+  buttonLabel: ZI18nString.optional(),
+  stripeIntegration: z.object({
+    publicKey: z.string(),
+    priceId: z.string(),
+  }),
+});
+
+export type TSurveyPaymentElement = z.infer<typeof ZSurveyPaymentElement>;
+
 // Union of all element types
 export const ZSurveyElement = z.union([
   ZSurveyOpenTextElement,
@@ -367,6 +393,8 @@ export const ZSurveyElement = z.union([
   ZSurveyAddressElement,
   ZSurveyRankingElement,
   ZSurveyContactInfoElement,
+  ZSurveyOpinionScaleElement,
+  ZSurveyPaymentElement,
 ]);
 
 export type TSurveyElement = z.infer<typeof ZSurveyElement>;

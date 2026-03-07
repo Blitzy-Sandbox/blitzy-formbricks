@@ -406,6 +406,54 @@ export const getLogicRules = (t: TFunction) => {
           },
         ],
       },
+      [TSurveyElementTypeEnum.OpinionScale]: {
+        options: [
+          {
+            label: "=",
+            value: ZSurveyLogicConditionsOperator.Enum.equals,
+          },
+          {
+            label: "!=",
+            value: ZSurveyLogicConditionsOperator.Enum.doesNotEqual,
+          },
+          {
+            label: ">",
+            value: ZSurveyLogicConditionsOperator.Enum.isGreaterThan,
+          },
+          {
+            label: "<",
+            value: ZSurveyLogicConditionsOperator.Enum.isLessThan,
+          },
+          {
+            label: ">=",
+            value: ZSurveyLogicConditionsOperator.Enum.isGreaterThanOrEqual,
+          },
+          {
+            label: "<=",
+            value: ZSurveyLogicConditionsOperator.Enum.isLessThanOrEqual,
+          },
+          {
+            label: t("environments.surveys.edit.is_submitted"),
+            value: ZSurveyLogicConditionsOperator.Enum.isSubmitted,
+          },
+          {
+            label: t("environments.surveys.edit.is_skipped"),
+            value: ZSurveyLogicConditionsOperator.Enum.isSkipped,
+          },
+        ],
+      },
+      [TSurveyElementTypeEnum.Payment]: {
+        options: [
+          {
+            label: t("environments.surveys.edit.is_submitted"),
+            value: ZSurveyLogicConditionsOperator.Enum.isSubmitted,
+          },
+          {
+            label: t("environments.surveys.edit.is_skipped"),
+            value: ZSurveyLogicConditionsOperator.Enum.isSkipped,
+          },
+        ],
+      },
     },
     ["variable.text"]: {
       options: [

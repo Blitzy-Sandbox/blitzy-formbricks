@@ -20,37 +20,30 @@ Provide an optional description with further details about the payment, such as 
 
 ### Amount Configuration
 
-Configure the payment amount. The following options are available:
+Configure the payment amount as a fixed value. The amount is set during survey creation and cannot be changed by the respondent.
 
-- **Fixed amount** — A predetermined amount the respondent must pay. The amount is set during survey creation and cannot be changed by the respondent.
-- **Variable amount** — Allow respondents to enter a custom amount within a defined minimum and maximum range. Useful for donations or pay-what-you-want scenarios.
-
-Amounts are specified in the smallest currency unit (for example, cents for USD). A value of `2999` represents $29.99.
+Amounts are specified as a positive integer in the smallest currency unit (for example, cents for USD). A value of `2999` represents $29.99.
 
 ### Currency
 
-Select the currency for the payment. Supported currencies align with Stripe's currency support, including but not limited to:
+Select the currency for the payment. The following currencies are currently supported:
 
 | Currency Code | Currency Name |
 |---------------|---------------|
 | `usd` | US Dollar |
 | `eur` | Euro |
 | `gbp` | British Pound |
-| `cad` | Canadian Dollar |
-| `aud` | Australian Dollar |
-| `jpy` | Japanese Yen |
 
-The default currency is `usd`. The full list of supported currencies is determined by your Stripe account configuration.
+The currency is specified as a lowercase ISO 4217 code. Additional currency support may be added in future releases.
 
 ### Stripe Integration
 
-Payment processing is handled via Stripe. Configuration requires:
+Payment processing is handled via Stripe. Each Payment element requires a `stripeIntegration` configuration object with the following fields:
 
-- A connected Stripe account linked to your Formbricks environment
-- Stripe publishable key and secret key configured in environment settings
-- A webhook endpoint for payment confirmation callbacks
+- **`publicKey`** — The Stripe publishable key used for client-side Stripe Elements rendering
+- **`priceId`** — The Stripe Price ID referencing the product/price in your Stripe account
 
-<Note>Stripe credentials are configured at the environment level. Refer to your self-hosting or cloud environment configuration for setup details.</Note>
+<Note>Stripe credentials are configured per Payment element in the `stripeIntegration` object. The publishable key is the only key exposed to the client; server-side secret keys are used only in server actions for Payment Intent creation.</Note>
 
 ## Configuration
 
@@ -58,13 +51,11 @@ The following configuration options are available for Payment questions:
 
 | Option | Description | Default |
 |--------|-------------|---------|
-| **Amount type** | Fixed or variable amount | `fixed` |
-| **Amount value** | Payment amount in smallest currency unit (e.g., cents) | — |
-| **Min / Max** | Minimum and maximum for variable amounts | — |
-| **Currency** | ISO 4217 currency code | `usd` |
+| **Amount** | Payment amount as a positive integer in smallest currency unit (e.g., cents) | — |
+| **Currency** | ISO 4217 currency code (`usd`, `eur`, `gbp`) | — |
+| **Button label** | Custom label for the payment button (i18n supported, optional) | — |
 | **Required** | Whether the payment must be completed to proceed | `true` |
-| **Collect receipt email** | Whether to collect and send a receipt to the respondent | `false` |
-| **Stripe account** | The connected Stripe account identifier | — |
+| **Stripe integration** | Object containing `publicKey` (Stripe publishable key) and `priceId` (Stripe Price ID) | — |
 
 Payment questions are always terminal within their block — they cannot have follow-up questions within the same block. This ensures the payment flow is completed before the respondent proceeds to the next section of the survey.
 
@@ -95,27 +86,24 @@ When a respondent completes a payment, the response data includes the Stripe pay
 The Payment element type will extend the existing `ZSurveyElementBase` schema defined in `packages/types/surveys/elements.ts`. The following Zod schema represents the planned specification:
 
 ```typescript
-// Planned extension to packages/types/surveys/elements.ts
+// Extension to packages/types/surveys/elements.ts
 export const ZSurveyPaymentElement = ZSurveyElementBase.extend({
   type: z.literal("payment"),
-  currency: z.string().default("usd"),
-  amount: z.object({
-    type: z.enum(["fixed", "variable"]),
-    value: z.number().optional(),
-    min: z.number().optional(),
-    max: z.number().optional(),
+  currency: z.enum(["usd", "eur", "gbp"]),
+  amount: z.number().int().positive().min(1),
+  buttonLabel: ZI18nString.optional(),
+  stripeIntegration: z.object({
+    publicKey: z.string(),
+    priceId: z.string(),
   }),
-  stripeAccountId: z.string(),
-  collectReceiptEmail: z.boolean().default(false),
-  validation: ZValidation.optional(),
 });
 
 export type TSurveyPaymentElement = z.infer<typeof ZSurveyPaymentElement>;
 ```
 
-Upon implementation, a `Payment` entry will also be added to the `TSurveyElementTypeEnum` in `packages/types/surveys/constants.ts`, which currently defines 15 element types and does not include a Payment type.
+The `Payment` entry has been added to `TSurveyElementTypeEnum` in `packages/types/surveys/constants.ts` as `Payment = "payment"`, extending the enum from 15 to 17 element types (together with `OpinionScale`).
 
-<Note>This schema is a planned specification. The actual implementation may differ. Source reference: `packages/types/surveys/elements.ts`</Note>
+<Note>Source reference: `packages/types/surveys/elements.ts`. The `currency` field uses a strict enum of three supported currencies. The `amount` field is a positive integer in the smallest currency unit (e.g., cents). The `stripeIntegration` object requires both a Stripe publishable key and a Stripe Price ID.</Note>
 
 ## API Request Example
 
@@ -129,13 +117,13 @@ The following JSON shows how a Payment question appears in a survey creation API
   "subheader": { "default": "Secure payment processed via Stripe" },
   "required": true,
   "currency": "usd",
-  "amount": {
-    "type": "fixed",
-    "value": 2999
-  },
-  "stripeAccountId": "acct_1234567890",
-  "collectReceiptEmail": true
+  "amount": 2999,
+  "buttonLabel": { "default": "Pay now" },
+  "stripeIntegration": {
+    "publicKey": "pk_live_...",
+    "priceId": "price_..."
+  }
 }
 ```
 
-This payload structure follows the conventions established by other element types in the Formbricks survey schema. For the complete API reference, see the [API v1 Reference](/api-reference) or [API v2 Reference](/api-v2-reference).
+This payload structure follows the conventions established by other element types in the Formbricks survey schema. The `amount` is a positive integer in the smallest currency unit (e.g., `2999` = $29.99 USD). The `buttonLabel` uses the i18n object format. For the complete API reference, see the [API v1 Reference](/api-reference) or [API v2 Reference](/api-v2-reference).

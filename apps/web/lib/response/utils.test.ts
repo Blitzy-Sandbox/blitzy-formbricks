@@ -431,6 +431,68 @@ describe("Response Utils", () => {
       expect(result.hiddenFields).toContain("hidden1");
       expect(result.userAttributes).toContain("email");
     });
+
+    test("should extract single column header for Opinion Scale element", () => {
+      const opinionScaleSurvey: Partial<TSurvey> = {
+        ...mockSurvey,
+        blocks: [
+          {
+            id: "block1",
+            name: "Block 1",
+            elements: [
+              {
+                id: "osQ",
+                type: TSurveyElementTypeEnum.OpinionScale,
+                headline: { default: "Rate your experience" },
+                required: true,
+                scaleRange: 5,
+                lowerLabel: { default: "Poor" },
+                upperLabel: { default: "Excellent" },
+                visualStyle: "number",
+                isColorCodingEnabled: false,
+                isDraft: false,
+              },
+            ],
+          },
+        ],
+      };
+
+      const result = extractSurveyDetails(opinionScaleSurvey as TSurvey, mockResponses as TResponse[]);
+      expect(result.elements).toHaveLength(1);
+      expect(result.elements[0]).toEqual(["1. Rate your experience"]);
+    });
+
+    test("should extract single column header for Payment element", () => {
+      const paymentSurvey: Partial<TSurvey> = {
+        ...mockSurvey,
+        blocks: [
+          {
+            id: "block1",
+            name: "Block 1",
+            elements: [
+              {
+                id: "payQ",
+                type: TSurveyElementTypeEnum.Payment,
+                headline: { default: "Make payment" },
+                required: true,
+                currency: "usd",
+                amount: 2500,
+                buttonLabel: { default: "Pay $25.00" },
+                stripeIntegration: {
+                  publicKey: "pk_test_123",
+                  priceId: "price_123",
+                },
+                isDraft: false,
+              },
+            ],
+          },
+        ],
+      };
+
+      const result = extractSurveyDetails(paymentSurvey as TSurvey, mockResponses as TResponse[]);
+      expect(result.elements).toHaveLength(1);
+      expect(result.elements[0]).toEqual(["1. Make payment"]);
+    });
   });
 
   describe("getResponsesJson", () => {
@@ -497,6 +559,161 @@ describe("Response Utils", () => {
       expect(result[0]["userAgent - browser"]).toBe("Chrome");
       expect(result[0]["1. Question 1"]).toBe("answer1");
       expect(result[0]["email"]).toBe("test@example.com");
+    });
+
+    test("should generate correct JSON data for Opinion Scale response", () => {
+      const opinionScaleSurvey: Partial<TSurvey> = {
+        ...mockSurvey,
+        blocks: [
+          {
+            id: "block1",
+            name: "Block 1",
+            elements: [
+              {
+                id: "osQ",
+                type: TSurveyElementTypeEnum.OpinionScale,
+                headline: { default: "Rate your experience" },
+                required: true,
+                scaleRange: 5,
+                lowerLabel: { default: "Poor" },
+                upperLabel: { default: "Excellent" },
+                visualStyle: "number",
+                isColorCodingEnabled: false,
+                isDraft: false,
+              },
+            ],
+          },
+        ],
+      };
+
+      const opinionScaleResponses: Partial<TResponse>[] = [
+        {
+          id: "response1",
+          surveyId: "survey1",
+          data: { osQ: 4 },
+          meta: {},
+          contactAttributes: {},
+          finished: true,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+          tags: [],
+        },
+      ];
+
+      const elementsHeadlines = [["1. Rate your experience"]];
+      const result = getResponsesJson(
+        opinionScaleSurvey as TSurvey,
+        opinionScaleResponses as TResponse[],
+        elementsHeadlines,
+        [],
+        [],
+        false
+      );
+      expect(result[0]["1. Rate your experience"]).toBe("4");
+    });
+
+    test("should generate correct JSON data for Payment response", () => {
+      const paymentSurvey: Partial<TSurvey> = {
+        ...mockSurvey,
+        blocks: [
+          {
+            id: "block1",
+            name: "Block 1",
+            elements: [
+              {
+                id: "payQ",
+                type: TSurveyElementTypeEnum.Payment,
+                headline: { default: "Make payment" },
+                required: true,
+                currency: "usd",
+                amount: 2500,
+                buttonLabel: { default: "Pay $25.00" },
+                stripeIntegration: {
+                  publicKey: "pk_test_123",
+                  priceId: "price_123",
+                },
+                isDraft: false,
+              },
+            ],
+          },
+        ],
+      };
+
+      const paymentResponses: Partial<TResponse>[] = [
+        {
+          id: "response1",
+          surveyId: "survey1",
+          data: { payQ: "succeeded" },
+          meta: {},
+          contactAttributes: {},
+          finished: true,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+          tags: [],
+        },
+      ];
+
+      const elementsHeadlines = [["1. Make payment"]];
+      const result = getResponsesJson(
+        paymentSurvey as TSurvey,
+        paymentResponses as TResponse[],
+        elementsHeadlines,
+        [],
+        [],
+        false
+      );
+      expect(result[0]["1. Make payment"]).toBe("succeeded");
+    });
+
+    test("should handle empty response for Opinion Scale element", () => {
+      const opinionScaleSurvey: Partial<TSurvey> = {
+        ...mockSurvey,
+        blocks: [
+          {
+            id: "block1",
+            name: "Block 1",
+            elements: [
+              {
+                id: "osQ",
+                type: TSurveyElementTypeEnum.OpinionScale,
+                headline: { default: "Rate your experience" },
+                required: false,
+                scaleRange: 5,
+                lowerLabel: { default: "Poor" },
+                upperLabel: { default: "Excellent" },
+                visualStyle: "number",
+                isColorCodingEnabled: false,
+                isDraft: false,
+              },
+            ],
+          },
+        ],
+      };
+
+      const emptyResponses: Partial<TResponse>[] = [
+        {
+          id: "response1",
+          surveyId: "survey1",
+          data: {},
+          meta: {},
+          contactAttributes: {},
+          finished: false,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+          tags: [],
+        },
+      ];
+
+      const elementsHeadlines = [["1. Rate your experience"]];
+      const result = getResponsesJson(
+        opinionScaleSurvey as TSurvey,
+        emptyResponses as TResponse[],
+        elementsHeadlines,
+        [],
+        [],
+        false
+      );
+      expect(result[0]["1. Rate your experience"]).toBe("");
     });
   });
 
@@ -852,6 +1069,40 @@ describe("extractChoiceIdsFromResponse", () => {
       const responseValue = { invalid: "object" };
       const result = extractChoiceIdsFromResponse(responseValue, multipleChoiceMultiQuestion, "default");
 
+      expect(result).toEqual([]);
+    });
+
+    test("should return empty array for Opinion Scale element", () => {
+      const opinionScaleElement = {
+        id: "os-id",
+        type: TSurveyElementTypeEnum.OpinionScale as typeof TSurveyElementTypeEnum.OpinionScale,
+        headline: { default: "Rate experience" },
+        required: true,
+        scaleRange: 5 as const,
+        lowerLabel: { default: "Poor" },
+        upperLabel: { default: "Excellent" },
+        visualStyle: "number" as const,
+        isColorCodingEnabled: false,
+      };
+      const result = extractChoiceIdsFromResponse(4, opinionScaleElement, "default");
+      expect(result).toEqual([]);
+    });
+
+    test("should return empty array for Payment element", () => {
+      const paymentElement = {
+        id: "pay-id",
+        type: TSurveyElementTypeEnum.Payment as typeof TSurveyElementTypeEnum.Payment,
+        headline: { default: "Make payment" },
+        required: true,
+        currency: "usd" as const,
+        amount: 2500,
+        buttonLabel: { default: "Pay $25.00" },
+        stripeIntegration: {
+          publicKey: "pk_test_123",
+          priceId: "price_123",
+        },
+      };
+      const result = extractChoiceIdsFromResponse("succeeded", paymentElement, "default");
       expect(result).toEqual([]);
     });
   });

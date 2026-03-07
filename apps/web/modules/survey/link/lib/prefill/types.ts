@@ -36,7 +36,9 @@ export type TValidationResult =
         | TSurveyElementTypeEnum.OpenText
         | TSurveyElementTypeEnum.NPS
         | TSurveyElementTypeEnum.Rating
-        | TSurveyElementTypeEnum.Consent;
+        | TSurveyElementTypeEnum.Consent
+        | TSurveyElementTypeEnum.OpinionScale
+        | TSurveyElementTypeEnum.Payment;
     })
   | (TSingleChoiceValidResult & { type: TSurveyElementTypeEnum.MultipleChoiceSingle })
   | (TMultiChoiceValidResult & { type: TSurveyElementTypeEnum.MultipleChoiceMulti })

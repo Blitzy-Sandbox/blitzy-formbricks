@@ -11,8 +11,37 @@ import {
   anySurveyHasFilters,
   checkForInvalidImagesInQuestions,
   checkForInvalidMediaInBlocks,
+  findElementLocation,
+  getElementsFromBlocks,
   transformPrismaSurvey,
 } from "./utils";
+
+// Mock data for new element types
+const mockOpinionScaleElement = {
+  id: "opinion-scale-1",
+  type: TSurveyElementTypeEnum.OpinionScale,
+  headline: { default: "Rate your satisfaction" },
+  required: true,
+  scaleRange: 5 as const,
+  lowerLabel: { default: "Very Dissatisfied" },
+  upperLabel: { default: "Very Satisfied" },
+  visualStyle: "number" as const,
+  isColorCodingEnabled: false,
+} as unknown as TSurveyElement;
+
+const mockPaymentElement = {
+  id: "payment-1",
+  type: TSurveyElementTypeEnum.Payment,
+  headline: { default: "Complete payment" },
+  required: true,
+  currency: "usd" as const,
+  amount: 5000,
+  buttonLabel: { default: "Pay $50.00" },
+  stripeIntegration: {
+    publicKey: "pk_test_abc",
+    priceId: "price_abc",
+  },
+} as unknown as TSurveyElement;
 
 describe("transformPrismaSurvey", () => {
   test("transforms prisma survey without segment", () => {
@@ -672,5 +701,252 @@ describe("checkForInvalidMediaInBlocks", () => {
     expect(fileValidation.isValidImageFile).toHaveBeenNthCalledWith(1, "element-image.jpg");
     expect(fileValidation.isValidImageFile).toHaveBeenNthCalledWith(2, "choice1.jpg");
     expect(fileValidation.isValidImageFile).toHaveBeenNthCalledWith(3, "choice2.jpg");
+  });
+});
+
+describe("checkForInvalidMediaInBlocks - new element types", () => {
+  beforeEach(() => {
+    vi.resetAllMocks();
+  });
+
+  test("returns ok when blocks contain OpinionScale element without media", () => {
+    const blocks: TSurveyBlock[] = [
+      {
+        id: "block-1",
+        name: "Opinion Block",
+        elements: [mockOpinionScaleElement],
+      },
+    ];
+
+    const result = checkForInvalidMediaInBlocks(blocks);
+    expect(result.ok).toBe(true);
+  });
+
+  test("returns ok when blocks contain Payment element without media", () => {
+    const blocks: TSurveyBlock[] = [
+      {
+        id: "block-1",
+        name: "Payment Block",
+        elements: [mockPaymentElement],
+      },
+    ];
+
+    const result = checkForInvalidMediaInBlocks(blocks);
+    expect(result.ok).toBe(true);
+  });
+
+  test("returns ok when OpinionScale element has valid imageUrl", () => {
+    vi.spyOn(fileValidation, "isValidImageFile").mockReturnValue(true);
+
+    const elementWithImage = {
+      ...mockOpinionScaleElement,
+      imageUrl: "valid-opinion-image.jpg",
+    } as unknown as TSurveyElement;
+
+    const blocks: TSurveyBlock[] = [
+      {
+        id: "block-1",
+        name: "Opinion Block",
+        elements: [elementWithImage],
+      },
+    ];
+
+    const result = checkForInvalidMediaInBlocks(blocks);
+    expect(result.ok).toBe(true);
+    expect(fileValidation.isValidImageFile).toHaveBeenCalledWith("valid-opinion-image.jpg");
+  });
+
+  test("returns error when OpinionScale element has invalid imageUrl", () => {
+    vi.spyOn(fileValidation, "isValidImageFile").mockReturnValue(false);
+
+    const elementWithInvalidImage = {
+      ...mockOpinionScaleElement,
+      imageUrl: "invalid-file.txt",
+    } as unknown as TSurveyElement;
+
+    const blocks: TSurveyBlock[] = [
+      {
+        id: "block-1",
+        name: "Opinion Block",
+        elements: [elementWithInvalidImage],
+      },
+    ];
+
+    const result = checkForInvalidMediaInBlocks(blocks);
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.error.message).toBe('Invalid image URL in question 1 of block "Opinion Block" (block 1)');
+    }
+  });
+
+  test("returns ok when Payment element has valid imageUrl", () => {
+    vi.spyOn(fileValidation, "isValidImageFile").mockReturnValue(true);
+
+    const elementWithImage = {
+      ...mockPaymentElement,
+      imageUrl: "valid-payment-image.jpg",
+    } as unknown as TSurveyElement;
+
+    const blocks: TSurveyBlock[] = [
+      {
+        id: "block-1",
+        name: "Payment Block",
+        elements: [elementWithImage],
+      },
+    ];
+
+    const result = checkForInvalidMediaInBlocks(blocks);
+    expect(result.ok).toBe(true);
+    expect(fileValidation.isValidImageFile).toHaveBeenCalledWith("valid-payment-image.jpg");
+  });
+
+  test("returns error when Payment element has invalid imageUrl", () => {
+    vi.spyOn(fileValidation, "isValidImageFile").mockReturnValue(false);
+
+    const elementWithInvalidImage = {
+      ...mockPaymentElement,
+      imageUrl: "invalid-file.txt",
+    } as unknown as TSurveyElement;
+
+    const blocks: TSurveyBlock[] = [
+      {
+        id: "block-1",
+        name: "Payment Block",
+        elements: [elementWithInvalidImage],
+      },
+    ];
+
+    const result = checkForInvalidMediaInBlocks(blocks);
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.error.message).toBe('Invalid image URL in question 1 of block "Payment Block" (block 1)');
+    }
+  });
+
+  test("validates mixed blocks with new and existing element types", () => {
+    vi.spyOn(fileValidation, "isValidImageFile").mockReturnValue(true);
+
+    const blocks: TSurveyBlock[] = [
+      {
+        id: "block-1",
+        name: "Mixed Block",
+        elements: [
+          {
+            id: "elem-1",
+            type: TSurveyElementTypeEnum.OpenText,
+            headline: { default: "Q1" },
+            required: false,
+            inputType: "text",
+            imageUrl: "img1.jpg",
+          } as unknown as TSurveyElement,
+          mockOpinionScaleElement,
+          mockPaymentElement,
+        ],
+      },
+    ];
+
+    const result = checkForInvalidMediaInBlocks(blocks);
+    expect(result.ok).toBe(true);
+    // Only the OpenText element has an imageUrl, so only 1 call
+    expect(fileValidation.isValidImageFile).toHaveBeenCalledTimes(1);
+    expect(fileValidation.isValidImageFile).toHaveBeenCalledWith("img1.jpg");
+  });
+});
+
+describe("getElementsFromBlocks - new element types", () => {
+  test("returns flat array including OpinionScale and Payment elements", () => {
+    const blocks: TSurveyBlock[] = [
+      {
+        id: "block-1",
+        name: "Block 1",
+        elements: [
+          {
+            id: "elem-1",
+            type: TSurveyElementTypeEnum.OpenText,
+            headline: { default: "Q1" },
+            required: false,
+            inputType: "text",
+          } as unknown as TSurveyElement,
+          mockOpinionScaleElement,
+        ],
+      },
+      {
+        id: "block-2",
+        name: "Block 2",
+        elements: [mockPaymentElement],
+      },
+    ];
+
+    const elements = getElementsFromBlocks(blocks);
+
+    expect(elements).toHaveLength(3);
+    expect(elements[0].id).toBe("elem-1");
+    expect(elements[1].id).toBe("opinion-scale-1");
+    expect(elements[2].id).toBe("payment-1");
+  });
+
+  test("returns empty array when blocks have no elements", () => {
+    const blocks: TSurveyBlock[] = [
+      {
+        id: "block-1",
+        name: "Empty Block",
+        elements: [],
+      },
+    ];
+
+    const elements = getElementsFromBlocks(blocks);
+    expect(elements).toHaveLength(0);
+  });
+});
+
+describe("findElementLocation - new element types", () => {
+  const mockSurvey = {
+    blocks: [
+      {
+        id: "block-1",
+        name: "Block 1",
+        elements: [
+          {
+            id: "elem-1",
+            type: TSurveyElementTypeEnum.OpenText,
+            headline: { default: "Q1" },
+            required: false,
+            inputType: "text",
+          } as unknown as TSurveyElement,
+        ],
+      },
+      {
+        id: "block-2",
+        name: "Block 2",
+        elements: [mockOpinionScaleElement, mockPaymentElement],
+      },
+    ],
+  } as TSurvey;
+
+  test("finds OpinionScale element location", () => {
+    const result = findElementLocation(mockSurvey, "opinion-scale-1");
+
+    expect(result.blockId).toBe("block-2");
+    expect(result.blockIndex).toBe(1);
+    expect(result.elementIndex).toBe(0);
+    expect(result.block).toBe(mockSurvey.blocks[1]);
+  });
+
+  test("finds Payment element location", () => {
+    const result = findElementLocation(mockSurvey, "payment-1");
+
+    expect(result.blockId).toBe("block-2");
+    expect(result.blockIndex).toBe(1);
+    expect(result.elementIndex).toBe(1);
+    expect(result.block).toBe(mockSurvey.blocks[1]);
+  });
+
+  test("returns null location for non-existent element", () => {
+    const result = findElementLocation(mockSurvey, "non-existent");
+
+    expect(result.blockId).toBeNull();
+    expect(result.blockIndex).toBe(-1);
+    expect(result.elementIndex).toBe(-1);
+    expect(result.block).toBeNull();
   });
 });

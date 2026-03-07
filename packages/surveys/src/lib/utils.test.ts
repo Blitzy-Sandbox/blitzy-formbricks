@@ -1,3 +1,4 @@
+// @vitest-environment happy-dom
 import { beforeEach, describe, expect, test, vi } from "vitest";
 import { TSurveyElementTypeEnum } from "@formbricks/types/surveys/constants";
 import type { TJsEnvironmentStateSurvey } from "../../../types/js";
@@ -269,6 +270,55 @@ describe("getQuestionsFromSurvey", () => {
     expect(questions).toHaveLength(1);
     expect(questions[0].id).toBe("q1");
   });
+
+  test("should extract OpinionScale and Payment elements from blocks", () => {
+    const survey: TJsEnvironmentStateSurvey = {
+      ...baseMockSurvey,
+      blocks: [
+        {
+          id: "block1",
+          name: "Block 1",
+          elements: [
+            {
+              id: "q1",
+              type: TSurveyElementTypeEnum.OpenText,
+              headline: { default: "Question 1" },
+              required: false,
+              inputType: "text",
+              charLimit: { enabled: false },
+            } as any,
+            {
+              id: "qOpinionScale",
+              type: TSurveyElementTypeEnum.OpinionScale,
+              headline: { default: "Rate this" },
+              required: true,
+              scaleRange: 5,
+              lowerLabel: { default: "Low" },
+              upperLabel: { default: "High" },
+              visualStyle: "number",
+              isColorCodingEnabled: false,
+            } as any,
+            {
+              id: "qPayment",
+              type: TSurveyElementTypeEnum.Payment,
+              headline: { default: "Pay now" },
+              required: true,
+              currency: "usd",
+              amount: 1000,
+              buttonLabel: { default: "Pay" },
+              stripeIntegration: { publicKey: "pk_test", priceId: "price_test" },
+            } as any,
+          ],
+        },
+      ],
+    };
+    const elements = getElementsFromSurveyBlocks(survey.blocks);
+    expect(elements).toHaveLength(3);
+    expect(elements[1].id).toBe("qOpinionScale");
+    expect(elements[1].type).toBe(TSurveyElementTypeEnum.OpinionScale);
+    expect(elements[2].id).toBe("qPayment");
+    expect(elements[2].type).toBe(TSurveyElementTypeEnum.Payment);
+  });
 });
 
 describe("findBlockByElementId", () => {
@@ -327,6 +377,51 @@ describe("findBlockByElementId", () => {
   test("should return undefined for non-existent element", () => {
     const block = findBlockByElementId(survey.blocks, "nonexistent");
     expect(block).toBeUndefined();
+  });
+
+  test("should find block containing OpinionScale element", () => {
+    const blocks = [
+      {
+        id: "block1",
+        name: "Block 1",
+        elements: [
+          {
+            id: "qOpinionScale",
+            type: TSurveyElementTypeEnum.OpinionScale,
+            headline: { default: "Rate this" },
+            required: true,
+            scaleRange: 5,
+            visualStyle: "number",
+          } as any,
+        ],
+      },
+    ];
+    const block = findBlockByElementId(blocks, "qOpinionScale");
+    expect(block).toBeDefined();
+    expect(block!.id).toBe("block1");
+  });
+
+  test("should find block containing Payment element", () => {
+    const blocks = [
+      {
+        id: "block2",
+        name: "Block 2",
+        elements: [
+          {
+            id: "qPayment",
+            type: TSurveyElementTypeEnum.Payment,
+            headline: { default: "Pay" },
+            required: true,
+            currency: "usd",
+            amount: 1000,
+            stripeIntegration: { publicKey: "pk_test", priceId: "price_test" },
+          } as any,
+        ],
+      },
+    ];
+    const block = findBlockByElementId(blocks, "qPayment");
+    expect(block).toBeDefined();
+    expect(block!.id).toBe("block2");
   });
 });
 

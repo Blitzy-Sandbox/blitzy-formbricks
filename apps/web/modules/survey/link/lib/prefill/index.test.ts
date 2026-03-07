@@ -116,6 +116,27 @@ describe("prefill integration tests", () => {
             ],
             allowMulti: true,
           },
+          {
+            id: "q12",
+            type: TSurveyElementTypeEnum.OpinionScale,
+            headline: { default: "Opinion Scale Question" },
+            required: false,
+            scaleRange: 5,
+            lowerLabel: { default: "Disagree" },
+            upperLabel: { default: "Agree" },
+            visualStyle: "number",
+            isColorCodingEnabled: false,
+          },
+          {
+            id: "q13",
+            type: TSurveyElementTypeEnum.Payment,
+            headline: { default: "Payment Question" },
+            required: false,
+            currency: "usd",
+            amount: 1000,
+            buttonLabel: { default: "Pay" },
+            stripeIntegration: { publicKey: "pk_test_123", priceId: "price_123" },
+          },
         ],
       },
     ],
@@ -308,5 +329,75 @@ describe("prefill integration tests", () => {
     searchParams.set("q4", "Option 4,Option 5,");
     const result = getPrefillValue(mockSurvey, searchParams, "default");
     expect(result).toEqual({ q4: ["Option 4", "Option 5"] });
+  });
+
+  test("validates OpinionScale with value within range", () => {
+    const searchParams = new URLSearchParams();
+    searchParams.set("q12", "3");
+    const result = getPrefillValue(mockSurvey, searchParams, "default");
+    expect(result).toEqual({ q12: 3 });
+  });
+
+  test("validates OpinionScale with boundary value 1", () => {
+    const searchParams = new URLSearchParams();
+    searchParams.set("q12", "1");
+    const result = getPrefillValue(mockSurvey, searchParams, "default");
+    expect(result).toEqual({ q12: 1 });
+  });
+
+  test("validates OpinionScale with boundary value 5", () => {
+    const searchParams = new URLSearchParams();
+    searchParams.set("q12", "5");
+    const result = getPrefillValue(mockSurvey, searchParams, "default");
+    expect(result).toEqual({ q12: 5 });
+  });
+
+  test("invalidates OpinionScale with value 0 (below range)", () => {
+    const searchParams = new URLSearchParams();
+    searchParams.set("q12", "0");
+    const result = getPrefillValue(mockSurvey, searchParams, "default");
+    expect(result).toBeUndefined();
+  });
+
+  test("invalidates OpinionScale with value 6 (above range)", () => {
+    const searchParams = new URLSearchParams();
+    searchParams.set("q12", "6");
+    const result = getPrefillValue(mockSurvey, searchParams, "default");
+    expect(result).toBeUndefined();
+  });
+
+  test("invalidates OpinionScale with non-numeric value", () => {
+    const searchParams = new URLSearchParams();
+    searchParams.set("q12", "abc");
+    const result = getPrefillValue(mockSurvey, searchParams, "default");
+    expect(result).toBeUndefined();
+  });
+
+  test("invalidates OpinionScale with negative value", () => {
+    const searchParams = new URLSearchParams();
+    searchParams.set("q12", "-1");
+    const result = getPrefillValue(mockSurvey, searchParams, "default");
+    expect(result).toBeUndefined();
+  });
+
+  test("rejects Payment prefill with numeric value", () => {
+    const searchParams = new URLSearchParams();
+    searchParams.set("q13", "1000");
+    const result = getPrefillValue(mockSurvey, searchParams, "default");
+    expect(result).toBeUndefined();
+  });
+
+  test("rejects Payment prefill with string value", () => {
+    const searchParams = new URLSearchParams();
+    searchParams.set("q13", "paid");
+    const result = getPrefillValue(mockSurvey, searchParams, "default");
+    expect(result).toBeUndefined();
+  });
+
+  test("rejects Payment prefill with empty value", () => {
+    const searchParams = new URLSearchParams();
+    searchParams.set("q13", "");
+    const result = getPrefillValue(mockSurvey, searchParams, "default");
+    expect(result).toBeUndefined();
   });
 });

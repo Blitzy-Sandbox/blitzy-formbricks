@@ -5,6 +5,7 @@ import type {
   TSurveyMultipleChoiceElement,
   TSurveyRankingElement,
 } from "@formbricks/types/surveys/elements";
+import { APPLICABLE_RULES } from "@formbricks/types/surveys/validation-rules";
 import { RULE_TYPE_CONFIG } from "./validation-rules-config";
 import {
   getAddressFields,
@@ -233,5 +234,41 @@ describe("parseRuleValue", () => {
     const config = RULE_TYPE_CONFIG.equals;
     const value = parseRuleValue("equals", "test-value", config);
     expect(value).toBe("test-value");
+  });
+});
+
+describe("Payment element compatibility", () => {
+  test("should return correct default for minValue rule (used by payment)", () => {
+    const config = RULE_TYPE_CONFIG.minValue;
+    const value = getDefaultRuleValue(config);
+    // minValue has valueType: "number", so it returns undefined (no default number set)
+    expect(value).toBeUndefined();
+  });
+
+  test("should return correct default for maxValue rule (used by payment)", () => {
+    const config = RULE_TYPE_CONFIG.maxValue;
+    const value = getDefaultRuleValue(config);
+    // maxValue has valueType: "number", so it returns undefined (no default number set)
+    expect(value).toBeUndefined();
+  });
+
+  test("should parse minValue correctly for payment element", () => {
+    const config = RULE_TYPE_CONFIG.minValue;
+    const value = parseRuleValue("minValue", "500", config);
+    expect(value).toBe(500);
+  });
+
+  test("should parse maxValue correctly for payment element", () => {
+    const config = RULE_TYPE_CONFIG.maxValue;
+    const value = parseRuleValue("maxValue", "10000", config);
+    expect(value).toBe(10000);
+  });
+});
+
+describe("OpinionScale element compatibility", () => {
+  test("should have no applicable validation rules", () => {
+    // OpinionScale has no validation rules — the scale range is enforced
+    // by the Zod schema, not by runtime validation rules
+    expect(APPLICABLE_RULES.opinionScale).toEqual([]);
   });
 });

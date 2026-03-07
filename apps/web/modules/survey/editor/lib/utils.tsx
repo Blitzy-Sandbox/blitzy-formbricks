@@ -400,7 +400,11 @@ export const getMatchValueProps = (
       const allowedElementTypes = [TSurveyElementTypeEnum.OpenText];
 
       if (selectedElement.inputType === "number") {
-        allowedElementTypes.push(TSurveyElementTypeEnum.Rating, TSurveyElementTypeEnum.NPS);
+        allowedElementTypes.push(
+          TSurveyElementTypeEnum.Rating,
+          TSurveyElementTypeEnum.NPS,
+          TSurveyElementTypeEnum.OpinionScale
+        );
       }
 
       if (["equals", "doesNotEqual"].includes(condition.operator)) {
@@ -627,6 +631,53 @@ export const getMatchValueProps = (
         showInput: false,
         options: groupedOptions,
       };
+    } else if (selectedElement?.type === TSurveyElementTypeEnum.OpinionScale) {
+      const choices = Array.from({ length: selectedElement.scaleRange }, (_, idx) => {
+        return {
+          label: `${idx + 1}`,
+          value: idx + 1,
+          meta: {
+            type: "static",
+          },
+        };
+      });
+
+      const numberVariables = variables.filter((variable) => variable.type === "number");
+
+      const variableOptions = numberVariables.map((variable) => {
+        return {
+          icon: FileDigitIcon,
+          label: variable.name,
+          value: variable.id,
+          meta: {
+            type: "variable",
+          },
+        };
+      });
+
+      const groupedOptions: TComboboxGroupedOption[] = [];
+
+      if (choices.length > 0) {
+        groupedOptions.push({
+          label: t("common.choices"),
+          value: "choices",
+          options: choices,
+        });
+      }
+
+      if (variableOptions.length > 0) {
+        groupedOptions.push({
+          label: t("common.variables"),
+          value: "variables",
+          options: variableOptions,
+        });
+      }
+
+      return {
+        show: true,
+        showInput: false,
+        options: groupedOptions,
+      };
     } else if (selectedElement?.type === TSurveyElementTypeEnum.Date) {
       const openTextElements = elements.filter((element) =>
         [TSurveyElementTypeEnum.OpenText, TSurveyElementTypeEnum.Date].includes(element.type)
@@ -801,7 +852,11 @@ export const getMatchValueProps = (
     } else if (selectedVariable?.type === "number") {
       const allowedElements = elements.filter(
         (element) =>
-          [TSurveyElementTypeEnum.Rating, TSurveyElementTypeEnum.NPS].includes(element.type) ||
+          [
+            TSurveyElementTypeEnum.Rating,
+            TSurveyElementTypeEnum.NPS,
+            TSurveyElementTypeEnum.OpinionScale,
+          ].includes(element.type) ||
           (element.type === TSurveyElementTypeEnum.OpenText && element.inputType === "number")
       );
 
@@ -1180,7 +1235,11 @@ export const getActionValueOptions = (
   } else if (selectedVariable.type === "number") {
     const allowedElements = allElements.filter(
       (element) =>
-        [TSurveyElementTypeEnum.Rating, TSurveyElementTypeEnum.NPS].includes(element.type) ||
+        [
+          TSurveyElementTypeEnum.Rating,
+          TSurveyElementTypeEnum.NPS,
+          TSurveyElementTypeEnum.OpinionScale,
+        ].includes(element.type) ||
         (element.type === TSurveyElementTypeEnum.OpenText && element.inputType === "number")
     );
 

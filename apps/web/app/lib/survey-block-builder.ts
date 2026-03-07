@@ -9,6 +9,8 @@ import type {
   TSurveyNPSElement,
   TSurveyOpenTextElement,
   TSurveyOpenTextElementInputType,
+  TSurveyOpinionScaleElement,
+  TSurveyPaymentElement,
   TSurveyRatingElement,
 } from "@formbricks/types/surveys/elements";
 import { TSurveyElementTypeEnum } from "@formbricks/types/surveys/elements";
@@ -209,6 +211,73 @@ export const buildNPSElement = ({
     isColorCodingEnabled,
     lowerLabel: lowerLabel ? createI18nString(lowerLabel, []) : undefined,
     upperLabel: upperLabel ? createI18nString(upperLabel, []) : undefined,
+  };
+};
+
+export const buildOpinionScaleElement = ({
+  id,
+  headline,
+  subheader,
+  scaleRange,
+  lowerLabel,
+  upperLabel,
+  visualStyle,
+  isColorCodingEnabled = false,
+  required,
+}: {
+  id?: string;
+  headline: string;
+  subheader?: string;
+  scaleRange: 5 | 7 | 10;
+  lowerLabel?: string;
+  upperLabel?: string;
+  visualStyle: "number" | "smiley" | "star";
+  isColorCodingEnabled?: boolean;
+  required?: boolean;
+}): TSurveyOpinionScaleElement => {
+  return {
+    id: id ?? createId(),
+    type: TSurveyElementTypeEnum.OpinionScale,
+    subheader: subheader ? createI18nString(subheader, []) : undefined,
+    headline: createI18nString(headline, []),
+    scaleRange,
+    lowerLabel: lowerLabel ? createI18nString(lowerLabel, []) : undefined,
+    upperLabel: upperLabel ? createI18nString(upperLabel, []) : undefined,
+    visualStyle,
+    isColorCodingEnabled,
+    required: required ?? false,
+  };
+};
+
+export const buildPaymentElement = ({
+  id,
+  headline,
+  subheader,
+  currency,
+  amount,
+  buttonLabel,
+  stripeIntegration,
+  required,
+}: {
+  id?: string;
+  headline: string;
+  subheader?: string;
+  currency: "usd" | "eur" | "gbp";
+  amount: number;
+  buttonLabel?: string;
+  stripeIntegration: { publicKey: string; priceId: string };
+  required?: boolean;
+}): TSurveyPaymentElement => {
+  return {
+    id: id ?? createId(),
+    type: TSurveyElementTypeEnum.Payment,
+    subheader: subheader ? createI18nString(subheader, []) : undefined,
+    headline: createI18nString(headline, []),
+    currency,
+    amount,
+    buttonLabel: buttonLabel ? createI18nString(buttonLabel, []) : undefined,
+    stripeIntegration,
+    required: required ?? false,
   };
 };
 

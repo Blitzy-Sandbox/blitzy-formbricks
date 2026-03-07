@@ -63,7 +63,7 @@ Choose the visual presentation of the scale:
 
 - **Numbers** — Display numeric values in buttons. Suitable for all scale ranges and provides the most neutral visual representation.
 - **Stars** — Display star icons. Best suited for 1–5 scales and commonly associated with product or service ratings.
-- **Sliders** — Display a slider control for continuous selection. Provides an interactive experience and works well for all scale ranges.
+- **Smileys** — Display emoji smiley icons that convey an emotional spectrum. Works well for satisfaction and sentiment questions across all scale ranges.
 
 ## Configuration
 
@@ -71,7 +71,7 @@ The Opinion Scale question type supports the following configuration options:
 
 - **Scale range selection** — Choose between 1–5, 1–7, or 1–10 to match your research needs.
 - **Label customization** — Set custom text for the lower and upper bounds of the scale to provide context for respondents.
-- **Visual style selection** — Choose between numbers, stars, or slider display modes.
+- **Visual style selection** — Choose between numbers, smileys, or star display modes.
 - **Required/optional toggle** — Mark the question as required to ensure respondents provide a rating before proceeding, or leave it optional to allow skipping.
 - **Multi-language support** — Labels and text fields support multiple languages for international surveys, using the same internationalization system as other Formbricks question types.
 
@@ -98,27 +98,27 @@ When aggregating responses, you can calculate:
 The Opinion Scale element type will extend the existing survey element schema system. The proposed Zod schema follows the same patterns used by `ZSurveyRatingElement` and `ZSurveyNPSElement` in `packages/types/surveys/elements.ts`:
 
 ```typescript
-// Planned extension to packages/types/surveys/elements.ts
+// Extension to packages/types/surveys/elements.ts
 export const ZSurveyOpinionScaleElement = ZSurveyElementBase.extend({
   type: z.literal("opinionScale"),
-  scale: z.enum(["number", "star", "slider"]).default("number"),
-  range: z.union([z.literal(5), z.literal(7), z.literal(10)]).default(5),
+  scaleRange: z.union([z.literal(5), z.literal(7), z.literal(10)]),
   lowerLabel: ZI18nString.optional(),
   upperLabel: ZI18nString.optional(),
-  validation: ZValidation.optional(),
+  visualStyle: z.enum(["number", "smiley", "star"]),
+  isColorCodingEnabled: z.boolean().optional().default(false),
 });
 
 export type TSurveyOpinionScaleElement = z.infer<typeof ZSurveyOpinionScaleElement>;
 ```
 
-<Note>This schema is a planned specification. The actual implementation may differ. The Opinion Scale type will be added to `TSurveyElementTypeEnum` in `packages/types/surveys/constants.ts`. Source reference: `packages/types/surveys/elements.ts`</Note>
+<Note>The Opinion Scale type has been added to `TSurveyElementTypeEnum` in `packages/types/surveys/constants.ts` as `OpinionScale = "opinionScale"`. Source reference: `packages/types/surveys/elements.ts`</Note>
 
 This schema design draws from two existing element types:
 
 - **`ZSurveyRatingElement`** uses `scale: z.enum(["number", "smiley", "star"])` and `range: z.union([z.literal(5), z.literal(3), z.literal(4), z.literal(6), z.literal(7), z.literal(10)])` for visual style and range configuration.
 - **`ZSurveyNPSElement`** uses `lowerLabel`, `upperLabel`, and `isColorCodingEnabled` for endpoint label configuration.
 
-The Opinion Scale combines aspects of both — offering a configurable range with customizable labels and flexible visual styles. The `slider` option in the `scale` enum is new and specific to the Opinion Scale type.
+The Opinion Scale combines aspects of both — offering a configurable `scaleRange` (5, 7, or 10) with customizable optional labels, flexible `visualStyle` (number, smiley, or star), and optional `isColorCodingEnabled` for color-coded scale rendering.
 
 ## API Request Example
 
@@ -131,11 +131,12 @@ The following JSON shows how an Opinion Scale question appears in a survey creat
   "headline": { "default": "How satisfied are you with our service?" },
   "subheader": { "default": "Please rate your overall experience" },
   "required": true,
-  "scale": "number",
-  "range": 5,
+  "scaleRange": 5,
   "lowerLabel": { "default": "Very unsatisfied" },
-  "upperLabel": { "default": "Very satisfied" }
+  "upperLabel": { "default": "Very satisfied" },
+  "visualStyle": "number",
+  "isColorCodingEnabled": false
 }
 ```
 
-This payload creates an Opinion Scale question with a 1–5 numeric scale, labeled from "Very unsatisfied" to "Very satisfied". The `headline` and `subheader` fields use the internationalization object format (`{ "default": "..." }`) consistent with all other Formbricks element types.
+This payload creates an Opinion Scale question with a 1–5 numeric scale, labeled from "Very unsatisfied" to "Very satisfied". The `headline` and `subheader` fields use the internationalization object format (`{ "default": "..." }`) consistent with all other Formbricks element types. The `visualStyle` determines the rendering (number, smiley, or star), and `isColorCodingEnabled` controls whether scale points are color-coded from red to green.

@@ -529,7 +529,7 @@ components:
           enum: [usd, eur, gbp]
           description: ISO 4217 currency code
         amount:
-          type: number
+          type: integer
           description: Payment amount in smallest currency unit (e.g., cents)
         buttonLabel:
           type: object

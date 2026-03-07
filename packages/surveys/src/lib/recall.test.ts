@@ -1,3 +1,4 @@
+// @vitest-environment happy-dom
 import { describe, expect, test, vi } from "vitest";
 import { type TResponseData, type TResponseVariables } from "@formbricks/types/responses";
 import { TSurveyElementTypeEnum } from "@formbricks/types/surveys/constants";

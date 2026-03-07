@@ -29,7 +29,6 @@ import {
   TSurveyElementSummaryMultipleChoice,
   TSurveyElementSummaryOpenText,
   TSurveyElementSummaryOpinionScale,
-  TSurveyElementSummaryPayment,
   TSurveyElementSummaryPictureSelection,
   TSurveyElementSummaryRanking,
   TSurveyElementSummaryRating,

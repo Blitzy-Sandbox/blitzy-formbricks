@@ -366,7 +366,7 @@ export type TSurveyOpinionScaleElement = z.infer<typeof ZSurveyOpinionScaleEleme
 export const ZSurveyPaymentElement = ZSurveyElementBase.extend({
   type: z.literal(TSurveyElementTypeEnum.Payment),
   currency: z.enum(["usd", "eur", "gbp"]),
-  amount: z.number(),
+  amount: z.number().int().positive().min(1),
   buttonLabel: ZI18nString.optional(),
   stripeIntegration: z.object({
     publicKey: z.string(),

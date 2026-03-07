@@ -1,3 +1,4 @@
+// @vitest-environment happy-dom
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/preact";
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import type { TResponseTtc } from "@formbricks/types/responses";
@@ -87,8 +88,8 @@ const mockGetUpdatedTtc = vi.fn((...args: unknown[]) => {
 const mockUseTtc = vi.fn();
 
 vi.mock("@/lib/ttc", () => ({
-  getUpdatedTtc: mockGetUpdatedTtc,
-  useTtc: mockUseTtc,
+  getUpdatedTtc: (...args: unknown[]) => mockGetUpdatedTtc(...args),
+  useTtc: (...args: unknown[]) => mockUseTtc(...args),
 }));
 
 // ---------------------------------------------------------------------------

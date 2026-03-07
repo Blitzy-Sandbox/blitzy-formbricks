@@ -1,6 +1,6 @@
 import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
 import { ChevronLeft, ChevronRight } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useMemo } from "react";
 import { TEnvironment } from "@formbricks/types/environment";
 import { TResponse } from "@formbricks/types/responses";
 import { TSurvey } from "@formbricks/types/surveys/types";
@@ -48,9 +48,6 @@ export const ResponseCardModal = ({
   setOpen,
   locale,
 }: ResponseCardModalProps) => {
-  const [currentIndex, setCurrentIndex] = useState<number | null>(null);
-  const [isNavigating, setIsNavigating] = useState(false);
-
   const idToIndexMap = useMemo(() => {
     const map = new Map<string, number>();
     for (let i = 0; i < responses.length; i++) {
@@ -59,27 +56,21 @@ export const ResponseCardModal = ({
     return map;
   }, [responses]);
 
-  useEffect(() => {
-    if (selectedResponseId) {
-      setOpen(true);
-      const index = idToIndexMap.get(selectedResponseId) ?? -1;
-      setCurrentIndex(index);
-      setIsNavigating(false);
-    } else {
-      setOpen(false);
-    }
-  }, [selectedResponseId, idToIndexMap, setOpen]);
+  // Derive currentIndex directly from selectedResponseId for instant, reliable index resolution
+  // that works correctly with React 19 transitions (startTransition in parent state updates)
+  const currentIndex = useMemo(() => {
+    if (!selectedResponseId) return null;
+    return idToIndexMap.get(selectedResponseId) ?? -1;
+  }, [selectedResponseId, idToIndexMap]);
 
   const handleNext = () => {
     if (currentIndex !== null && currentIndex < responses.length - 1) {
-      setIsNavigating(true);
       setSelectedResponseId(responses[currentIndex + 1].id);
     }
   };
 
   const handleBack = () => {
     if (currentIndex !== null && currentIndex > 0) {
-      setIsNavigating(true);
       setSelectedResponseId(responses[currentIndex - 1].id);
     }
   };
@@ -120,16 +111,12 @@ export const ResponseCardModal = ({
           />
         </DialogBody>
         <DialogFooter>
-          <Button
-            onClick={handleBack}
-            disabled={currentIndex === 0 || isNavigating}
-            variant="outline"
-            size="icon">
+          <Button onClick={handleBack} disabled={currentIndex === 0} variant="outline" size="icon">
             <ChevronLeft />
           </Button>
           <Button
             onClick={handleNext}
-            disabled={currentIndex === responses.length - 1 || isNavigating}
+            disabled={currentIndex === responses.length - 1}
             variant="outline"
             size="icon">
             <ChevronRight />

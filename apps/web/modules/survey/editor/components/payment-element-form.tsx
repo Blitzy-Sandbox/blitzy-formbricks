@@ -127,7 +127,10 @@ export const PaymentElementForm = ({
               type="number"
               id="amount"
               value={element.amount}
-              onChange={(e) => updateElement(elementIdx, { amount: parseInt(e.target.value, 10) || 0 })}
+              onChange={(e) => {
+                const parsed = parseInt(e.target.value, 10) || 0;
+                updateElement(elementIdx, { amount: Math.max(0, parsed) });
+              }}
               placeholder="1000"
               min={0}
             />

@@ -1,27 +1,22 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
-import { checkAuthorizationUpdated } from "@/lib/utils/action-client/action-client-middleware";
-import { getOrganizationIdFromSurveyId } from "@/lib/utils/helper";
+import { TSurveyElementTypeEnum } from "@formbricks/types/surveys/constants";
+import { getSurvey } from "@/lib/survey/service";
 import { createPaymentIntent } from "@/modules/survey/payment/lib/stripe";
 import { createPaymentIntentAction } from "../actions";
 
-// Mock the authenticated action client so .schema().action() extracts the inner handler function.
-// This allows calling createPaymentIntentAction directly with { ctx, parsedInput } in tests,
+// Mock the unauthenticated action client so .schema().action() extracts the inner handler function.
+// This allows calling createPaymentIntentAction directly with { parsedInput } in tests,
 // bypassing the safe-action middleware and Zod schema parsing while testing the core logic.
 vi.mock("@/lib/utils/action-client", () => ({
-  authenticatedActionClient: {
+  actionClient: {
     schema: vi.fn().mockReturnThis(),
-    action: vi.fn((fn) => fn),
+    action: vi.fn((fn: Function) => fn),
   },
 }));
 
-// Mock authorization middleware to control and verify authorization behavior.
-vi.mock("@/lib/utils/action-client/action-client-middleware", () => ({
-  checkAuthorizationUpdated: vi.fn(),
-}));
-
-// Mock the helper that resolves organizationId from surveyId.
-vi.mock("@/lib/utils/helper", () => ({
-  getOrganizationIdFromSurveyId: vi.fn(),
+// Mock getSurvey to control survey lookup behavior without hitting the database.
+vi.mock("@/lib/survey/service", () => ({
+  getSurvey: vi.fn(),
 }));
 
 // Mock the Stripe payment intent creation helper to avoid real Stripe API calls.
@@ -37,20 +32,35 @@ vi.mock("@formbricks/logger", () => ({
 }));
 
 describe("createPaymentIntentAction", () => {
-  const mockOrganizationId = "org-test-123";
-  const mockCtx = {
-    user: {
-      id: "user-test-123",
-    },
-  };
   const validInput = {
     surveyId: "survey-test-123",
     currency: "usd" as const,
     amount: 1000,
     stripeAccountId: "acct_test_123",
   };
+
   const mockPaymentIntentResult = {
-    clientSecret: "pi_test_secret_123",
+    clientSecret: "pi_test_secret_abc123",
+  };
+
+  // Create a mock survey that has a matching Payment element in blocks.
+  // The action uses survey.blocks.flatMap(block => block.elements) to find Payment elements.
+  const mockSurveyWithPayment = {
+    id: "survey-test-123",
+    blocks: [
+      {
+        id: "block1",
+        elements: [
+          {
+            id: "q1",
+            type: TSurveyElementTypeEnum.Payment,
+            amount: 1000,
+            currency: "usd",
+            stripeIntegration: { publicKey: "pk_test_123" },
+          },
+        ],
+      },
+    ],
   };
 
   beforeEach(() => {
@@ -61,28 +71,16 @@ describe("createPaymentIntentAction", () => {
     vi.restoreAllMocks();
   });
 
-  describe("Successful Payment Intent Creation", () => {
-    test("should create a payment intent with valid parameters", async () => {
-      vi.mocked(getOrganizationIdFromSurveyId).mockResolvedValue(mockOrganizationId);
-      vi.mocked(checkAuthorizationUpdated).mockResolvedValue(true);
+  describe("Payment Intent Creation", () => {
+    test("should create a payment intent with valid input", async () => {
+      vi.mocked(getSurvey).mockResolvedValue(mockSurveyWithPayment as any);
       vi.mocked(createPaymentIntent).mockResolvedValue(mockPaymentIntentResult);
 
       const result = await createPaymentIntentAction({
-        ctx: mockCtx,
         parsedInput: validInput,
       } as any);
 
-      expect(getOrganizationIdFromSurveyId).toHaveBeenCalledWith(validInput.surveyId);
-      expect(checkAuthorizationUpdated).toHaveBeenCalledWith({
-        userId: mockCtx.user.id,
-        organizationId: mockOrganizationId,
-        access: [
-          {
-            type: "organization",
-            roles: ["owner", "manager", "member"],
-          },
-        ],
-      });
+      expect(getSurvey).toHaveBeenCalledWith(validInput.surveyId);
       expect(createPaymentIntent).toHaveBeenCalledWith(
         validInput.amount,
         validInput.currency,
@@ -95,15 +93,13 @@ describe("createPaymentIntentAction", () => {
       const inputWithoutStripeAccount = {
         surveyId: "survey-test-123",
         currency: "usd" as const,
-        amount: 500,
+        amount: 1000,
       };
 
-      vi.mocked(getOrganizationIdFromSurveyId).mockResolvedValue(mockOrganizationId);
-      vi.mocked(checkAuthorizationUpdated).mockResolvedValue(true);
+      vi.mocked(getSurvey).mockResolvedValue(mockSurveyWithPayment as any);
       vi.mocked(createPaymentIntent).mockResolvedValue(mockPaymentIntentResult);
 
       const result = await createPaymentIntentAction({
-        ctx: mockCtx,
         parsedInput: inputWithoutStripeAccount,
       } as any);
 
@@ -116,133 +112,134 @@ describe("createPaymentIntentAction", () => {
     });
 
     test("should accept EUR currency", async () => {
-      vi.mocked(getOrganizationIdFromSurveyId).mockResolvedValue(mockOrganizationId);
-      vi.mocked(checkAuthorizationUpdated).mockResolvedValue(true);
+      const eurSurvey = {
+        ...mockSurveyWithPayment,
+        blocks: [
+          { id: "block1", elements: [{ ...mockSurveyWithPayment.blocks[0].elements[0], currency: "eur" }] },
+        ],
+      };
+      vi.mocked(getSurvey).mockResolvedValue(eurSurvey as any);
       vi.mocked(createPaymentIntent).mockResolvedValue(mockPaymentIntentResult);
 
       const eurInput = { ...validInput, currency: "eur" as const };
-      await createPaymentIntentAction({ ctx: mockCtx, parsedInput: eurInput } as any);
+      await createPaymentIntentAction({ parsedInput: eurInput } as any);
 
       expect(createPaymentIntent).toHaveBeenCalledWith(eurInput.amount, "eur", eurInput.stripeAccountId);
     });
 
     test("should accept GBP currency", async () => {
-      vi.mocked(getOrganizationIdFromSurveyId).mockResolvedValue(mockOrganizationId);
-      vi.mocked(checkAuthorizationUpdated).mockResolvedValue(true);
+      const gbpSurvey = {
+        ...mockSurveyWithPayment,
+        blocks: [
+          { id: "block1", elements: [{ ...mockSurveyWithPayment.blocks[0].elements[0], currency: "gbp" }] },
+        ],
+      };
+      vi.mocked(getSurvey).mockResolvedValue(gbpSurvey as any);
       vi.mocked(createPaymentIntent).mockResolvedValue(mockPaymentIntentResult);
 
       const gbpInput = { ...validInput, currency: "gbp" as const };
-      await createPaymentIntentAction({ ctx: mockCtx, parsedInput: gbpInput } as any);
+      await createPaymentIntentAction({ parsedInput: gbpInput } as any);
 
       expect(createPaymentIntent).toHaveBeenCalledWith(gbpInput.amount, "gbp", gbpInput.stripeAccountId);
     });
   });
 
-  describe("Authorization", () => {
-    test("should resolve organization ID from survey ID before authorization check", async () => {
-      vi.mocked(getOrganizationIdFromSurveyId).mockResolvedValue(mockOrganizationId);
-      vi.mocked(checkAuthorizationUpdated).mockResolvedValue(true);
-      vi.mocked(createPaymentIntent).mockResolvedValue(mockPaymentIntentResult);
+  describe("Survey Validation (Unauthenticated)", () => {
+    test("should throw when survey does not exist", async () => {
+      vi.mocked(getSurvey).mockResolvedValue(null);
 
-      await createPaymentIntentAction({ ctx: mockCtx, parsedInput: validInput } as any);
-
-      expect(getOrganizationIdFromSurveyId).toHaveBeenCalledWith(validInput.surveyId);
-      expect(getOrganizationIdFromSurveyId).toHaveBeenCalledBefore(
-        checkAuthorizationUpdated as unknown as ReturnType<typeof vi.fn>
-      );
-    });
-
-    test("should throw when authorization check fails", async () => {
-      vi.mocked(getOrganizationIdFromSurveyId).mockResolvedValue(mockOrganizationId);
-      vi.mocked(checkAuthorizationUpdated).mockRejectedValue(new Error("Unauthorized"));
-
-      await expect(
-        createPaymentIntentAction({ ctx: mockCtx, parsedInput: validInput } as any)
-      ).rejects.toThrow("Unauthorized");
+      await expect(createPaymentIntentAction({ parsedInput: validInput } as any)).rejects.toThrow();
 
       expect(createPaymentIntent).not.toHaveBeenCalled();
     });
 
-    test("should throw when organization ID cannot be resolved from survey ID", async () => {
-      vi.mocked(getOrganizationIdFromSurveyId).mockRejectedValue(new Error("Survey not found"));
+    test("should throw when survey has no matching Payment element", async () => {
+      const surveyWithoutPayment = {
+        id: "survey-test-123",
+        blocks: [{ id: "block1", elements: [{ id: "q1", type: TSurveyElementTypeEnum.OpenText }] }],
+      };
+      vi.mocked(getSurvey).mockResolvedValue(surveyWithoutPayment as any);
 
-      await expect(
-        createPaymentIntentAction({ ctx: mockCtx, parsedInput: validInput } as any)
-      ).rejects.toThrow("Survey not found");
+      await expect(createPaymentIntentAction({ parsedInput: validInput } as any)).rejects.toThrow();
 
-      expect(checkAuthorizationUpdated).not.toHaveBeenCalled();
       expect(createPaymentIntent).not.toHaveBeenCalled();
     });
 
-    test("should pass correct authorization roles (owner, manager, member)", async () => {
-      vi.mocked(getOrganizationIdFromSurveyId).mockResolvedValue(mockOrganizationId);
-      vi.mocked(checkAuthorizationUpdated).mockResolvedValue(true);
-      vi.mocked(createPaymentIntent).mockResolvedValue(mockPaymentIntentResult);
+    test("should throw when Payment element amount does not match", async () => {
+      const surveyWithDifferentAmount = {
+        ...mockSurveyWithPayment,
+        blocks: [
+          { id: "block1", elements: [{ ...mockSurveyWithPayment.blocks[0].elements[0], amount: 2000 }] },
+        ],
+      };
+      vi.mocked(getSurvey).mockResolvedValue(surveyWithDifferentAmount as any);
 
-      await createPaymentIntentAction({ ctx: mockCtx, parsedInput: validInput } as any);
+      await expect(createPaymentIntentAction({ parsedInput: validInput } as any)).rejects.toThrow();
 
-      expect(checkAuthorizationUpdated).toHaveBeenCalledWith(
-        expect.objectContaining({
-          access: [
-            {
-              type: "organization",
-              roles: ["owner", "manager", "member"],
-            },
-          ],
-        })
-      );
+      expect(createPaymentIntent).not.toHaveBeenCalled();
+    });
+
+    test("should throw when Payment element currency does not match", async () => {
+      const surveyWithDifferentCurrency = {
+        ...mockSurveyWithPayment,
+        blocks: [
+          { id: "block1", elements: [{ ...mockSurveyWithPayment.blocks[0].elements[0], currency: "eur" }] },
+        ],
+      };
+      vi.mocked(getSurvey).mockResolvedValue(surveyWithDifferentCurrency as any);
+
+      await expect(createPaymentIntentAction({ parsedInput: validInput } as any)).rejects.toThrow();
+
+      expect(createPaymentIntent).not.toHaveBeenCalled();
     });
   });
 
   describe("Error Handling", () => {
     test("should propagate errors from createPaymentIntent", async () => {
-      vi.mocked(getOrganizationIdFromSurveyId).mockResolvedValue(mockOrganizationId);
-      vi.mocked(checkAuthorizationUpdated).mockResolvedValue(true);
+      vi.mocked(getSurvey).mockResolvedValue(mockSurveyWithPayment as any);
       vi.mocked(createPaymentIntent).mockRejectedValue(
         new Error("An unexpected error occurred while processing your payment. Please try again.")
       );
 
-      await expect(
-        createPaymentIntentAction({ ctx: mockCtx, parsedInput: validInput } as any)
-      ).rejects.toThrow(
+      await expect(createPaymentIntentAction({ parsedInput: validInput } as any)).rejects.toThrow(
         "An unexpected error occurred while processing your payment. Please try again."
       );
     });
 
     test("should propagate card declined errors from createPaymentIntent", async () => {
-      vi.mocked(getOrganizationIdFromSurveyId).mockResolvedValue(mockOrganizationId);
-      vi.mocked(checkAuthorizationUpdated).mockResolvedValue(true);
+      vi.mocked(getSurvey).mockResolvedValue(mockSurveyWithPayment as any);
       vi.mocked(createPaymentIntent).mockRejectedValue(
         new Error("Payment failed: Your card was declined. Please try a different card.")
       );
 
-      await expect(
-        createPaymentIntentAction({ ctx: mockCtx, parsedInput: validInput } as any)
-      ).rejects.toThrow("Payment failed: Your card was declined. Please try a different card.");
+      await expect(createPaymentIntentAction({ parsedInput: validInput } as any)).rejects.toThrow(
+        "Payment failed: Your card was declined. Please try a different card."
+      );
     });
 
     test("should propagate payment configuration errors from createPaymentIntent", async () => {
-      vi.mocked(getOrganizationIdFromSurveyId).mockResolvedValue(mockOrganizationId);
-      vi.mocked(checkAuthorizationUpdated).mockResolvedValue(true);
+      vi.mocked(getSurvey).mockResolvedValue(mockSurveyWithPayment as any);
       vi.mocked(createPaymentIntent).mockRejectedValue(
         new Error("Payment configuration error. Please contact support.")
       );
 
-      await expect(
-        createPaymentIntentAction({ ctx: mockCtx, parsedInput: validInput } as any)
-      ).rejects.toThrow("Payment configuration error. Please contact support.");
+      await expect(createPaymentIntentAction({ parsedInput: validInput } as any)).rejects.toThrow(
+        "Payment configuration error. Please contact support."
+      );
     });
   });
 
   describe("Input Validation (Zod Schema)", () => {
     test("should accept minimum valid amount of 1", async () => {
-      vi.mocked(getOrganizationIdFromSurveyId).mockResolvedValue(mockOrganizationId);
-      vi.mocked(checkAuthorizationUpdated).mockResolvedValue(true);
+      const minAmountSurvey = {
+        ...mockSurveyWithPayment,
+        blocks: [{ id: "block1", elements: [{ ...mockSurveyWithPayment.blocks[0].elements[0], amount: 1 }] }],
+      };
+      vi.mocked(getSurvey).mockResolvedValue(minAmountSurvey as any);
       vi.mocked(createPaymentIntent).mockResolvedValue(mockPaymentIntentResult);
 
       const minAmountInput = { ...validInput, amount: 1 };
       const result = await createPaymentIntentAction({
-        ctx: mockCtx,
         parsedInput: minAmountInput,
       } as any);
 
@@ -251,13 +248,17 @@ describe("createPaymentIntentAction", () => {
     });
 
     test("should pass large amounts correctly", async () => {
-      vi.mocked(getOrganizationIdFromSurveyId).mockResolvedValue(mockOrganizationId);
-      vi.mocked(checkAuthorizationUpdated).mockResolvedValue(true);
+      const largeAmountSurvey = {
+        ...mockSurveyWithPayment,
+        blocks: [
+          { id: "block1", elements: [{ ...mockSurveyWithPayment.blocks[0].elements[0], amount: 99999999 }] },
+        ],
+      };
+      vi.mocked(getSurvey).mockResolvedValue(largeAmountSurvey as any);
       vi.mocked(createPaymentIntent).mockResolvedValue(mockPaymentIntentResult);
 
       const largeAmountInput = { ...validInput, amount: 99999999 };
       const result = await createPaymentIntentAction({
-        ctx: mockCtx,
         parsedInput: largeAmountInput,
       } as any);
 
@@ -266,14 +267,29 @@ describe("createPaymentIntentAction", () => {
     });
   });
 
-  describe("ZCreatePaymentIntentAction Schema Validation", () => {
+  describe("Exact Input Passing", () => {
     test("should call createPaymentIntent with exact parsed input values", async () => {
-      vi.mocked(getOrganizationIdFromSurveyId).mockResolvedValue(mockOrganizationId);
-      vi.mocked(checkAuthorizationUpdated).mockResolvedValue(true);
+      const exactSurvey = {
+        id: "clxxxxxxxxxxxxxxxxxxxxxxxxx",
+        blocks: [
+          {
+            id: "block1",
+            elements: [
+              {
+                id: "q1",
+                type: TSurveyElementTypeEnum.Payment,
+                amount: 2500,
+                currency: "eur",
+                stripeIntegration: { publicKey: "pk_test_123" },
+              },
+            ],
+          },
+        ],
+      };
+      vi.mocked(getSurvey).mockResolvedValue(exactSurvey as any);
       vi.mocked(createPaymentIntent).mockResolvedValue(mockPaymentIntentResult);
 
       await createPaymentIntentAction({
-        ctx: mockCtx,
         parsedInput: {
           surveyId: "clxxxxxxxxxxxxxxxxxxxxxxxxx",
           currency: "eur",

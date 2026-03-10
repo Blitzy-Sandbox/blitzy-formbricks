@@ -84,7 +84,6 @@ describe("Utils Tests", () => {
               currency: "usd",
               amount: 1000,
               buttonLabel: { default: "Pay" },
-              stripeIntegration: { publicKey: "pk_test_123", priceId: "price_test_123" },
             },
           ],
         },

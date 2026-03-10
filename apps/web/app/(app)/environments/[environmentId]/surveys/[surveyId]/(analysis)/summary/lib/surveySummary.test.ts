@@ -4552,7 +4552,6 @@ describe("Payment question type tests", () => {
       currency: "usd",
       amount: 1000,
       buttonLabel: { default: "Pay $10.00" },
-      stripeIntegration: { publicKey: "pk_test_123", priceId: "price_test_123" },
     };
 
     const survey = {
@@ -4631,7 +4630,6 @@ describe("Payment question type tests", () => {
       currency: "eur",
       amount: 500,
       buttonLabel: { default: "Pay €5.00" },
-      stripeIntegration: { publicKey: "pk_test_123", priceId: "price_test_123" },
     };
 
     const survey = {
@@ -4690,7 +4688,6 @@ describe("Payment question type tests", () => {
       currency: "gbp",
       amount: 2000,
       buttonLabel: { default: "Pay £20.00" },
-      stripeIntegration: { publicKey: "pk_test_123", priceId: "price_test_123" },
     };
 
     const survey = {

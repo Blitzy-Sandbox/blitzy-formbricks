@@ -128,11 +128,11 @@ export const PaymentElementForm = ({
               id="amount"
               value={element.amount}
               onChange={(e) => {
-                const parsed = parseInt(e.target.value, 10) || 0;
-                updateElement(elementIdx, { amount: Math.max(0, parsed) });
+                const parsed = parseInt(e.target.value, 10) || 1;
+                updateElement(elementIdx, { amount: Math.max(1, parsed) });
               }}
               placeholder="1000"
-              min={0}
+              min={1}
             />
           </div>
           <p className="mt-1 text-xs text-slate-500">{t("environments.surveys.edit.amount_in_cents")}</p>
@@ -158,27 +158,6 @@ export const PaymentElementForm = ({
                 })
               }
               placeholder="pk_live_..."
-            />
-          </div>
-        </div>
-
-        {/* Stripe Price ID */}
-        <div>
-          <Label htmlFor="stripePriceId">{t("environments.surveys.edit.stripe_price_id")}</Label>
-          <div className="mt-2">
-            <Input
-              type="text"
-              id="stripePriceId"
-              value={element.stripeIntegration.priceId}
-              onChange={(e) =>
-                updateElement(elementIdx, {
-                  stripeIntegration: {
-                    ...element.stripeIntegration,
-                    priceId: e.target.value,
-                  },
-                })
-              }
-              placeholder="price_..."
             />
           </div>
         </div>

@@ -480,7 +480,6 @@ describe("Response Utils", () => {
                 buttonLabel: { default: "Pay $25.00" },
                 stripeIntegration: {
                   publicKey: "pk_test_123",
-                  priceId: "price_123",
                 },
                 isDraft: false,
               },
@@ -630,7 +629,6 @@ describe("Response Utils", () => {
                 buttonLabel: { default: "Pay $25.00" },
                 stripeIntegration: {
                   publicKey: "pk_test_123",
-                  priceId: "price_123",
                 },
                 isDraft: false,
               },
@@ -1099,7 +1097,6 @@ describe("extractChoiceIdsFromResponse", () => {
         buttonLabel: { default: "Pay $25.00" },
         stripeIntegration: {
           publicKey: "pk_test_123",
-          priceId: "price_123",
         },
       };
       const result = extractChoiceIdsFromResponse("succeeded", paymentElement, "default");

@@ -1757,14 +1757,6 @@ export const ZSurvey = z
               });
             }
 
-            if (!element.stripeIntegration.priceId || element.stripeIntegration.priceId.trim() === "") {
-              ctx.addIssue({
-                code: z.ZodIssueCode.custom,
-                message: `Element ${String(elementIndex + 1)} in block ${String(blockIndex + 1)}: Stripe price ID is required for payment elements`,
-                path: ["blocks", blockIndex, "elements", elementIndex, "stripeIntegration", "priceId"],
-              });
-            }
-
             if (element.amount <= 0) {
               ctx.addIssue({
                 code: z.ZodIssueCode.custom,

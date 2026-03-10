@@ -374,6 +374,7 @@ export function ElementConditional({
             ttc={ttc}
             setTtc={wrappedSetTtc}
             currentElementId={currentElementId}
+            surveyId={surveyId}
             dir={dir}
             errorMessage={errorMessage}
           />

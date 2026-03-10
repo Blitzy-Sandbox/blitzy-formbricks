@@ -265,7 +265,7 @@ export const buildPaymentElement = ({
   currency: "usd" | "eur" | "gbp";
   amount: number;
   buttonLabel?: string;
-  stripeIntegration: { publicKey: string; priceId: string };
+  stripeIntegration?: { publicKey: string };
   required?: boolean;
 }): TSurveyPaymentElement => {
   return {
@@ -276,7 +276,7 @@ export const buildPaymentElement = ({
     currency,
     amount,
     buttonLabel: buttonLabel ? createI18nString(buttonLabel, []) : undefined,
-    stripeIntegration,
+    stripeIntegration: stripeIntegration ?? { publicKey: "pk_test_123" },
     required: required ?? false,
   };
 };

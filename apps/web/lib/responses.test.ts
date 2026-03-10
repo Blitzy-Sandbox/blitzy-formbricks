@@ -205,7 +205,6 @@ describe("Response Processing", () => {
       buttonLabel: { default: "Pay Now" },
       stripeIntegration: {
         publicKey: "pk_test_123",
-        priceId: "price_123",
       },
     };
 
@@ -612,7 +611,6 @@ describe("Response Processing", () => {
                 buttonLabel: { default: "Pay Now" },
                 stripeIntegration: {
                   publicKey: "pk_test_123",
-                  priceId: "price_123",
                 },
               },
             ],

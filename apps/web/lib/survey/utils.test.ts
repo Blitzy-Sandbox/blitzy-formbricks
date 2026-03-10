@@ -39,7 +39,6 @@ const mockPaymentElement = {
   buttonLabel: { default: "Pay $50.00" },
   stripeIntegration: {
     publicKey: "pk_test_abc",
-    priceId: "price_abc",
   },
 } as unknown as TSurveyElement;
 

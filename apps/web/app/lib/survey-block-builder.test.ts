@@ -163,7 +163,6 @@ describe("survey-block-builder", () => {
         headline: "Complete your payment",
         currency: "usd",
         amount: 1000,
-        stripeIntegration: { publicKey: "pk_test_123", priceId: "price_123" },
       });
 
       expect(result.type).toBe(TSurveyElementTypeEnum.Payment);
@@ -175,7 +174,6 @@ describe("survey-block-builder", () => {
       expect(result.buttonLabel).toBeUndefined();
       expect(result.subheader).toBeUndefined();
       expect(result.stripeIntegration.publicKey).toBe("pk_test_123");
-      expect(result.stripeIntegration.priceId).toBe("price_123");
     });
 
     test("should create a payment element with all fields provided", () => {
@@ -186,7 +184,6 @@ describe("survey-block-builder", () => {
         currency: "eur",
         amount: 2500,
         buttonLabel: "Pay €25.00",
-        stripeIntegration: { publicKey: "pk_test_456", priceId: "price_456" },
         required: true,
       });
 
@@ -203,7 +200,6 @@ describe("survey-block-builder", () => {
         headline: "Test",
         currency: "gbp",
         amount: 500,
-        stripeIntegration: { publicKey: "pk_test_789", priceId: "price_789" },
       });
 
       expect(result.id).toBeTruthy();
@@ -215,7 +211,6 @@ describe("survey-block-builder", () => {
         headline: "Test",
         currency: "usd",
         amount: 100,
-        stripeIntegration: { publicKey: "pk_test_000", priceId: "price_000" },
       });
 
       expect(result.id).toBe("my-pay-id");

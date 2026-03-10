@@ -197,7 +197,6 @@ describe("isRTLLanguage", () => {
       currency: "usd",
       amount: 1000,
       buttonLabel: { default: "Pay now" },
-      stripeIntegration: { publicKey: "pk_test_abc", priceId: "price_abc" },
     } as unknown as TSurveyElement;
     const block = { id: "b1", name: "Block", elements: [paymentElement] } as TSurveyBlock;
     expect(isRTLLanguage(createJsSurvey([], [block]), "default")).toBe(false);
@@ -251,7 +250,6 @@ describe("getElementsFromSurveyBlocks", () => {
       currency: "usd",
       amount: 1000,
       buttonLabel: { default: "Pay" },
-      stripeIntegration: { publicKey: "pk_test_123", priceId: "price_123" },
     } as unknown as TSurveyElement;
     const block = { id: "b1", name: "Block", elements: [paymentElement] } as TSurveyBlock;
     const result = getElementsFromSurveyBlocks([block]);
@@ -285,7 +283,6 @@ describe("getElementsFromSurveyBlocks", () => {
       currency: "eur",
       amount: 2500,
       buttonLabel: { default: "Submit Payment" },
-      stripeIntegration: { publicKey: "pk_test_456", priceId: "price_456" },
     } as unknown as TSurveyElement;
     const block = {
       id: "b1",

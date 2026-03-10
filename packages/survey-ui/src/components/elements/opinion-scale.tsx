@@ -25,11 +25,8 @@ const getSmileyColor = (range: number, idx: number): string => {
     if (range - idx < 3) return "fill-emerald-100";
     if (range - idx < 5) return "fill-orange-100";
     return "fill-rose-100";
-  } else if (range < 5) {
-    if (range - idx < 2) return "fill-emerald-100";
-    if (range - idx < 3) return "fill-orange-100";
-    return "fill-rose-100";
   }
+  // range === 5 (scaleRange is constrained to 5 | 7 | 10 by the Zod schema)
   if (range - idx < 3) return "fill-emerald-100";
   if (range - idx < 4) return "fill-orange-100";
   return "fill-rose-100";
@@ -43,11 +40,8 @@ const getActiveSmileyColor = (range: number, idx: number): string => {
     if (range - idx < 3) return "fill-emerald-300";
     if (range - idx < 5) return "fill-orange-300";
     return "fill-rose-300";
-  } else if (range < 5) {
-    if (range - idx < 2) return "fill-emerald-300";
-    if (range - idx < 3) return "fill-orange-300";
-    return "fill-rose-300";
   }
+  // range === 5 (scaleRange is constrained to 5 | 7 | 10 by the Zod schema)
   if (range - idx < 3) return "fill-emerald-300";
   if (range - idx < 4) return "fill-orange-300";
   return "fill-rose-300";

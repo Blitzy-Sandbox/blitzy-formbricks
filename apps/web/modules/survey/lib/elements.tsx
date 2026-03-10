@@ -267,11 +267,10 @@ export const getElementTypes = (t: TFunction): TElement[] => [
     preset: {
       headline: createI18nString("", []),
       currency: "usd",
-      amount: 0,
+      amount: 100,
       buttonLabel: createI18nString(t("templates.payment_button_label_default", "Pay now"), []),
       stripeIntegration: {
         publicKey: "",
-        priceId: "",
       },
     },
   },

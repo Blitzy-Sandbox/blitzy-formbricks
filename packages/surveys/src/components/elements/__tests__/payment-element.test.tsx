@@ -8,12 +8,13 @@ import { PaymentElement } from "../payment-element";
 
 // ---------------------------------------------------------------------------
 // Mock Stripe instance — shared between loadStripe and useStripe mocks.
-// The real component uses `stripe.createPaymentMethod()` for PCI-compliant
-// card tokenisation, so the mock must expose `createPaymentMethod`.
+// The real component uses `stripe.confirmCardPayment()` for PCI-compliant
+// payment confirmation, so the mock must expose `confirmCardPayment`.
 // ---------------------------------------------------------------------------
 
 const mockStripeInstance = {
   createPaymentMethod: vi.fn(),
+  confirmCardPayment: vi.fn(),
   elements: vi.fn(),
 };
 
@@ -126,7 +127,6 @@ function createMockPaymentElement(overrides: Partial<TSurveyPaymentElement> = {}
     buttonLabel: { default: "Pay now" },
     stripeIntegration: {
       publicKey: "pk_test_abc123",
-      priceId: "price_abc123",
     },
     imageUrl: undefined,
     videoUrl: undefined,
@@ -147,6 +147,7 @@ describe("PaymentElement", () => {
     ttc: {} as TResponseTtc,
     setTtc: vi.fn(),
     currentElementId: "pay1",
+    surveyId: "survey_test_123",
     dir: "auto" as const,
     errorMessage: undefined as string | undefined,
   };
@@ -154,6 +155,23 @@ describe("PaymentElement", () => {
   beforeEach(() => {
     // Ensure deterministic TTC calculations across tests
     vi.spyOn(performance, "now").mockReturnValue(1000);
+
+    // Mock global fetch for the payment intent API endpoint
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(() =>
+        Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve({ data: { clientSecret: "pi_test_secret_abc" } }),
+        })
+      )
+    );
+
+    // Default: confirmCardPayment succeeds
+    mockStripeInstance.confirmCardPayment.mockResolvedValue({
+      error: null,
+      paymentIntent: { status: "succeeded" },
+    });
   });
 
   afterEach(() => {
@@ -210,7 +228,7 @@ describe("PaymentElement", () => {
     test("loadStripe is called with different publishable key", async () => {
       const { loadStripe } = await import("@stripe/stripe-js");
       const element = createMockPaymentElement({
-        stripeIntegration: { publicKey: "pk_test_different", priceId: "price_xyz" },
+        stripeIntegration: { publicKey: "pk_test_different" },
       });
       render(<PaymentElement {...defaultProps} element={element} />);
       expect(loadStripe).toHaveBeenCalledWith("pk_test_different");
@@ -229,9 +247,9 @@ describe("PaymentElement", () => {
     });
 
     test("calls onChange with paid status on successful payment", async () => {
-      mockStripeInstance.createPaymentMethod.mockResolvedValueOnce({
+      mockStripeInstance.confirmCardPayment.mockResolvedValueOnce({
         error: null,
-        paymentMethod: { id: "pm_test_123", type: "card" },
+        paymentIntent: { status: "succeeded" },
       });
 
       const onChange = vi.fn();
@@ -245,9 +263,9 @@ describe("PaymentElement", () => {
     });
 
     test("shows success state after successful payment", async () => {
-      mockStripeInstance.createPaymentMethod.mockResolvedValueOnce({
+      mockStripeInstance.confirmCardPayment.mockResolvedValueOnce({
         error: null,
-        paymentMethod: { id: "pm_test_456", type: "card" },
+        paymentIntent: { status: "succeeded" },
       });
 
       render(<PaymentElement {...defaultProps} />);
@@ -270,7 +288,7 @@ describe("PaymentElement", () => {
 
   describe("error handling", () => {
     test("handles card_declined error with user-friendly message", async () => {
-      mockStripeInstance.createPaymentMethod.mockResolvedValueOnce({
+      mockStripeInstance.confirmCardPayment.mockResolvedValueOnce({
         error: { code: "card_declined", message: "Your card was declined." },
       });
 
@@ -284,7 +302,7 @@ describe("PaymentElement", () => {
     });
 
     test("handles insufficient_funds error", async () => {
-      mockStripeInstance.createPaymentMethod.mockResolvedValueOnce({
+      mockStripeInstance.confirmCardPayment.mockResolvedValueOnce({
         error: { code: "insufficient_funds", message: "Insufficient funds." },
       });
 
@@ -298,7 +316,7 @@ describe("PaymentElement", () => {
     });
 
     test("handles expired_card error", async () => {
-      mockStripeInstance.createPaymentMethod.mockResolvedValueOnce({
+      mockStripeInstance.confirmCardPayment.mockResolvedValueOnce({
         error: { code: "expired_card", message: "Your card has expired." },
       });
 
@@ -312,7 +330,7 @@ describe("PaymentElement", () => {
     });
 
     test("handles generic/unknown error", async () => {
-      mockStripeInstance.createPaymentMethod.mockResolvedValueOnce({
+      mockStripeInstance.confirmCardPayment.mockResolvedValueOnce({
         error: { code: "processing_error", message: "An error occurred." },
       });
 
@@ -325,8 +343,8 @@ describe("PaymentElement", () => {
       });
     });
 
-    test("handles createPaymentMethod promise rejection", async () => {
-      mockStripeInstance.createPaymentMethod.mockRejectedValueOnce(new Error("Network error"));
+    test("handles confirmCardPayment promise rejection", async () => {
+      mockStripeInstance.confirmCardPayment.mockRejectedValueOnce(new Error("Network error"));
 
       render(<PaymentElement {...defaultProps} />);
       fireEvent.click(screen.getByTestId("pay-button"));
@@ -338,7 +356,7 @@ describe("PaymentElement", () => {
     });
 
     test("does not expose Stripe API internals in error messages", async () => {
-      mockStripeInstance.createPaymentMethod.mockResolvedValueOnce({
+      mockStripeInstance.confirmCardPayment.mockResolvedValueOnce({
         error: {
           code: "card_declined",
           message: "Your card was declined.",

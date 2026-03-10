@@ -20,6 +20,7 @@ interface PaymentElementProps {
   ttc: TResponseTtc;
   setTtc: (ttc: TResponseTtc) => void;
   currentElementId: string;
+  surveyId: string;
   dir?: "ltr" | "rtl" | "auto";
   errorMessage?: string;
 }
@@ -29,6 +30,7 @@ interface PaymentFormProps {
   value: string;
   onChange: (responseData: TResponseData) => void;
   languageCode: string;
+  surveyId: string;
   dir?: "ltr" | "rtl" | "auto";
   errorMessage?: string;
 }
@@ -51,28 +53,72 @@ const CARD_ELEMENT_OPTIONS = {
       color: "#EF4444",
     },
   },
-  hidePostalCode: true,
-} as const;
+};
 
 // ---------------------------------------------------------------------------
-// Inner component — PaymentForm
+// Helper: Create a PaymentIntent via the Formbricks client API
 // ---------------------------------------------------------------------------
 
 /**
- * Inner payment form component that uses Stripe hooks (`useStripe`, `useElements`)
- * to manage PCI-compliant card input and payment method creation.
+ * Calls the Formbricks payment intent API endpoint to create a Stripe PaymentIntent.
  *
- * IMPORTANT: This component MUST be rendered inside an `<Elements>` provider from
- * `@stripe/react-stripe-js` so the Stripe hooks have access to the Stripe context.
+ * This uses the client API route (`/api/v1/client/payment-intent`) which is
+ * unauthenticated — supporting both logged-in users and anonymous respondents
+ * on public link surveys.
  *
- * Card details are handled ENTIRELY by Stripe Elements client-side — no card data
- * ever touches the Formbricks server. Only the resulting payment method ID is used.
+ * @param surveyId - The survey ID containing the Payment element
+ * @param amount - Positive integer in smallest currency unit (cents/pence)
+ * @param currency - ISO 4217 lowercase currency code ("usd" | "eur" | "gbp")
+ * @returns The clientSecret for client-side payment confirmation
+ * @throws Error if the API call fails
+ */
+async function fetchPaymentIntent(surveyId: string, amount: number, currency: string): Promise<string> {
+  // Use relative URL — works for link surveys on the same domain.
+  // For embedded surveys, the Formbricks script is loaded from the app domain,
+  // and the fetch will be made relative to that domain's origin.
+  const response = await fetch("/api/v1/client/payment-intent", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ surveyId, amount, currency }),
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => null);
+    const message =
+      (errorData as { message?: string } | null)?.message ??
+      "Failed to initialize payment. Please try again.";
+    throw new Error(message);
+  }
+
+  const json = (await response.json()) as { data: { clientSecret: string } };
+  if (!json.data?.clientSecret) {
+    throw new Error("Invalid response from payment server");
+  }
+
+  return json.data.clientSecret;
+}
+
+// ---------------------------------------------------------------------------
+// Inner component — PaymentForm (uses Stripe hooks)
+// ---------------------------------------------------------------------------
+
+/**
+ * Inner form component that accesses Stripe hooks (`useStripe`, `useElements`).
+ * Must be rendered inside an `<Elements>` provider.
+ *
+ * Payment flow (Issue 1 fix — Refine PR):
+ * 1. Call the Formbricks API to create a Stripe PaymentIntent → get clientSecret
+ * 2. Call stripe.confirmCardPayment(clientSecret, { payment_method: { card } })
+ * 3. Only call onChange({ [element.id]: "paid" }) on successful payment confirmation
+ *
+ * This ensures the card is actually charged, not just tokenised.
  */
 function PaymentForm({
   element,
   value,
   onChange,
   languageCode,
+  surveyId,
   dir = "auto",
   errorMessage,
 }: Readonly<PaymentFormProps>) {
@@ -88,10 +134,36 @@ function PaymentForm({
   const [paymentError, setPaymentError] = useState<string | null>(null);
 
   /**
-   * Handles payment submission by creating a Stripe PaymentMethod for PCI-compliant
-   * card tokenisation. The tokenised payment method validates the card details
-   * client-side without charging — actual charging is handled server-side when
-   * the survey response is processed.
+   * Maps a Stripe error code to a user-friendly localised error message.
+   * Covers all common card error scenarios per AAP §0.7.3.
+   */
+  const getStripeErrorMessage = (code: string | undefined, fallbackMessage: string | undefined): string => {
+    switch (code) {
+      case "card_declined":
+        return t("survey.payment.card_declined", "Your card was declined. Please try a different card.");
+      case "insufficient_funds":
+        return t("survey.payment.insufficient_funds", "Insufficient funds. Please try a different card.");
+      case "expired_card":
+        return t("survey.payment.expired_card", "Your card has expired. Please try a different card.");
+      case "incorrect_number":
+        return t(
+          "survey.payment.incorrect_number",
+          "Your card number is incorrect. Please check and try again."
+        );
+      case "incomplete_number":
+      case "incomplete_expiry":
+      case "incomplete_cvc":
+        return t("survey.payment.incomplete_card", "Please complete all card fields.");
+      default:
+        return fallbackMessage ?? t("survey.payment.generic_error", "Payment failed. Please try again.");
+    }
+  };
+
+  /**
+   * Handles the full payment submission flow:
+   * 1. Create a PaymentIntent via the Formbricks API (server creates it with Stripe)
+   * 2. Confirm the payment client-side using stripe.confirmCardPayment()
+   * 3. Mark the response as "paid" only on successful confirmation
    */
   const handleSubmit = async (): Promise<void> => {
     // Guard: Stripe must be fully initialised before we can proceed
@@ -108,63 +180,43 @@ function PaymentForm({
     }
 
     try {
-      // Create a PaymentMethod using Stripe Elements for PCI-compliant tokenisation.
-      // This validates the card details client-side without performing a charge.
-      const { error, paymentMethod } = await stripe.createPaymentMethod({
-        type: "card",
-        card: cardElement,
+      // Step 1: Create a PaymentIntent via the Formbricks API
+      // The server validates the survey exists and has a matching Payment element,
+      // then calls Stripe to create the PaymentIntent.
+      const clientSecret = await fetchPaymentIntent(surveyId, element.amount, element.currency);
+
+      // Step 2: Confirm the payment client-side using the card details
+      // This actually charges the card via Stripe's PCI-compliant flow.
+      const { error: confirmError, paymentIntent } = await stripe.confirmCardPayment(clientSecret, {
+        payment_method: {
+          card: cardElement,
+        },
       });
 
-      if (error) {
+      if (confirmError) {
         setPaymentState("error");
-
-        // Map Stripe error codes to user-friendly localised messages per AAP §0.7.3
-        switch (error.code) {
-          case "card_declined":
-            setPaymentError(
-              t("survey.payment.card_declined", "Your card was declined. Please try a different card.")
-            );
-            break;
-          case "insufficient_funds":
-            setPaymentError(
-              t("survey.payment.insufficient_funds", "Insufficient funds. Please try a different card.")
-            );
-            break;
-          case "expired_card":
-            setPaymentError(
-              t("survey.payment.expired_card", "Your card has expired. Please try a different card.")
-            );
-            break;
-          case "incorrect_number":
-            setPaymentError(
-              t(
-                "survey.payment.incorrect_number",
-                "Your card number is incorrect. Please check and try again."
-              )
-            );
-            break;
-          case "incomplete_number":
-          case "incomplete_expiry":
-          case "incomplete_cvc":
-            setPaymentError(t("survey.payment.incomplete_card", "Please complete all card fields."));
-            break;
-          default:
-            setPaymentError(
-              error.message ?? t("survey.payment.generic_error", "Payment failed. Please try again.")
-            );
-            break;
-        }
+        setPaymentError(getStripeErrorMessage(confirmError.code, confirmError.message));
         return;
       }
 
-      // Payment method created successfully — mark as paid
-      if (paymentMethod) {
+      // Step 3: Only mark as paid on successful confirmation
+      if (paymentIntent && paymentIntent.status === "succeeded") {
         setPaymentState("success");
         onChange({ [element.id]: "paid" });
+      } else {
+        // Payment requires additional action or is still processing
+        setPaymentState("error");
+        setPaymentError(
+          t("survey.payment.processing", "Payment is still processing. Please wait or try again.")
+        );
       }
-    } catch (_err: unknown) {
+    } catch (err: unknown) {
       setPaymentState("error");
-      setPaymentError(t("survey.payment.generic_error", "Payment failed. Please try again."));
+      const message =
+        err instanceof Error
+          ? err.message
+          : t("survey.payment.generic_error", "Payment failed. Please try again.");
+      setPaymentError(message);
     }
   };
 
@@ -216,6 +268,8 @@ function PaymentForm({
  * - **TTC tracking** — Time-to-completion tracking identical to other survey elements
  *   (rating, consent, CTA) using `useTtc` and `getUpdatedTtc`
  * - **Localisation** — All user-facing labels resolved via `getLocalizedValue`
+ * - **Full payment flow** — Creates a PaymentIntent server-side, then confirms the
+ *   payment client-side using stripe.confirmCardPayment() (Refine PR Issue 1 fix)
  *
  * Architecture note: Two components are required because the Stripe hooks
  * (`useStripe`, `useElements`) can only be called inside an `<Elements>` provider.
@@ -230,6 +284,7 @@ export function PaymentElement({
   ttc,
   setTtc,
   currentElementId,
+  surveyId,
   dir = "auto",
   errorMessage,
 }: Readonly<PaymentElementProps>) {
@@ -266,6 +321,7 @@ export function PaymentElement({
       value={value}
       onChange={onChange}
       languageCode={languageCode}
+      surveyId={surveyId}
       dir={dir}
       errorMessage={errorMessage}
     />

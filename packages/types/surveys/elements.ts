@@ -370,7 +370,6 @@ export const ZSurveyPaymentElement = ZSurveyElementBase.extend({
   buttonLabel: ZI18nString.optional(),
   stripeIntegration: z.object({
     publicKey: z.string(),
-    priceId: z.string(),
   }),
 });
 

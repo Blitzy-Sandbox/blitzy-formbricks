@@ -222,7 +222,6 @@ describe("validateElementResponse", () => {
         required: true,
         currency: "usd",
         amount: 1000,
-        stripeIntegration: { publicKey: "pk_test", priceId: "price_test" },
       } as unknown as TSurveyElement;
 
       const result = validateElementResponse(element, "", "en");
@@ -239,7 +238,6 @@ describe("validateElementResponse", () => {
         required: true,
         currency: "usd",
         amount: 1000,
-        stripeIntegration: { publicKey: "pk_test", priceId: "price_test" },
       } as unknown as TSurveyElement;
 
       const result = validateElementResponse(element, "paid", "en");
@@ -254,7 +252,6 @@ describe("validateElementResponse", () => {
         required: true,
         currency: "usd",
         amount: 1000,
-        stripeIntegration: { publicKey: "pk_test", priceId: "price_test" },
       } as unknown as TSurveyElement;
 
       const result = validateElementResponse(element, "", "en");

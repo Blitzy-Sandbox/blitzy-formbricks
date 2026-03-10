@@ -1406,7 +1406,6 @@ describe("surveyLogic", () => {
               buttonLabel: { default: "Pay Now" },
               stripeIntegration: {
                 publicKey: "pk_test_123",
-                priceId: "price_123",
               },
             },
             {

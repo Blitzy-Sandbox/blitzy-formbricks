@@ -5120,12 +5120,8 @@ components:
                             publicKey:
                               type: string
                               description: Stripe publishable key for client-side integration
-                            priceId:
-                              type: string
-                              description: Stripe Price ID for the payment product
                           required:
                             - publicKey
-                            - priceId
                       required:
                         - id
                         - type

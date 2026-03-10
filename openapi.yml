@@ -543,7 +543,3 @@ components:
             publicKey:
               type: string
               description: Stripe publishable key
-            priceId:
-              type: string
-              description: Stripe Price ID
-

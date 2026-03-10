@@ -144,7 +144,6 @@ describe("Survey Logic", () => {
             buttonLabel: { default: "Pay $10.00" },
             stripeIntegration: {
               publicKey: "pk_test_abc123",
-              priceId: "price_test_xyz",
             },
           },
         ],

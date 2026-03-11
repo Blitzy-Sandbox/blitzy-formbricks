@@ -26,7 +26,7 @@ export const renderEmailResponseValue = (
       return (
         <Container>
           {overrideFileUploadResponse ? (
-            <Text className="mt-0 text-sm break-words whitespace-pre-wrap italic">
+            <Text className="mt-0 whitespace-pre-wrap break-words text-sm italic">
               {t("emails.render_email_response_value_file_upload_response_link_not_included")}
             </Text>
           ) : (
@@ -75,7 +75,21 @@ export const renderEmailResponseValue = (
         </Container>
       );
 
+    case TSurveyElementTypeEnum.OpinionScale:
+      return (
+        <Container>
+          <Text className="mt-0 whitespace-pre-wrap break-words text-sm">{response as string}</Text>
+        </Container>
+      );
+
+    case TSurveyElementTypeEnum.Payment:
+      return (
+        <Container>
+          <Text className="mt-0 whitespace-pre-wrap break-words text-sm">{response as string}</Text>
+        </Container>
+      );
+
     default:
-      return <Text className="mt-0 text-sm break-words whitespace-pre-wrap">{response as string}</Text>;
+      return <Text className="mt-0 whitespace-pre-wrap break-words text-sm">{response as string}</Text>;
   }
 };

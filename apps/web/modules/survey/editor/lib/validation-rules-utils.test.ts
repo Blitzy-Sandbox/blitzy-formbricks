@@ -208,6 +208,43 @@ describe("getAvailableRuleTypes", () => {
 
     expect(available).toEqual([]);
   });
+
+  test("should return empty array for opinionScale element (no validation rules)", () => {
+    const elementType = TSurveyElementTypeEnum.OpinionScale;
+    const existingRules: TValidationRule[] = [];
+
+    const available = getAvailableRuleTypes(elementType, existingRules);
+
+    expect(available).toEqual([]);
+  });
+
+  test("should return minValue, maxValue for payment element", () => {
+    const elementType = TSurveyElementTypeEnum.Payment;
+    const existingRules: TValidationRule[] = [];
+
+    const available = getAvailableRuleTypes(elementType, existingRules);
+
+    expect(available).toContain("minValue");
+    expect(available).toContain("maxValue");
+    expect(available.length).toBe(2);
+  });
+
+  test("should filter out already added rules for payment element", () => {
+    const elementType = TSurveyElementTypeEnum.Payment;
+    const existingRules: TValidationRule[] = [
+      {
+        id: "rule1",
+        type: "minValue",
+        params: { min: 100 },
+      },
+    ];
+
+    const available = getAvailableRuleTypes(elementType, existingRules);
+
+    expect(available).not.toContain("minValue");
+    expect(available).toContain("maxValue");
+    expect(available.length).toBe(1);
+  });
 });
 
 describe("getRuleValue", () => {

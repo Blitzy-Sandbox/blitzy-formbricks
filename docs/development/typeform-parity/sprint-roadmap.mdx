@@ -87,10 +87,11 @@ Add a new `opinionScale` element type with a configurable numeric range, differe
   <Step title="Create Zod schema">
     Define `ZSurveyOpinionScaleElement` in `packages/types/surveys/elements.ts` extending `ZSurveyElementBase` with:
     - `type: z.literal(TSurveyElementTypeEnum.OpinionScale)`
-    - `range: z.union([z.literal(5), z.literal(7), z.literal(10)])` — configurable scale endpoints
+    - `scaleRange: z.union([z.literal(5), z.literal(7), z.literal(10)])` — configurable scale endpoints
     - `lowerLabel: ZI18nString.optional()` — custom label for the low end
     - `upperLabel: ZI18nString.optional()` — custom label for the high end
-    - `validation: ZValidation.optional()`
+    - `visualStyle: z.enum(["number", "smiley", "star"])` — visual rendering style for scale options
+    - `isColorCodingEnabled: z.boolean().optional().default(false)` — optional color coding from red to green
   </Step>
   <Step title="Add validation rules">
     Define opinion scale validation rules in `packages/types/surveys/validation-rules.ts` for range boundary enforcement.
@@ -126,10 +127,10 @@ Add a new `payment` element type with Stripe integration for collecting payments
   <Step title="Create Zod schema">
     Define `ZSurveyPaymentElement` in `packages/types/surveys/elements.ts` extending `ZSurveyElementBase` with:
     - `type: z.literal(TSurveyElementTypeEnum.Payment)`
-    - `currency: z.string()` — ISO 4217 currency code (e.g., `"usd"`, `"eur"`)
-    - `amount: z.number().positive()` — payment amount in the smallest currency unit
-    - `description: ZI18nString.optional()` — payment description shown on the Stripe checkout
-    - `stripeAccountId: z.string()` — connected Stripe account identifier
+    - `currency: z.enum(["usd", "eur", "gbp"])` — ISO 4217 currency code
+    - `amount: z.number().int().positive().min(1)` — payment amount in the smallest currency unit
+    - `buttonLabel: ZI18nString.optional()` — custom label for the payment button
+    - `stripeIntegration: z.object({ publicKey: z.string(), priceId: z.string() })` — Stripe integration configuration
   </Step>
   <Step title="Integrate Stripe API">
     Implement Stripe Payment Intent creation in a server action within `apps/web/modules/survey/` using the Stripe Node.js SDK.

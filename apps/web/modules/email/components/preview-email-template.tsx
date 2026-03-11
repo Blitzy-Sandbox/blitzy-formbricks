@@ -424,6 +424,13 @@ export async function PreviewEmailTemplate({
           <EmailFooter />
         </EmailTemplateWrapper>
       );
+    default:
+      return (
+        <EmailTemplateWrapper styling={styling} surveyUrl={url}>
+          <ElementHeader headline={headline} subheader={subheader} className="mr-8" />
+          <EmailFooter />
+        </EmailTemplateWrapper>
+      );
   }
 }
 

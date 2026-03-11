@@ -177,7 +177,7 @@ While both Opinion Scale and NPS use numeric scales, they serve different purpos
 | Scale range | Fixed 0–10 | Configurable: 1–5, 1–7, or 1–10 |
 | Starting value | Always 0 | Always 1 |
 | Semantics | "How likely are you to recommend..." | General-purpose agreement/satisfaction/preference |
-| Labels | Lower and upper (optional) | Lower and upper (required for clarity) |
+| Labels | Lower and upper (optional) | Lower and upper (optional) |
 | Color coding | Optional (`isColorCodingEnabled`) | Optional (`isColorCodingEnabled`) |
 | Visual style | Numbers only | Numbers, smileys, or stars (`visualStyle`) |
 | Analytics | NPS score calculation (Promoter/Passive/Detractor) | Mean, median, distribution |
@@ -189,11 +189,11 @@ Source: `packages/types/surveys/elements.ts` (lines 177–184 — `ZSurveyNPSEle
 ```typescript
 export const ZSurveyOpinionScaleElement = ZSurveyElementBase.extend({
   type: z.literal("opinionScale"),
-  scaleRange: z.number().int().refine((v) => [5, 7, 10].includes(v)),
-  lowerLabel: ZI18nString,
-  upperLabel: ZI18nString,
-  visualStyle: z.enum(["number", "smiley", "star"]).default("number"),
-  isColorCodingEnabled: z.boolean().default(false),
+  scaleRange: z.union([z.literal(5), z.literal(7), z.literal(10)]),
+  lowerLabel: ZI18nString.optional(),
+  upperLabel: ZI18nString.optional(),
+  visualStyle: z.enum(["number", "smiley", "star"]),
+  isColorCodingEnabled: z.boolean().optional().default(false),
 });
 
 export type TSurveyOpinionScaleElement = z.infer<typeof ZSurveyOpinionScaleElement>;

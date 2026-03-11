@@ -32,6 +32,7 @@ export const constructToastMessage = (
       questionIdx: elementIdx + 1,
     });
   } else {
+    // Handles all remaining element types (including OpinionScale, Payment, etc.)
     return t("environments.surveys.summary.added_filter_for_responses_where_answer_to_question", {
       questionIdx: elementIdx + 1,
       filterComboBoxValue: Array.isArray(filterComboBoxValue)

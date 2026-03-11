@@ -151,6 +151,16 @@ export const exampleData = {
         response: "5",
         type: TSurveyElementTypeEnum.Rating,
       },
+      {
+        element: "How satisfied are you with our service?",
+        response: "7",
+        type: TSurveyElementTypeEnum.OpinionScale,
+      },
+      {
+        element: "Pay for your subscription",
+        response: "$10.00 — Paid",
+        type: TSurveyElementTypeEnum.Payment,
+      },
     ],
     variables: [
       {

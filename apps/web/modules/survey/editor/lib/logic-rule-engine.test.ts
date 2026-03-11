@@ -430,6 +430,42 @@ describe("getLogicRules", () => {
         },
       ]);
     });
+
+    test("OpinionScale", () => {
+      const rules = logicRules.element[TSurveyQuestionTypeEnum.OpinionScale];
+      expect(rules).toBeDefined();
+      expect(rules.options).toEqual([
+        { label: "=", value: ZSurveyLogicConditionsOperator.Enum.equals },
+        { label: "!=", value: ZSurveyLogicConditionsOperator.Enum.doesNotEqual },
+        { label: ">", value: ZSurveyLogicConditionsOperator.Enum.isGreaterThan },
+        { label: "<", value: ZSurveyLogicConditionsOperator.Enum.isLessThan },
+        { label: ">=", value: ZSurveyLogicConditionsOperator.Enum.isGreaterThanOrEqual },
+        { label: "<=", value: ZSurveyLogicConditionsOperator.Enum.isLessThanOrEqual },
+        {
+          label: "mockTranslate(environments.surveys.edit.is_submitted)",
+          value: ZSurveyLogicConditionsOperator.Enum.isSubmitted,
+        },
+        {
+          label: "mockTranslate(environments.surveys.edit.is_skipped)",
+          value: ZSurveyLogicConditionsOperator.Enum.isSkipped,
+        },
+      ]);
+    });
+
+    test("Payment", () => {
+      const rules = logicRules.element[TSurveyQuestionTypeEnum.Payment];
+      expect(rules).toBeDefined();
+      expect(rules.options).toEqual([
+        {
+          label: "mockTranslate(environments.surveys.edit.is_submitted)",
+          value: ZSurveyLogicConditionsOperator.Enum.isSubmitted,
+        },
+        {
+          label: "mockTranslate(environments.surveys.edit.is_skipped)",
+          value: ZSurveyLogicConditionsOperator.Enum.isSkipped,
+        },
+      ]);
+    });
   });
 
   describe("Variable Specific Rules", () => {

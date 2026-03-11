@@ -28,6 +28,10 @@ export const convertResponseValue = (
           .filter((url): url is string => url !== undefined);
       } else return [];
 
+    // Opinion Scale: numeric value (1-N where N is scaleRange) — handled by processResponseData as number
+    case "opinionScale":
+    // Payment: string status ("succeeded"/"failed") or object {amount, currency, status} — handled by processResponseData
+    case "payment":
     default:
       return processResponseData(answer);
   }

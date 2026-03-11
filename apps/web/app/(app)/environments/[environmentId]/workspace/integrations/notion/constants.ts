@@ -27,6 +27,8 @@ export const TYPE_MAPPING = {
   [TSurveyElementTypeEnum.Cal]: ["checkbox"],
   [TSurveyElementTypeEnum.ContactInfo]: ["rich_text"],
   [TSurveyElementTypeEnum.Ranking]: ["rich_text"],
+  [TSurveyElementTypeEnum.OpinionScale]: ["number"],
+  [TSurveyElementTypeEnum.Payment]: ["rich_text"],
 };
 
 export const UNSUPPORTED_TYPES_BY_NOTION = [

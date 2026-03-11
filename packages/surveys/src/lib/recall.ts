@@ -60,6 +60,8 @@ export const replaceRecallInfo = (
       } else if (Array.isArray(value)) {
         value = value.filter((item) => item).join(", "); // Filters out empty values and joins with a comma
       }
+      // OpinionScale values are numbers (e.g., 4) and Payment values are strings (e.g., "paid")
+      // Both are handled correctly by the toString() conversion below
     }
 
     // Replace the recallInfo in the text with the obtained or fallback value

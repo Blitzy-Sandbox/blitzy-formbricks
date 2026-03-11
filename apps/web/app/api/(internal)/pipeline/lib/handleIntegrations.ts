@@ -267,6 +267,28 @@ const processElementResponse = (
       .join("; ");
   }
 
+  // OpinionScale stores a numeric value (1-5, 1-7, or 1-10), similar to NPS/Rating.
+  // The existing processResponseData handles numeric → string conversion correctly.
+  if (element.type === TSurveyElementTypeEnum.OpinionScale) {
+    return processResponseData(responseValue);
+  }
+
+  // Payment response data is a structured object with status, amount, and currency fields.
+  // Successful payments are formatted as "Paid {CURRENCY} {amount}" (amount converted from cents).
+  // Non-successful payments return the status string; non-object values fall through to the generic handler.
+  if (element.type === TSurveyElementTypeEnum.Payment) {
+    if (typeof responseValue === "object" && responseValue !== null && !Array.isArray(responseValue)) {
+      const paymentData = responseValue as Record<string, string>;
+      if (paymentData.status === "succeeded") {
+        const amount = (parseInt(paymentData.amount || "0") / 100).toFixed(2);
+        const currency = (paymentData.currency || element.currency || "usd").toUpperCase();
+        return `Paid ${currency} ${amount}`;
+      }
+      return paymentData.status || "Skipped";
+    }
+    return processResponseData(responseValue);
+  }
+
   return processResponseData(responseValue);
 };
 

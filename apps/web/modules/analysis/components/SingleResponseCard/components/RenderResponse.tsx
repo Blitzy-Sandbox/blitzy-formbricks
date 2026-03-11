@@ -1,4 +1,4 @@
-import { CheckCheckIcon, MousePointerClickIcon, PhoneIcon } from "lucide-react";
+import { CheckCheckIcon, CreditCardIcon, MousePointerClickIcon, PhoneIcon } from "lucide-react";
 import React from "react";
 import { TResponseDataValue } from "@formbricks/types/responses";
 import { TSurveyElement, TSurveyElementTypeEnum } from "@formbricks/types/surveys/elements";
@@ -173,6 +173,30 @@ export const RenderResponse: React.FC<RenderResponseProps> = ({
               <ResponseBadges items={itemsArray} isExpanded={isExpanded} showId={showId} />
             )}
           </>
+        );
+      }
+      break;
+    case TSurveyElementTypeEnum.OpinionScale:
+      if (typeof responseData === "number") {
+        return (
+          <RatingResponse
+            scale={element.visualStyle}
+            answer={responseData}
+            range={element.scaleRange}
+            addColors={element.isColorCodingEnabled}
+          />
+        );
+      }
+      break;
+    case TSurveyElementTypeEnum.Payment:
+      if (typeof responseData === "string" || typeof responseData === "number") {
+        return (
+          <ResponseBadges
+            items={[{ value: responseData.toString() }]}
+            isExpanded={isExpanded}
+            icon={<CreditCardIcon className="h-4 w-4 text-slate-500" />}
+            showId={showId}
+          />
         );
       }
       break;

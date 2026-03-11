@@ -40,9 +40,15 @@ const conditionOptions: Record<string, string[]> = {
   address: ["is"],
   contactInfo: ["is"],
   ranking: ["is"],
+  opinionScale: ["Is equal to", "Is less than", "Is more than", "Submitted", "Skipped", "Includes either"],
+  payment: ["is"],
 };
 const filterOptions: Record<string, string[]> = {
   openText: ["Filled out", "Skipped"],
+  // Note: rating and opinionScale filter options are hardcoded to 5 values.
+  // Both types support variable ranges (rating: 1-10, opinionScale: 5/7/10),
+  // but filterOptions is a static dictionary keyed by type, not by element instance.
+  // Making this dynamic per-element would require a structural refactor.
   rating: ["1", "2", "3", "4", "5"],
   nps: ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10"],
   cta: ["Clicked", "Dismissed"],
@@ -51,6 +57,8 @@ const filterOptions: Record<string, string[]> = {
   address: ["Filled out", "Skipped"],
   contactInfo: ["Filled out", "Skipped"],
   ranking: ["Filled out", "Skipped"],
+  opinionScale: ["1", "2", "3", "4", "5"],
+  payment: ["Completed", "Skipped"],
 };
 
 // Helper function to get filter options for a specific element type
@@ -406,6 +414,19 @@ const processMatrixFilter = (
   }
 };
 
+// Helper function to process Payment filters
+const processPaymentFilter = (
+  filterType: FilterValue["filterType"],
+  elementId: string,
+  filters: TResponseFilterCriteria
+) => {
+  if (filterType.filterComboBoxValue === "Completed") {
+    filters.data![elementId] = { op: "submitted" };
+  } else if (filterType.filterComboBoxValue === "Skipped") {
+    filters.data![elementId] = { op: "skipped" };
+  }
+};
+
 // Helper function to process element filters
 const processElementFilters = (
   elements: FilterValue[],
@@ -434,6 +455,7 @@ const processElementFilters = (
       case TSurveyElementTypeEnum.MultipleChoiceMulti:
         processMultipleChoiceFilter(filterType, elementId, filters);
         break;
+      case TSurveyElementTypeEnum.OpinionScale:
       case TSurveyElementTypeEnum.NPS:
       case TSurveyElementTypeEnum.Rating:
         processNPSRatingFilter(filterType, elementId, filters);
@@ -449,6 +471,9 @@ const processElementFilters = (
         break;
       case TSurveyElementTypeEnum.Matrix:
         processMatrixFilter(filterType, elementId, filters);
+        break;
+      case TSurveyElementTypeEnum.Payment:
+        processPaymentFilter(filterType, elementId, filters);
         break;
     }
   });

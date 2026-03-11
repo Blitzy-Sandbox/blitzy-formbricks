@@ -25,22 +25,38 @@ const stripe = new Stripe(env.STRIPE_SECRET_KEY!, {
  * @param stripeAccountId - Optional connected Stripe account ID for multi-tenant payment routing.
  *                          When provided, the PaymentIntent is created on the connected account
  *                          via the `stripe_account` header (Stripe Connect pattern).
+ * @param surveyId - The ID of the survey containing the Payment element.
+ *                   Used for idempotency key derivation and PaymentIntent metadata to
+ *                   enable tracing payments back to their source survey in the Stripe Dashboard.
  * @returns An object containing the `clientSecret` required for client-side payment confirmation.
  * @throws Error with a user-friendly message if the Stripe API call fails.
  */
 export const createPaymentIntent = async (
   amount: number,
   currency: string,
-  stripeAccountId?: string
+  stripeAccountId?: string,
+  surveyId?: string
 ): Promise<{ clientSecret: string }> => {
   try {
     const paymentIntentParams: Stripe.PaymentIntentCreateParams = {
       amount,
       currency,
       payment_method_types: ["card"],
+      ...(surveyId ? { metadata: { surveyId } } : {}),
     };
 
-    const options: Stripe.RequestOptions = stripeAccountId ? { stripeAccount: stripeAccountId } : {};
+    // Stripe SDK v16 throws "Unknown arguments" when passed an empty {}.
+    // Pass undefined instead when no connected account is specified.
+    const options: Stripe.RequestOptions | undefined = stripeAccountId
+      ? {
+          stripeAccount: stripeAccountId,
+          // Idempotency key prevents duplicate PaymentIntents on network retries.
+          // Derived from surveyId + amount + currency so each unique combination gets exactly one intent.
+          ...(surveyId ? { idempotencyKey: `pi_${surveyId}_${amount}_${currency}` } : {}),
+        }
+      : surveyId
+        ? { idempotencyKey: `pi_${surveyId}_${amount}_${currency}` }
+        : undefined;
 
     const paymentIntent = await stripe.paymentIntents.create(paymentIntentParams, options);
 
@@ -58,6 +74,20 @@ export const createPaymentIntent = async (
 
     if (err instanceof Stripe.errors.StripeInvalidRequestError) {
       throw new Error("Payment configuration error. Please contact support.");
+    }
+
+    if (err instanceof Stripe.errors.StripeConnectionError) {
+      throw new Error(
+        "Unable to connect to the payment processor. Please check your internet connection and try again."
+      );
+    }
+
+    if (err instanceof Stripe.errors.StripeRateLimitError) {
+      throw new Error("Payment service is temporarily busy. Please wait a moment and try again.");
+    }
+
+    if (err instanceof Stripe.errors.StripeAuthenticationError) {
+      throw new Error("Payment authentication failed. Please contact support.");
     }
 
     throw new Error("An unexpected error occurred while processing your payment. Please try again.");
@@ -82,7 +112,11 @@ export const confirmPaymentStatus = async (
   stripeAccountId?: string
 ): Promise<{ status: string; amount: number; currency: string }> => {
   try {
-    const options: Stripe.RequestOptions = stripeAccountId ? { stripeAccount: stripeAccountId } : {};
+    // Stripe SDK v16 throws "Unknown arguments" when passed an empty {}.
+    // Pass undefined instead when no connected account is specified.
+    const options: Stripe.RequestOptions | undefined = stripeAccountId
+      ? { stripeAccount: stripeAccountId }
+      : undefined;
 
     const paymentIntent = await stripe.paymentIntents.retrieve(paymentIntentId, options);
 

@@ -84,7 +84,8 @@ describe("createPaymentIntentAction", () => {
       expect(createPaymentIntent).toHaveBeenCalledWith(
         validInput.amount,
         validInput.currency,
-        validInput.stripeAccountId
+        validInput.stripeAccountId,
+        validInput.surveyId
       );
       expect(result).toEqual(mockPaymentIntentResult);
     });
@@ -106,7 +107,8 @@ describe("createPaymentIntentAction", () => {
       expect(createPaymentIntent).toHaveBeenCalledWith(
         inputWithoutStripeAccount.amount,
         inputWithoutStripeAccount.currency,
-        undefined
+        undefined,
+        inputWithoutStripeAccount.surveyId
       );
       expect(result).toEqual(mockPaymentIntentResult);
     });
@@ -124,7 +126,12 @@ describe("createPaymentIntentAction", () => {
       const eurInput = { ...validInput, currency: "eur" as const };
       await createPaymentIntentAction({ parsedInput: eurInput } as any);
 
-      expect(createPaymentIntent).toHaveBeenCalledWith(eurInput.amount, "eur", eurInput.stripeAccountId);
+      expect(createPaymentIntent).toHaveBeenCalledWith(
+        eurInput.amount,
+        "eur",
+        eurInput.stripeAccountId,
+        eurInput.surveyId
+      );
     });
 
     test("should accept GBP currency", async () => {
@@ -140,7 +147,12 @@ describe("createPaymentIntentAction", () => {
       const gbpInput = { ...validInput, currency: "gbp" as const };
       await createPaymentIntentAction({ parsedInput: gbpInput } as any);
 
-      expect(createPaymentIntent).toHaveBeenCalledWith(gbpInput.amount, "gbp", gbpInput.stripeAccountId);
+      expect(createPaymentIntent).toHaveBeenCalledWith(
+        gbpInput.amount,
+        "gbp",
+        gbpInput.stripeAccountId,
+        gbpInput.surveyId
+      );
     });
   });
 
@@ -243,7 +255,12 @@ describe("createPaymentIntentAction", () => {
         parsedInput: minAmountInput,
       } as any);
 
-      expect(createPaymentIntent).toHaveBeenCalledWith(1, "usd", validInput.stripeAccountId);
+      expect(createPaymentIntent).toHaveBeenCalledWith(
+        1,
+        "usd",
+        validInput.stripeAccountId,
+        validInput.surveyId
+      );
       expect(result).toEqual(mockPaymentIntentResult);
     });
 
@@ -262,7 +279,12 @@ describe("createPaymentIntentAction", () => {
         parsedInput: largeAmountInput,
       } as any);
 
-      expect(createPaymentIntent).toHaveBeenCalledWith(99999999, "usd", validInput.stripeAccountId);
+      expect(createPaymentIntent).toHaveBeenCalledWith(
+        99999999,
+        "usd",
+        validInput.stripeAccountId,
+        validInput.surveyId
+      );
       expect(result).toEqual(mockPaymentIntentResult);
     });
   });
@@ -298,7 +320,12 @@ describe("createPaymentIntentAction", () => {
         },
       } as any);
 
-      expect(createPaymentIntent).toHaveBeenCalledWith(2500, "eur", "acct_connected_123");
+      expect(createPaymentIntent).toHaveBeenCalledWith(
+        2500,
+        "eur",
+        "acct_connected_123",
+        "clxxxxxxxxxxxxxxxxxxxxxxxxx"
+      );
     });
   });
 });

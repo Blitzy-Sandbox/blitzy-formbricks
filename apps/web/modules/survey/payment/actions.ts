@@ -73,5 +73,6 @@ export const createPaymentIntentAction = actionClient
     // Delegate to the Stripe helper which wraps stripe.paymentIntents.create().
     // Returns { clientSecret: string } on success.
     // Stripe errors are caught in the helper and re-thrown with user-friendly messages.
-    return await createPaymentIntent(amount, currency, stripeAccountId);
+    // Pass surveyId for idempotency key derivation and PaymentIntent metadata.
+    return await createPaymentIntent(amount, currency, stripeAccountId, surveyId);
   });

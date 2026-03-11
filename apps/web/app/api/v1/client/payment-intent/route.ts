@@ -89,8 +89,8 @@ export const POST = async (request: Request): Promise<Response> => {
       );
     }
 
-    // Create the PaymentIntent via Stripe
-    const result = await createPaymentIntent(amount, currency, stripeAccountId);
+    // Create the PaymentIntent via Stripe, passing surveyId for idempotency and metadata
+    const result = await createPaymentIntent(amount, currency, stripeAccountId, surveyId);
 
     return responses.successResponse(result, true);
   } catch (err) {

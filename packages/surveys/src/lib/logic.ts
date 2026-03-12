@@ -117,6 +117,11 @@ const getLeftOperandValue = (
         return isNaN(numericValue) ? undefined : numericValue;
       }
 
+      // Payment element types return string values ("paid", "pending", "failed", "")
+      // from the default data[leftOperand.value] path at the end of this function.
+      // These are evaluated by isSubmitted (string !== "") and isSkipped (string === "")
+      // operators in evaluateSingleCondition. No explicit numeric coercion is needed.
+
       if (currentQuestion.type === "multipleChoiceSingle" || currentQuestion.type === "multipleChoiceMulti") {
         const isOthersEnabled = currentQuestion.choices.some((c) => c.id === "other");
 

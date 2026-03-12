@@ -225,6 +225,31 @@ describe("Tests for getResponseDownloadUrl service", () => {
       const fileExtension = result.fileName.split(".").pop();
       expect(fileExtension).toEqual("xlsx");
     });
+
+    test("Returns a download URL for the json response file", async () => {
+      prisma.survey.findUnique.mockResolvedValue(mockSurveyOutput);
+      prisma.response.count.mockResolvedValue(1);
+      prisma.response.findMany.mockResolvedValue([mockResponseWithQuotas]);
+      prisma.surveyQuota.findMany.mockResolvedValue([]);
+
+      const result = await getResponseDownloadFile(mockSurveyId, "json");
+      const fileExtension = result.fileName.split(".").pop();
+      expect(fileExtension).toEqual("json");
+    });
+
+    test("Returns valid parseable JSON content for json format", async () => {
+      prisma.survey.findUnique.mockResolvedValue(mockSurveyOutput);
+      prisma.response.count.mockResolvedValue(1);
+      prisma.response.findMany.mockResolvedValue([mockResponseWithQuotas]);
+      prisma.surveyQuota.findMany.mockResolvedValue([]);
+
+      const result = await getResponseDownloadFile(mockSurveyId, "json");
+      // Verify fileContents is valid parseable JSON
+      const parsed = JSON.parse(result.fileContents);
+      expect(Array.isArray(parsed)).toBe(true);
+      // Verify fileName ends with .json
+      expect(result.fileName).toMatch(/\.json$/);
+    });
   });
 
   describe("Sad Path", () => {

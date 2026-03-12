@@ -29,6 +29,6 @@ export const convertToXlsxBuffer = (
   return xlsx.write(wb, { type: "buffer", bookType: "xlsx" });
 };
 
-export const convertToJson = (fields: string[], jsonData: Record<string, string | number>[]): string => {
+export const convertToJson = (_fields: string[], jsonData: Record<string, string | number>[]): string => {
   return JSON.stringify(jsonData, null, 2);
 };

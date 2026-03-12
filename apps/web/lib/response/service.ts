@@ -28,7 +28,7 @@ import { getOrganizationBilling } from "@/modules/survey/lib/survey";
 import { ITEMS_PER_PAGE } from "../constants";
 import { deleteDisplay } from "../display/service";
 import { getSurvey } from "../survey/service";
-import { convertToCsv, convertToXlsxBuffer } from "../utils/file-conversion";
+import { convertToCsv, convertToJson, convertToXlsxBuffer } from "../utils/file-conversion";
 import { validateInputs } from "../utils/validate";
 import {
   buildWhereClause,
@@ -341,7 +341,7 @@ export const getResponses = reactCache(
 
 export const getResponseDownloadFile = async (
   surveyId: string,
-  format: "csv" | "xlsx",
+  format: "csv" | "xlsx" | "json",
   filterCriteria?: TResponseFilterCriteria
 ): Promise<{ fileContents: string; fileName: string }> => {
   validateInputs([surveyId, ZId], [format, ZString], [filterCriteria, ZResponseFilterCriteria.optional()]);
@@ -425,6 +425,8 @@ export const getResponseDownloadFile = async (
     if (format === "xlsx") {
       const buffer = convertToXlsxBuffer(headers, jsonData);
       fileContents = buffer.toString("base64");
+    } else if (format === "json") {
+      fileContents = convertToJson(headers, jsonData);
     } else {
       fileContents = await convertToCsv(headers, jsonData);
     }

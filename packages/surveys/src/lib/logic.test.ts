@@ -1820,4 +1820,624 @@ describe("Survey Logic", () => {
       ).toBe(false);
     });
   });
+
+  describe("OpinionScale and Payment - Sprint 2 Comprehensive Coverage", () => {
+    const mockVariablesData: TResponseVariables = {
+      var1: "string value",
+      var2: 123,
+      var3: "another string",
+    };
+
+    test("evaluates OpinionScale with boundary values for all numeric operators", () => {
+      // value=1: boundary minimum
+      const data1: TResponseData = { qOpinionScale: 1 };
+
+      // equals 1 → true
+      const equals1: TConditionGroup = {
+        id: "g1",
+        connector: "and",
+        conditions: [
+          {
+            id: "c1",
+            operator: "equals",
+            leftOperand: { type: "element", value: "qOpinionScale" },
+            rightOperand: { type: "static", value: 1 },
+          },
+        ],
+      };
+      expect(evaluateLogic(mockSurvey, data1, mockVariablesData, equals1, "default")).toBe(true);
+
+      // isLessThan 2 → true
+      const lessThan2: TConditionGroup = {
+        id: "g2",
+        connector: "and",
+        conditions: [
+          {
+            id: "c2",
+            operator: "isLessThan",
+            leftOperand: { type: "element", value: "qOpinionScale" },
+            rightOperand: { type: "static", value: 2 },
+          },
+        ],
+      };
+      expect(evaluateLogic(mockSurvey, data1, mockVariablesData, lessThan2, "default")).toBe(true);
+
+      // isGreaterThan 0 → true
+      const greaterThan0: TConditionGroup = {
+        id: "g3",
+        connector: "and",
+        conditions: [
+          {
+            id: "c3",
+            operator: "isGreaterThan",
+            leftOperand: { type: "element", value: "qOpinionScale" },
+            rightOperand: { type: "static", value: 0 },
+          },
+        ],
+      };
+      expect(evaluateLogic(mockSurvey, data1, mockVariablesData, greaterThan0, "default")).toBe(true);
+
+      // value=5: mid-range
+      const data5: TResponseData = { qOpinionScale: 5 };
+
+      // equals 5 → true
+      const equals5: TConditionGroup = {
+        id: "g4",
+        connector: "and",
+        conditions: [
+          {
+            id: "c4",
+            operator: "equals",
+            leftOperand: { type: "element", value: "qOpinionScale" },
+            rightOperand: { type: "static", value: 5 },
+          },
+        ],
+      };
+      expect(evaluateLogic(mockSurvey, data5, mockVariablesData, equals5, "default")).toBe(true);
+
+      // isGreaterThanOrEqual 5 → true
+      const gte5: TConditionGroup = {
+        id: "g5",
+        connector: "and",
+        conditions: [
+          {
+            id: "c5",
+            operator: "isGreaterThanOrEqual",
+            leftOperand: { type: "element", value: "qOpinionScale" },
+            rightOperand: { type: "static", value: 5 },
+          },
+        ],
+      };
+      expect(evaluateLogic(mockSurvey, data5, mockVariablesData, gte5, "default")).toBe(true);
+
+      // isLessThanOrEqual 5 → true
+      const lte5: TConditionGroup = {
+        id: "g6",
+        connector: "and",
+        conditions: [
+          {
+            id: "c6",
+            operator: "isLessThanOrEqual",
+            leftOperand: { type: "element", value: "qOpinionScale" },
+            rightOperand: { type: "static", value: 5 },
+          },
+        ],
+      };
+      expect(evaluateLogic(mockSurvey, data5, mockVariablesData, lte5, "default")).toBe(true);
+
+      // value=7: above mid-range
+      const data7: TResponseData = { qOpinionScale: 7 };
+
+      // isGreaterThan 5 → true
+      const gt5: TConditionGroup = {
+        id: "g7",
+        connector: "and",
+        conditions: [
+          {
+            id: "c7",
+            operator: "isGreaterThan",
+            leftOperand: { type: "element", value: "qOpinionScale" },
+            rightOperand: { type: "static", value: 5 },
+          },
+        ],
+      };
+      expect(evaluateLogic(mockSurvey, data7, mockVariablesData, gt5, "default")).toBe(true);
+
+      // isLessThan 10 → true
+      const lt10: TConditionGroup = {
+        id: "g8",
+        connector: "and",
+        conditions: [
+          {
+            id: "c8",
+            operator: "isLessThan",
+            leftOperand: { type: "element", value: "qOpinionScale" },
+            rightOperand: { type: "static", value: 10 },
+          },
+        ],
+      };
+      expect(evaluateLogic(mockSurvey, data7, mockVariablesData, lt10, "default")).toBe(true);
+
+      // doesNotEqual 3 → true
+      const dne3: TConditionGroup = {
+        id: "g9",
+        connector: "and",
+        conditions: [
+          {
+            id: "c9",
+            operator: "doesNotEqual",
+            leftOperand: { type: "element", value: "qOpinionScale" },
+            rightOperand: { type: "static", value: 3 },
+          },
+        ],
+      };
+      expect(evaluateLogic(mockSurvey, data7, mockVariablesData, dne3, "default")).toBe(true);
+
+      // value=10: boundary maximum
+      const data10: TResponseData = { qOpinionScale: 10 };
+
+      // isGreaterThanOrEqual 10 → true
+      const gte10: TConditionGroup = {
+        id: "g10",
+        connector: "and",
+        conditions: [
+          {
+            id: "c10",
+            operator: "isGreaterThanOrEqual",
+            leftOperand: { type: "element", value: "qOpinionScale" },
+            rightOperand: { type: "static", value: 10 },
+          },
+        ],
+      };
+      expect(evaluateLogic(mockSurvey, data10, mockVariablesData, gte10, "default")).toBe(true);
+
+      // isLessThanOrEqual 10 → true
+      const lte10: TConditionGroup = {
+        id: "g11",
+        connector: "and",
+        conditions: [
+          {
+            id: "c11",
+            operator: "isLessThanOrEqual",
+            leftOperand: { type: "element", value: "qOpinionScale" },
+            rightOperand: { type: "static", value: 10 },
+          },
+        ],
+      };
+      expect(evaluateLogic(mockSurvey, data10, mockVariablesData, lte10, "default")).toBe(true);
+
+      // isGreaterThan 10 → false (boundary: not strictly greater)
+      const gt10: TConditionGroup = {
+        id: "g12",
+        connector: "and",
+        conditions: [
+          {
+            id: "c12",
+            operator: "isGreaterThan",
+            leftOperand: { type: "element", value: "qOpinionScale" },
+            rightOperand: { type: "static", value: 10 },
+          },
+        ],
+      };
+      expect(evaluateLogic(mockSurvey, data10, mockVariablesData, gt10, "default")).toBe(false);
+    });
+
+    test("evaluates OpinionScale numeric edge cases", () => {
+      // Exact boundary: isGreaterThanOrEqual at boundary → true
+      const boundaryData: TResponseData = { qOpinionScale: 5 };
+      const gteAtBoundary: TConditionGroup = {
+        id: "g1",
+        connector: "and",
+        conditions: [
+          {
+            id: "c1",
+            operator: "isGreaterThanOrEqual",
+            leftOperand: { type: "element", value: "qOpinionScale" },
+            rightOperand: { type: "static", value: 5 },
+          },
+        ],
+      };
+      expect(evaluateLogic(mockSurvey, boundaryData, mockVariablesData, gteAtBoundary, "default")).toBe(true);
+
+      // isLessThanOrEqual at boundary → true
+      const lteAtBoundary: TConditionGroup = {
+        id: "g2",
+        connector: "and",
+        conditions: [
+          {
+            id: "c2",
+            operator: "isLessThanOrEqual",
+            leftOperand: { type: "element", value: "qOpinionScale" },
+            rightOperand: { type: "static", value: 5 },
+          },
+        ],
+      };
+      expect(evaluateLogic(mockSurvey, boundaryData, mockVariablesData, lteAtBoundary, "default")).toBe(true);
+
+      // isGreaterThan at boundary → false (strict inequality fails at boundary)
+      const gtAtBoundary: TConditionGroup = {
+        id: "g3",
+        connector: "and",
+        conditions: [
+          {
+            id: "c3",
+            operator: "isGreaterThan",
+            leftOperand: { type: "element", value: "qOpinionScale" },
+            rightOperand: { type: "static", value: 5 },
+          },
+        ],
+      };
+      expect(evaluateLogic(mockSurvey, boundaryData, mockVariablesData, gtAtBoundary, "default")).toBe(false);
+
+      // Value as 0: getLeftOperandValue returns 0 (valid number, not NaN)
+      const zeroData: TResponseData = { qOpinionScale: 0 };
+
+      // equals 0 → true
+      const equalsZero: TConditionGroup = {
+        id: "g4",
+        connector: "and",
+        conditions: [
+          {
+            id: "c4",
+            operator: "equals",
+            leftOperand: { type: "element", value: "qOpinionScale" },
+            rightOperand: { type: "static", value: 0 },
+          },
+        ],
+      };
+      expect(evaluateLogic(mockSurvey, zeroData, mockVariablesData, equalsZero, "default")).toBe(true);
+
+      // isGreaterThan 0 → false (0 is not greater than 0)
+      const gtZero: TConditionGroup = {
+        id: "g5",
+        connector: "and",
+        conditions: [
+          {
+            id: "c5",
+            operator: "isGreaterThan",
+            leftOperand: { type: "element", value: "qOpinionScale" },
+            rightOperand: { type: "static", value: 0 },
+          },
+        ],
+      };
+      expect(evaluateLogic(mockSurvey, zeroData, mockVariablesData, gtZero, "default")).toBe(false);
+
+      // isLessThan 1 → true
+      const ltOne: TConditionGroup = {
+        id: "g6",
+        connector: "and",
+        conditions: [
+          {
+            id: "c6",
+            operator: "isLessThan",
+            leftOperand: { type: "element", value: "qOpinionScale" },
+            rightOperand: { type: "static", value: 1 },
+          },
+        ],
+      };
+      expect(evaluateLogic(mockSurvey, zeroData, mockVariablesData, ltOne, "default")).toBe(true);
+
+      // isSubmitted with value 0 → true (typeof 0 === "number" → leftValue !== null → true)
+      const isSubmittedZero: TConditionGroup = {
+        id: "g7",
+        connector: "and",
+        conditions: [
+          {
+            id: "c7",
+            operator: "isSubmitted",
+            leftOperand: { type: "element", value: "qOpinionScale" },
+          },
+        ],
+      };
+      expect(evaluateLogic(mockSurvey, zeroData, mockVariablesData, isSubmittedZero, "default")).toBe(true);
+
+      // NaN handling: "not-a-number" string coerces to NaN, getLeftOperandValue returns undefined
+      const nanData: TResponseData = { qOpinionScale: "not-a-number" };
+
+      // isSkipped with NaN string → true (NaN coerced to undefined by getLeftOperandValue)
+      const isSkippedNaN: TConditionGroup = {
+        id: "g8",
+        connector: "and",
+        conditions: [
+          {
+            id: "c8",
+            operator: "isSkipped",
+            leftOperand: { type: "element", value: "qOpinionScale" },
+          },
+        ],
+      };
+      expect(evaluateLogic(mockSurvey, nanData, mockVariablesData, isSkippedNaN, "default")).toBe(true);
+
+      // isSubmitted with NaN string → false (undefined → not string/array/number → returns false)
+      const isSubmittedNaN: TConditionGroup = {
+        id: "g9",
+        connector: "and",
+        conditions: [
+          {
+            id: "c9",
+            operator: "isSubmitted",
+            leftOperand: { type: "element", value: "qOpinionScale" },
+          },
+        ],
+      };
+      expect(evaluateLogic(mockSurvey, nanData, mockVariablesData, isSubmittedNaN, "default")).toBe(false);
+    });
+
+    test("evaluates Payment element edge cases", () => {
+      // isSubmitted with "pending" → true (non-empty string !== "" && !== null)
+      const isSubmittedCond: TConditionGroup = {
+        id: "g1",
+        connector: "and",
+        conditions: [
+          {
+            id: "c1",
+            operator: "isSubmitted",
+            leftOperand: { type: "element", value: "qPayment" },
+          },
+        ],
+      };
+      expect(
+        evaluateLogic(mockSurvey, { qPayment: "pending" }, mockVariablesData, isSubmittedCond, "default")
+      ).toBe(true);
+
+      // isSubmitted with "failed" → true (non-empty string)
+      expect(
+        evaluateLogic(mockSurvey, { qPayment: "failed" }, mockVariablesData, isSubmittedCond, "default")
+      ).toBe(true);
+
+      // isSkipped condition for reuse
+      const isSkippedCond: TConditionGroup = {
+        id: "g2",
+        connector: "and",
+        conditions: [
+          {
+            id: "c2",
+            operator: "isSkipped",
+            leftOperand: { type: "element", value: "qPayment" },
+          },
+        ],
+      };
+
+      // isSkipped with null → true (runtime edge case: null values from database queries)
+      expect(
+        evaluateLogic(
+          mockSurvey,
+          { qPayment: null } as unknown as TResponseData,
+          mockVariablesData,
+          isSkippedCond,
+          "default"
+        )
+      ).toBe(true);
+
+      // isSkipped with undefined → true (key present but value is undefined)
+      expect(
+        evaluateLogic(mockSurvey, { qPayment: undefined }, mockVariablesData, isSkippedCond, "default")
+      ).toBe(true);
+
+      // isSkipped with empty response data → true (key not present → undefined)
+      expect(evaluateLogic(mockSurvey, {}, mockVariablesData, isSkippedCond, "default")).toBe(true);
+
+      // isSubmitted with empty response data → false (undefined → not string/array/number → false)
+      expect(evaluateLogic(mockSurvey, {}, mockVariablesData, isSubmittedCond, "default")).toBe(false);
+    });
+
+    test("evaluates nested condition groups combining new element types with existing types", () => {
+      // Test 1: OpinionScale > 3 AND q1 equals "test"
+      const andCondition: TConditionGroup = {
+        id: "andGroup",
+        connector: "and",
+        conditions: [
+          {
+            id: "c1",
+            operator: "isGreaterThan",
+            leftOperand: { type: "element", value: "qOpinionScale" },
+            rightOperand: { type: "static", value: 3 },
+          },
+          {
+            id: "c2",
+            operator: "equals",
+            leftOperand: { type: "element", value: "q1" },
+            rightOperand: { type: "static", value: "test" },
+          },
+        ],
+      };
+      // Both conditions met → true
+      expect(
+        evaluateLogic(
+          mockSurvey,
+          { qOpinionScale: 4, q1: "test" },
+          mockVariablesData,
+          andCondition,
+          "default"
+        )
+      ).toBe(true);
+      // OpinionScale fails → false
+      expect(
+        evaluateLogic(
+          mockSurvey,
+          { qOpinionScale: 2, q1: "test" },
+          mockVariablesData,
+          andCondition,
+          "default"
+        )
+      ).toBe(false);
+
+      // Test 2: Payment isSubmitted OR q2 isGreaterThan 10
+      const orCondition: TConditionGroup = {
+        id: "orGroup",
+        connector: "or",
+        conditions: [
+          {
+            id: "c3",
+            operator: "isSubmitted",
+            leftOperand: { type: "element", value: "qPayment" },
+          },
+          {
+            id: "c4",
+            operator: "isGreaterThan",
+            leftOperand: { type: "element", value: "q2" },
+            rightOperand: { type: "static", value: 10 },
+          },
+        ],
+      };
+      // Payment submitted → true (first condition met)
+      expect(
+        evaluateLogic(mockSurvey, { qPayment: "paid", q2: "5" }, mockVariablesData, orCondition, "default")
+      ).toBe(true);
+      // q2 > 10 → true (second condition met)
+      expect(
+        evaluateLogic(mockSurvey, { qPayment: "", q2: "15" }, mockVariablesData, orCondition, "default")
+      ).toBe(true);
+      // Both conditions fail → false
+      expect(
+        evaluateLogic(mockSurvey, { qPayment: "", q2: "5" }, mockVariablesData, orCondition, "default")
+      ).toBe(false);
+
+      // Test 3: Complex nested groups: (OpinionScale >= 4 AND Payment isSubmitted) OR q1 equals "test"
+      const innerAndGroup: TConditionGroup = {
+        id: "innerAnd",
+        connector: "and",
+        conditions: [
+          {
+            id: "c5",
+            operator: "isGreaterThanOrEqual",
+            leftOperand: { type: "element", value: "qOpinionScale" },
+            rightOperand: { type: "static", value: 4 },
+          },
+          {
+            id: "c6",
+            operator: "isSubmitted",
+            leftOperand: { type: "element", value: "qPayment" },
+          },
+        ],
+      };
+      const nestedCondition: TConditionGroup = {
+        id: "outerOr",
+        connector: "or",
+        conditions: [
+          innerAndGroup,
+          {
+            id: "c7",
+            operator: "equals",
+            leftOperand: { type: "element", value: "q1" },
+            rightOperand: { type: "static", value: "test" },
+          },
+        ],
+      };
+      // Inner AND group true → overall true
+      expect(
+        evaluateLogic(
+          mockSurvey,
+          { qOpinionScale: 5, qPayment: "paid", q1: "other" },
+          mockVariablesData,
+          nestedCondition,
+          "default"
+        )
+      ).toBe(true);
+      // q1 equals "test" → overall true
+      expect(
+        evaluateLogic(
+          mockSurvey,
+          { qOpinionScale: 2, qPayment: "", q1: "test" },
+          mockVariablesData,
+          nestedCondition,
+          "default"
+        )
+      ).toBe(true);
+      // All conditions fail → false
+      expect(
+        evaluateLogic(
+          mockSurvey,
+          { qOpinionScale: 2, qPayment: "", q1: "other" },
+          mockVariablesData,
+          nestedCondition,
+          "default"
+        )
+      ).toBe(false);
+    });
+
+    test("evaluates empty and skipped responses across OpinionScale and Payment element types", () => {
+      // OpinionScale with empty object response → isSkipped true
+      const isSkippedOpinionScale: TConditionGroup = {
+        id: "g1",
+        connector: "and",
+        conditions: [
+          {
+            id: "c1",
+            operator: "isSkipped",
+            leftOperand: { type: "element", value: "qOpinionScale" },
+          },
+        ],
+      };
+      expect(evaluateLogic(mockSurvey, {}, mockVariablesData, isSkippedOpinionScale, "default")).toBe(true);
+
+      // OpinionScale with empty object response → isSubmitted false
+      const isSubmittedOpinionScale: TConditionGroup = {
+        id: "g2",
+        connector: "and",
+        conditions: [
+          {
+            id: "c2",
+            operator: "isSubmitted",
+            leftOperand: { type: "element", value: "qOpinionScale" },
+          },
+        ],
+      };
+      expect(evaluateLogic(mockSurvey, {}, mockVariablesData, isSubmittedOpinionScale, "default")).toBe(
+        false
+      );
+
+      // Payment with empty string → isSkipped true
+      const isSkippedPayment: TConditionGroup = {
+        id: "g3",
+        connector: "and",
+        conditions: [
+          {
+            id: "c3",
+            operator: "isSkipped",
+            leftOperand: { type: "element", value: "qPayment" },
+          },
+        ],
+      };
+      expect(
+        evaluateLogic(mockSurvey, { qPayment: "" }, mockVariablesData, isSkippedPayment, "default")
+      ).toBe(true);
+
+      // Payment with empty string → isSubmitted false
+      const isSubmittedPayment: TConditionGroup = {
+        id: "g4",
+        connector: "and",
+        conditions: [
+          {
+            id: "c4",
+            operator: "isSubmitted",
+            leftOperand: { type: "element", value: "qPayment" },
+          },
+        ],
+      };
+      expect(
+        evaluateLogic(mockSurvey, { qPayment: "" }, mockVariablesData, isSubmittedPayment, "default")
+      ).toBe(false);
+
+      // Both missing from response → both isSkipped true (combined AND condition)
+      const emptyResponse: TResponseData = {};
+      const bothSkipped: TConditionGroup = {
+        id: "g5",
+        connector: "and",
+        conditions: [
+          {
+            id: "c5",
+            operator: "isSkipped",
+            leftOperand: { type: "element", value: "qOpinionScale" },
+          },
+          {
+            id: "c6",
+            operator: "isSkipped",
+            leftOperand: { type: "element", value: "qPayment" },
+          },
+        ],
+      };
+      expect(evaluateLogic(mockSurvey, emptyResponse, mockVariablesData, bothSkipped, "default")).toBe(true);
+    });
+  });
 });

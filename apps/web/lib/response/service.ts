@@ -422,11 +422,11 @@ export const getResponseDownloadFile = async (
     const fileName = getResponsesFileName(survey?.name || "", format);
     let fileContents: string;
 
-    if (format === "xlsx") {
+    if (format === "json") {
+      fileContents = convertToJson(headers, jsonData);
+    } else if (format === "xlsx") {
       const buffer = convertToXlsxBuffer(headers, jsonData);
       fileContents = buffer.toString("base64");
-    } else if (format === "json") {
-      fileContents = convertToJson(headers, jsonData);
     } else {
       fileContents = await convertToCsv(headers, jsonData);
     }

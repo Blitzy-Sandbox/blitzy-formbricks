@@ -45,12 +45,22 @@ export const handleApiError = (
 };
 
 export const formatZodError = (error: { issues: (ZodIssue | ZodCustomIssue)[] }) => {
+  const MAX_ERROR_MESSAGE_LENGTH = 100;
+
   return error.issues.map((issue) => {
     const issueParams = issue.code === "custom" ? issue.params : undefined;
+    const rawMessage =
+      issue.message ?? "An error occurred while processing your request. Please try again later.";
+
+    // Truncate error messages to prevent log pollution and reflection of oversized user input
+    const message =
+      rawMessage.length > MAX_ERROR_MESSAGE_LENGTH
+        ? rawMessage.slice(0, MAX_ERROR_MESSAGE_LENGTH) + "..."
+        : rawMessage;
 
     return {
       field: issue.path.join("."),
-      issue: issue.message ?? "An error occurred while processing your request. Please try again later.",
+      issue: message,
       ...(issueParams && { meta: issueParams }),
     };
   });

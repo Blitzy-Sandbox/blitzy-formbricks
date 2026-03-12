@@ -45,8 +45,8 @@
     "i18n:validate": "pnpm scan-translations"
   },
   "dependencies": {
-    "react": "19.2.3",
-    "react-dom": "19.2.3",
+    "react": "19.2.4",
+    "react-dom": "19.2.4",
     "next": "16.1.6"
   },
   "devDependencies": {
@@ -85,20 +85,22 @@
   },
   "pnpm": {
     "overrides": {
-      "axios": ">=1.12.2",
+      "axios": ">=1.13.5",
       "uuid": "11.1.0",
       "node-forge": ">=1.3.2",
       "tar-fs": "2.1.4",
-      "tar": ">=7.5.7",
+      "tar": ">=7.5.8",
       "typeorm": ">=0.3.26",
       "systeminformation": "5.27.14",
-      "qs": ">=6.14.1",
+      "qs": ">=6.14.2",
       "preact": ">=10.26.10",
-      "fast-xml-parser": ">=5.3.4",
-      "diff": ">=8.0.3"
+      "fast-xml-parser": ">=5.3.5",
+      "diff": ">=8.0.3",
+      "@isaacs/brace-expansion": ">=5.0.1",
+      "minimatch": ">=3.1.3"
     },
     "comments": {
-      "overrides": "Security fixes for transitive dependencies. Remove when upstream packages update: axios (CVE-2025-58754) - awaiting @boxyhq/saml-jackson update | node-forge (Dependabot #230) - awaiting @boxyhq/saml-jackson update | tar-fs (Dependabot #205) - awaiting upstream dependency updates | tar (Dependabot #249/#264) - awaiting @boxyhq/saml-jackson/sqlite3 dependency updates | typeorm (Dependabot #223) - awaiting @boxyhq/saml-jackson update | systeminformation (Dependabot #241) - awaiting @opentelemetry/host-metrics update | qs (Dependabot #245) - awaiting googleapis-common and stripe updates | preact (Dependabot #247) - awaiting next-auth update | fast-xml-parser (Dependabot #270) - awaiting @boxyhq/saml-jackson update | diff (Dependabot #269) - awaiting @microsoft/api-extractor update"
+      "overrides": "Security fixes for transitive dependencies. Remove when upstream packages update: axios (GHSA-43fc-jf86-j433) - awaiting @boxyhq/saml-jackson update | node-forge (Dependabot #230) - awaiting @boxyhq/saml-jackson update | tar-fs (Dependabot #205) - awaiting upstream dependency updates | tar (GHSA-83g3-92jg-28cx) - awaiting @boxyhq/saml-jackson/sqlite3 dependency updates | typeorm (Dependabot #223) - awaiting @boxyhq/saml-jackson update | systeminformation (Dependabot #241) - awaiting @opentelemetry/host-metrics update | qs (GHSA-w7fw-mjwx-w883) - awaiting googleapis-common and stripe updates | preact (Dependabot #247) - awaiting next-auth update | fast-xml-parser (GHSA-m7jm-9gc2-mpf2) - awaiting @boxyhq/saml-jackson update | diff (Dependabot #269) - awaiting @microsoft/api-extractor update | @isaacs/brace-expansion (GHSA-7h2j-956f-4vf2) - awaiting @boxyhq/saml-jackson update | minimatch (ReDoS) - awaiting nodemailer update"
     },
     "patchedDependencies": {
       "next-auth@4.24.12": "patches/next-auth@4.24.12.patch"

@@ -76,6 +76,7 @@ export const GET = async (request: NextRequest) =>
               headers: {
                 "Content-Type": contentType,
                 "Content-Disposition": `attachment; filename="${downloadResult.fileName}"`,
+                "Cache-Control": "private, no-store",
               },
             });
           }
@@ -86,6 +87,7 @@ export const GET = async (request: NextRequest) =>
             headers: {
               "Content-Type": contentType,
               "Content-Disposition": `attachment; filename="${downloadResult.fileName}"`,
+              "Cache-Control": "private, no-store",
             },
           });
         } catch (error) {

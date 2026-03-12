@@ -404,7 +404,7 @@ const evaluateSingleCondition = (
           ) {
             return leftValue !== "skipped";
           }
-          // Payment element: "succeeded", "pending", "failed" → submitted; "skipped" → not submitted
+          // Payment element: "paid", "pending", "failed" → submitted; "skipped" → not submitted
           if (
             condition.leftOperand.type === "element" &&
             (leftField as TSurveyElement).type === TSurveyElementTypeEnum.Payment &&
@@ -607,7 +607,7 @@ const getLeftOperandValue = (
         }
       }
 
-      // Payment element types return their string value ("succeeded", "pending", "failed", "skipped", "")
+      // Payment element types return their string value ("paid", "pending", "failed", "skipped", "")
       // from the default data[leftOperand.value] path below. These values are evaluated by
       // evaluateSingleCondition's isSubmitted (checks leftValue !== "skipped") and isSkipped
       // (checks leftValue === "" or undefined) operator branches. No explicit coercion is needed.

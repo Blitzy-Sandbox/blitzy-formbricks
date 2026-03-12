@@ -161,4 +161,49 @@ describe("convertToJson", () => {
     expect(parsed[0]).toEqual({ id: 0, name: "item0" });
     expect(parsed[999]).toEqual({ id: 999, name: "item999" });
   });
+
+  test("should include all fields from the fields parameter even when records are missing them", () => {
+    // Simulates the "Notes" field scenario: fields array declares "Notes" but records lack it
+    const fields = ["name", "age", "Notes"];
+    const data = [
+      { name: "Alice", age: 30 },
+      { name: "Bob", age: 25 },
+    ];
+
+    const result = convertToJson(fields, data);
+    const parsed = JSON.parse(result);
+
+    // Every record must contain all declared fields, including "Notes"
+    expect(Object.keys(parsed[0])).toEqual(["name", "age", "Notes"]);
+    expect(Object.keys(parsed[1])).toEqual(["name", "age", "Notes"]);
+
+    // Missing fields must default to empty string
+    expect(parsed[0].Notes).toBe("");
+    expect(parsed[1].Notes).toBe("");
+
+    // Existing fields must be preserved
+    expect(parsed[0].name).toBe("Alice");
+    expect(parsed[0].age).toBe(30);
+    expect(parsed[1].name).toBe("Bob");
+    expect(parsed[1].age).toBe(25);
+  });
+
+  test("should normalize field order to match the fields parameter", () => {
+    const fields = ["id", "name", "email", "score"];
+    const data = [{ score: 95, name: "Alice", id: 1 }];
+
+    const result = convertToJson(fields, data);
+    const parsed = JSON.parse(result);
+
+    // Key order must match the fields array order
+    expect(Object.keys(parsed[0])).toEqual(["id", "name", "email", "score"]);
+
+    // Missing "email" defaults to empty string
+    expect(parsed[0].email).toBe("");
+
+    // Present fields preserve their values
+    expect(parsed[0].id).toBe(1);
+    expect(parsed[0].name).toBe("Alice");
+    expect(parsed[0].score).toBe(95);
+  });
 });

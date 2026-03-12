@@ -29,6 +29,16 @@ export const convertToXlsxBuffer = (
   return xlsx.write(wb, { type: "buffer", bookType: "xlsx" });
 };
 
-export const convertToJson = (_fields: string[], jsonData: Record<string, string | number>[]): string => {
-  return JSON.stringify(jsonData, null, 2);
+export const convertToJson = (fields: string[], jsonData: Record<string, string | number>[]): string => {
+  // Normalize each record to include all expected fields (matching CSV/XLSX field completeness).
+  // Fields not present in a record default to an empty string, ensuring lossless field parity
+  // across all export formats.
+  const normalizedData = jsonData.map((record) => {
+    const normalized: Record<string, string | number> = {};
+    for (const field of fields) {
+      normalized[field] = record[field] ?? "";
+    }
+    return normalized;
+  });
+  return JSON.stringify(normalizedData, null, 2);
 };

@@ -240,7 +240,7 @@ export const CustomFilter = ({ survey }: CustomFilterProps) => {
     setSelectingDate(DateSelected.FROM);
   };
 
-  const handleDownloadResponses = async (filter: FilterDownload, fileType: "csv" | "xlsx") => {
+  const handleDownloadResponses = async (filter: FilterDownload, fileType: "csv" | "xlsx" | "json") => {
     try {
       const responseFilters = filter === FilterDownload.ALL ? {} : filters;
       setIsDownloading(true);
@@ -410,6 +410,13 @@ export const CustomFilter = ({ survey }: CustomFilterProps) => {
               <p className="text-slate-700">{t("environments.surveys.summary.all_responses_excel")}</p>
             </DropdownMenuItem>
             <DropdownMenuItem
+              data-testid="fb__custom-filter-download-all-json"
+              onClick={async () => {
+                await handleDownloadResponses(FilterDownload.ALL, "json");
+              }}>
+              <p className="text-slate-700">{t("environments.surveys.summary.all_responses_json")}</p>
+            </DropdownMenuItem>
+            <DropdownMenuItem
               data-testid="fb__custom-filter-download-filtered-csv"
               onClick={async () => {
                 await handleDownloadResponses(FilterDownload.FILTER, "csv");
@@ -422,6 +429,13 @@ export const CustomFilter = ({ survey }: CustomFilterProps) => {
                 await handleDownloadResponses(FilterDownload.FILTER, "xlsx");
               }}>
               <p className="text-slate-700">{t("environments.surveys.summary.filtered_responses_excel")}</p>
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              data-testid="fb__custom-filter-download-filtered-json"
+              onClick={async () => {
+                await handleDownloadResponses(FilterDownload.FILTER, "json");
+              }}>
+              <p className="text-slate-700">{t("environments.surveys.summary.filtered_responses_json")}</p>
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>

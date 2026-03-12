@@ -45,6 +45,19 @@ export const GET = async (request: NextRequest) =>
           });
         }
 
+        // Verify the survey belongs to an environment the API key has access to
+        const environmentIdResult = await getEnvironmentId(query.surveyId, false);
+        if (!environmentIdResult.ok) {
+          return handleApiError(request, environmentIdResult.error);
+        }
+
+        if (!hasPermission(authentication.environmentPermissions, environmentIdResult.data, "GET")) {
+          return handleApiError(request, {
+            type: "unauthorized",
+            details: [{ field: "surveyId", issue: "not authorized" }],
+          });
+        }
+
         try {
           const downloadResult = await getResponseDownloadFile(query.surveyId, query.format);
 

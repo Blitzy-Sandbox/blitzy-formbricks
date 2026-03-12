@@ -1,14 +1,14 @@
 export const downloadResponsesFile = (
   fileName: string,
   fileContents: string,
-  fileType: "csv" | "xlsx"
+  fileType: "csv" | "xlsx" | "json"
 ): void => {
   if (typeof window === "undefined" || typeof document === "undefined") {
     throw new Error("downloadResponsesFile can only be used in a browser environment");
   }
 
   const trimmedName = (fileName ?? "").trim();
-  const requiredExt = fileType === "xlsx" ? ".xlsx" : ".csv";
+  const requiredExt = fileType === "xlsx" ? ".xlsx" : fileType === "json" ? ".json" : ".csv";
   let normalizedFileName = trimmedName || `responses-${new Date().toISOString().slice(0, 10)}${requiredExt}`;
   if (!normalizedFileName.toLowerCase().endsWith(requiredExt)) {
     normalizedFileName = `${normalizedFileName}${requiredExt}`;
@@ -24,6 +24,10 @@ export const downloadResponsesFile = (
     }
     file = new File([bytes], normalizedFileName, {
       type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    });
+  } else if (fileType === "json") {
+    file = new File([fileContents], normalizedFileName, {
+      type: "application/json;charset=utf-8",
     });
   } else {
     file = new File([fileContents], normalizedFileName, {

@@ -1618,4 +1618,322 @@ describe("surveyLogic", () => {
       )
     ).toBe(true);
   });
+
+  describe("OpinionScale and Payment element types - extended coverage", () => {
+    const extendedSurvey: TJsEnvironmentStateSurvey = {
+      ...mockSurvey,
+      blocks: [
+        {
+          id: "block1",
+          name: "Block 1",
+          elements: [
+            ...mockSurvey.blocks[0].elements,
+            {
+              id: "opinionScaleQ",
+              type: TSurveyElementTypeEnum.OpinionScale,
+              scaleRange: 10,
+              visualStyle: "number",
+              isColorCodingEnabled: false,
+              lowerLabel: { default: "Low" },
+              upperLabel: { default: "High" },
+              headline: { default: "Rate" },
+              required: true,
+            },
+            {
+              id: "paymentQ",
+              type: TSurveyElementTypeEnum.Payment,
+              currency: "usd",
+              amount: 2500,
+              buttonLabel: { default: "Pay" },
+              headline: { default: "Pay" },
+              required: true,
+              stripeIntegration: { publicKey: "pk_test_123" },
+            },
+          ],
+        },
+      ],
+      questions: [],
+      variables: [],
+    };
+
+    const vars: TResponseVariables = {};
+
+    const makeElementCondition = (
+      id: string,
+      elementId: string,
+      operator: TSingleCondition["operator"],
+      rightValue?: number | string
+    ): TSingleCondition => ({
+      id,
+      leftOperand: { type: "element", value: elementId },
+      operator,
+      ...(rightValue !== undefined ? { rightOperand: { type: "static", value: rightValue } } : {}),
+    });
+
+    const makeHiddenFieldCondition = (
+      id: string,
+      fieldId: string,
+      operator: TSingleCondition["operator"],
+      rightValue: string
+    ): TSingleCondition => ({
+      id,
+      leftOperand: { type: "hiddenField", value: fieldId },
+      operator,
+      rightOperand: { type: "static", value: rightValue },
+    });
+
+    const evalWith = (data: TResponseData, conditionGroup: TConditionGroup): boolean =>
+      evaluateLogic(extendedSurvey, data, vars, conditionGroup, "en");
+
+    const wrapCondition = (condition: TSingleCondition): TConditionGroup => ({
+      id: "g",
+      connector: "and",
+      conditions: [condition],
+    });
+
+    test("evaluates OpinionScale with boundary values for all numeric operators", () => {
+      // value=1: equals 1 → true, isLessThan 2 → true, isGreaterThan 0 → true
+      expect(
+        evalWith(
+          { opinionScaleQ: 1 },
+          wrapCondition(makeElementCondition("c1", "opinionScaleQ", "equals", 1))
+        )
+      ).toBe(true);
+      expect(
+        evalWith(
+          { opinionScaleQ: 1 },
+          wrapCondition(makeElementCondition("c2", "opinionScaleQ", "isLessThan", 2))
+        )
+      ).toBe(true);
+      expect(
+        evalWith(
+          { opinionScaleQ: 1 },
+          wrapCondition(makeElementCondition("c3", "opinionScaleQ", "isGreaterThan", 0))
+        )
+      ).toBe(true);
+
+      // value=5: equals 5 → true, isGreaterThanOrEqual 5 → true, isLessThanOrEqual 5 → true
+      expect(
+        evalWith(
+          { opinionScaleQ: 5 },
+          wrapCondition(makeElementCondition("c4", "opinionScaleQ", "equals", 5))
+        )
+      ).toBe(true);
+      expect(
+        evalWith(
+          { opinionScaleQ: 5 },
+          wrapCondition(makeElementCondition("c5", "opinionScaleQ", "isGreaterThanOrEqual", 5))
+        )
+      ).toBe(true);
+      expect(
+        evalWith(
+          { opinionScaleQ: 5 },
+          wrapCondition(makeElementCondition("c6", "opinionScaleQ", "isLessThanOrEqual", 5))
+        )
+      ).toBe(true);
+
+      // value=7: isGreaterThan 5 → true, isLessThan 10 → true, doesNotEqual 3 → true
+      expect(
+        evalWith(
+          { opinionScaleQ: 7 },
+          wrapCondition(makeElementCondition("c7", "opinionScaleQ", "isGreaterThan", 5))
+        )
+      ).toBe(true);
+      expect(
+        evalWith(
+          { opinionScaleQ: 7 },
+          wrapCondition(makeElementCondition("c8", "opinionScaleQ", "isLessThan", 10))
+        )
+      ).toBe(true);
+      expect(
+        evalWith(
+          { opinionScaleQ: 7 },
+          wrapCondition(makeElementCondition("c9", "opinionScaleQ", "doesNotEqual", 3))
+        )
+      ).toBe(true);
+
+      // value=10: isGreaterThanOrEqual 10 → true, isLessThanOrEqual 10 → true, isGreaterThan 10 → false
+      expect(
+        evalWith(
+          { opinionScaleQ: 10 },
+          wrapCondition(makeElementCondition("c10", "opinionScaleQ", "isGreaterThanOrEqual", 10))
+        )
+      ).toBe(true);
+      expect(
+        evalWith(
+          { opinionScaleQ: 10 },
+          wrapCondition(makeElementCondition("c11", "opinionScaleQ", "isLessThanOrEqual", 10))
+        )
+      ).toBe(true);
+      expect(
+        evalWith(
+          { opinionScaleQ: 10 },
+          wrapCondition(makeElementCondition("c12", "opinionScaleQ", "isGreaterThan", 10))
+        )
+      ).toBe(false);
+    });
+
+    test("evaluates OpinionScale numeric edge cases", () => {
+      // Value 0: equals 0 → true, isGreaterThan 0 → false, isLessThan 1 → true, isSubmitted → true
+      expect(
+        evalWith(
+          { opinionScaleQ: 0 },
+          wrapCondition(makeElementCondition("c1", "opinionScaleQ", "equals", 0))
+        )
+      ).toBe(true);
+      expect(
+        evalWith(
+          { opinionScaleQ: 0 },
+          wrapCondition(makeElementCondition("c2", "opinionScaleQ", "isGreaterThan", 0))
+        )
+      ).toBe(false);
+      expect(
+        evalWith(
+          { opinionScaleQ: 0 },
+          wrapCondition(makeElementCondition("c3", "opinionScaleQ", "isLessThan", 1))
+        )
+      ).toBe(true);
+      expect(
+        evalWith(
+          { opinionScaleQ: 0 },
+          wrapCondition(makeElementCondition("c4", "opinionScaleQ", "isSubmitted"))
+        )
+      ).toBe(true);
+
+      // NaN handling: "not-a-number" → getLeftOperandValue returns undefined
+      // isSkipped → true, isSubmitted → false
+      expect(
+        evalWith(
+          { opinionScaleQ: "not-a-number" },
+          wrapCondition(makeElementCondition("c5", "opinionScaleQ", "isSkipped"))
+        )
+      ).toBe(true);
+      expect(
+        evalWith(
+          { opinionScaleQ: "not-a-number" },
+          wrapCondition(makeElementCondition("c6", "opinionScaleQ", "isSubmitted"))
+        )
+      ).toBe(false);
+
+      // Empty string: Number("") = 0, so equals 0 → true
+      expect(
+        evalWith(
+          { opinionScaleQ: "" },
+          wrapCondition(makeElementCondition("c7", "opinionScaleQ", "equals", 0))
+        )
+      ).toBe(true);
+    });
+
+    test("evaluates Payment element edge cases", () => {
+      // isSubmitted with "pending" → true (non-empty, non-"skipped" string)
+      expect(
+        evalWith(
+          { paymentQ: "pending" },
+          wrapCondition(makeElementCondition("c1", "paymentQ", "isSubmitted"))
+        )
+      ).toBe(true);
+
+      // isSubmitted with "failed" → true (non-empty, non-"skipped" string)
+      expect(
+        evalWith({ paymentQ: "failed" }, wrapCondition(makeElementCondition("c2", "paymentQ", "isSubmitted")))
+      ).toBe(true);
+
+      // isSkipped with null → true (leftValue === null)
+      // Note: TResponseData Zod schema doesn't include null, but runtime handles it gracefully
+      expect(
+        evalWith(
+          { paymentQ: null } as unknown as TResponseData,
+          wrapCondition(makeElementCondition("c3", "paymentQ", "isSkipped"))
+        )
+      ).toBe(true);
+
+      // isSkipped with undefined (key missing) → true (leftValue === undefined)
+      expect(evalWith({}, wrapCondition(makeElementCondition("c4", "paymentQ", "isSkipped")))).toBe(true);
+
+      // isSubmitted with undefined (key missing) → false
+      expect(evalWith({}, wrapCondition(makeElementCondition("c5", "paymentQ", "isSubmitted")))).toBe(false);
+    });
+
+    test("evaluates nested condition groups combining new element types with existing types", () => {
+      // AND group: OpinionScale > 3 AND hiddenField f1 equals "test"
+      const andGroup: TConditionGroup = {
+        id: "andGroup",
+        connector: "and",
+        conditions: [
+          makeElementCondition("c1", "opinionScaleQ", "isGreaterThan", 3),
+          makeHiddenFieldCondition("c2", "f1", "equals", "test"),
+        ],
+      };
+
+      // Both conditions met → true
+      expect(evalWith({ opinionScaleQ: 4, f1: "test" }, andGroup)).toBe(true);
+      // OpinionScale fails → false
+      expect(evalWith({ opinionScaleQ: 2, f1: "test" }, andGroup)).toBe(false);
+
+      // OR group: Payment isSubmitted OR hiddenField f1 equals "hello"
+      const orGroup: TConditionGroup = {
+        id: "orGroup",
+        connector: "or",
+        conditions: [
+          makeElementCondition("c3", "paymentQ", "isSubmitted"),
+          makeHiddenFieldCondition("c4", "f1", "equals", "hello"),
+        ],
+      };
+
+      // Payment submitted → true (OR short-circuits)
+      expect(evalWith({ paymentQ: "paid", f1: "other" }, orGroup)).toBe(true);
+      // Payment not submitted, but f1 condition met → true
+      expect(evalWith({ paymentQ: "", f1: "hello" }, orGroup)).toBe(true);
+      // Both fail → false
+      expect(evalWith({ paymentQ: "", f1: "other" }, orGroup)).toBe(false);
+
+      // Nested groups: (OpinionScale >= 4 AND Payment isSubmitted) OR hiddenField f1 equals "test"
+      const nestedGroup: TConditionGroup = {
+        id: "outerOr",
+        connector: "or",
+        conditions: [
+          {
+            id: "innerAnd",
+            connector: "and",
+            conditions: [
+              makeElementCondition("c5", "opinionScaleQ", "isGreaterThanOrEqual", 4),
+              makeElementCondition("c6", "paymentQ", "isSubmitted"),
+            ],
+          },
+          makeHiddenFieldCondition("c7", "f1", "equals", "test"),
+        ],
+      };
+
+      // Inner AND is true → OR → true
+      expect(evalWith({ opinionScaleQ: 5, paymentQ: "paid", f1: "other" }, nestedGroup)).toBe(true);
+      // Inner AND fails, f1 condition met → true
+      expect(evalWith({ opinionScaleQ: 2, paymentQ: "", f1: "test" }, nestedGroup)).toBe(true);
+      // All fail → false
+      expect(evalWith({ opinionScaleQ: 2, paymentQ: "", f1: "other" }, nestedGroup)).toBe(false);
+    });
+
+    test("evaluates empty and skipped responses across OpinionScale and Payment element types", () => {
+      // OpinionScale with empty data → isSkipped true, isSubmitted false
+      expect(evalWith({}, wrapCondition(makeElementCondition("c1", "opinionScaleQ", "isSkipped")))).toBe(
+        true
+      );
+      expect(evalWith({}, wrapCondition(makeElementCondition("c2", "opinionScaleQ", "isSubmitted")))).toBe(
+        false
+      );
+
+      // Payment with empty string → isSkipped true, isSubmitted false
+      expect(
+        evalWith({ paymentQ: "" }, wrapCondition(makeElementCondition("c3", "paymentQ", "isSkipped")))
+      ).toBe(true);
+      expect(
+        evalWith({ paymentQ: "" }, wrapCondition(makeElementCondition("c4", "paymentQ", "isSubmitted")))
+      ).toBe(false);
+
+      // Both missing from data → both isSkipped true
+      expect(evalWith({}, wrapCondition(makeElementCondition("c5", "opinionScaleQ", "isSkipped")))).toBe(
+        true
+      );
+      expect(evalWith({}, wrapCondition(makeElementCondition("c6", "paymentQ", "isSkipped")))).toBe(true);
+    });
+  });
 });

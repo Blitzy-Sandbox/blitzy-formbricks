@@ -744,6 +744,14 @@ paths:
                         type: number
                       offset:
                         type: number
+            text/csv:
+              schema:
+                type: string
+                description: CSV formatted response data
+            application/vnd.openxmlformats-officedocument.spreadsheetml.sheet:
+              schema:
+                type: string
+                description: XLSX formatted response data (base64 encoded)
     post:
       operationId: createResponse
       summary: Create a response

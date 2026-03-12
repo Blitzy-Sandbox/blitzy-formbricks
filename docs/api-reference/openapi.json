@@ -4664,15 +4664,6 @@
               "minimum": 0,
               "type": "integer"
             }
-          },
-          {
-            "description": "Response export format. When specified, returns responses in the requested format instead of JSON API response. Supported formats: csv, xlsx, json.",
-            "in": "query",
-            "name": "format",
-            "schema": {
-              "enum": ["json", "csv", "xlsx"],
-              "type": "string"
-            }
           }
         ],
         "responses": {

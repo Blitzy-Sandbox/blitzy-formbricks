@@ -404,6 +404,7 @@ const evaluateSingleCondition = (
           ) {
             return leftValue !== "skipped";
           }
+          // Payment element: "succeeded", "pending", "failed" → submitted; "skipped" → not submitted
           if (
             condition.leftOperand.type === "element" &&
             (leftField as TSurveyElement).type === TSurveyElementTypeEnum.Payment &&
@@ -533,6 +534,10 @@ const getLeftOperandValue = (
         return isNaN(numberValue) ? undefined : numberValue;
       }
 
+      // OpinionScale values are 1-N based on scaleRange. They are always numeric and should
+      // be treated consistently for logic evaluation with numeric comparison operators
+      // (equals, doesNotEqual, isGreaterThan, isLessThan, isGreaterThanOrEqual, isLessThanOrEqual).
+      // isSubmitted and isSkipped are handled by evaluateSingleCondition's number/undefined branches.
       if (currentElement.type === "opinionScale") {
         if (responseValue === undefined) return undefined;
         const numberValue = typeof responseValue === "number" ? responseValue : Number(responseValue);
@@ -602,6 +607,10 @@ const getLeftOperandValue = (
         }
       }
 
+      // Payment element types return their string value ("succeeded", "pending", "failed", "skipped", "")
+      // from the default data[leftOperand.value] path below. These values are evaluated by
+      // evaluateSingleCondition's isSubmitted (checks leftValue !== "skipped") and isSkipped
+      // (checks leftValue === "" or undefined) operator branches. No explicit coercion is needed.
       return data[leftOperand.value];
     case "variable":
       const variables = localSurvey.variables || [];

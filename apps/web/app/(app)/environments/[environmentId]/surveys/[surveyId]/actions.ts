@@ -23,7 +23,7 @@ import { getOrganizationBilling } from "@/modules/survey/lib/survey";
 
 const ZGetResponsesDownloadUrlAction = z.object({
   surveyId: ZId,
-  format: z.union([z.literal("csv"), z.literal("xlsx")]),
+  format: z.union([z.literal("csv"), z.literal("xlsx"), z.literal("json")]),
   filterCriteria: ZResponseFilterCriteria,
 });
 

@@ -1,3 +1,4 @@
+import { z } from "zod";
 import { ZodOpenApiOperationObject, ZodOpenApiPathsObject } from "zod-openapi";
 import { ZResponse } from "@formbricks/database/zod/responses";
 import {
@@ -22,6 +23,12 @@ export const getResponsesEndpoint: ZodOpenApiOperationObject = {
       content: {
         "application/json": {
           schema: responseWithMetaSchema(makePartialSchema(ZResponse)),
+        },
+        "text/csv": {
+          schema: z.string().openapi({ description: "CSV formatted response data" }),
+        },
+        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": {
+          schema: z.string().openapi({ description: "XLSX formatted response data (base64 encoded)" }),
         },
       },
     },

@@ -1,6 +1,7 @@
-import { Response } from "@prisma/client";
+import type { Response } from "@prisma/client";
 import { NextRequest } from "next/server";
 import { sendToPipeline } from "@/app/lib/pipelines";
+import { getResponseDownloadFile } from "@/lib/response/service";
 import { formatValidationErrorsForV2Api, validateResponseData } from "@/modules/api/lib/validation";
 import { authenticatedApiClient } from "@/modules/api/v2/auth/authenticated-api-client";
 import { validateOtherOptionLengthForMultipleChoice } from "@/modules/api/v2/lib/element";
@@ -34,6 +35,53 @@ export const GET = async (request: NextRequest) =>
       const environmentIds = authentication.environmentPermissions.map(
         (permission) => permission.environmentId
       );
+
+      // If format is specified, route to file export instead of standard JSON API response
+      if (query.format) {
+        if (!query.surveyId) {
+          return handleApiError(request, {
+            type: "bad_request",
+            details: [{ field: "surveyId", issue: "required when format is specified" }],
+          });
+        }
+
+        try {
+          const downloadResult = await getResponseDownloadFile(query.surveyId, query.format);
+
+          const contentTypeMap: Record<string, string> = {
+            json: "application/json; charset=utf-8",
+            csv: "text/csv; charset=utf-8",
+            xlsx: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+          };
+
+          const contentType = contentTypeMap[query.format] || "application/octet-stream";
+
+          if (query.format === "xlsx") {
+            // XLSX is base64-encoded binary — decode before streaming
+            return new Response(Buffer.from(downloadResult.fileContents, "base64"), {
+              status: 200,
+              headers: {
+                "Content-Type": contentType,
+                "Content-Disposition": `attachment; filename="${downloadResult.fileName}"`,
+              },
+            });
+          }
+
+          // JSON and CSV are text-based — return string directly
+          return new Response(downloadResult.fileContents, {
+            status: 200,
+            headers: {
+              "Content-Type": contentType,
+              "Content-Disposition": `attachment; filename="${downloadResult.fileName}"`,
+            },
+          });
+        } catch (error) {
+          return handleApiError(request, {
+            type: "internal_server_error",
+            details: [{ field: "format", issue: "Failed to generate file export" }],
+          });
+        }
+      }
 
       const environmentResponses: Response[] = [];
       const res = await getResponses(environmentIds, query);

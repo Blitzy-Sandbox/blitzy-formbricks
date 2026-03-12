@@ -183,6 +183,12 @@ export const SelectedRowSettings = <T,>({
                 }}>
                 <p>{t("environments.surveys.summary.selected_responses_excel")}</p>
               </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={() => {
+                  handleDownloadSelectedRows("json");
+                }}>
+                <p>{t("environments.surveys.summary.selected_responses_json")}</p>
+              </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
         )}

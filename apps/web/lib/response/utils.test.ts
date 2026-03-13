@@ -336,6 +336,14 @@ describe("Response Utils", () => {
       const result = getResponsesFileName(surveyName, extension);
       expect(result).toContain("export-test_survey-");
     });
+
+    test("should generate correct filename with json extension", () => {
+      const surveyName = "Test Survey";
+      const extension = "json";
+      const result = getResponsesFileName(surveyName, extension);
+      expect(result).toContain("export-test_survey-");
+      expect(result).toMatch(/\.json$/);
+    });
   });
 
   describe("extracMetadataKeys", () => {

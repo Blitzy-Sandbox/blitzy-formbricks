@@ -1,4 +1,4 @@
-# Blitzy Project Guide — Sprint 1: Foundation (Question Types)
+# Blitzy Project Guide — Sprint 2: Logic & Data (Typeform Parity)
 
 ---
 
@@ -6,63 +6,57 @@
 
 ### 1.1 Project Overview
 
-This project implements Sprint 1 (Foundation — Question Types) of the Typeform Parity initiative for the Formbricks open-source survey platform. Two new survey element types — **Opinion Scale** and **Payment** — are added across the full stack: type system (Zod schemas), UI primitives (React), respondent-facing renderers (Preact), survey editor forms, Stripe payment integration, analytics summaries, and 20+ integration touchpoints. The implementation is fully additive, preserving 100% backward compatibility with all 15 existing element types and requiring no SQL migration.
+Sprint 2 ("Logic & Data") of the Formbricks Typeform parity initiative delivers two parallel epics within the Formbricks monorepo. **Epic 2.1 — Logic Operator Parity** systematically verifies that all 20 Typeform logic condition types map to equivalent operators in Formbricks' 32-operator system, confirms `opinionScale` and `payment` element types are fully supported as logic operands, and validates cyclic detection handles all element types. **Epic 2.2 — JSON Response Export** adds `"json"` as a third export format alongside `"csv"` and `"xlsx"` across the full export pipeline — from the conversion layer through the service layer, server actions, UI components, V2 REST API, and all 14 locale files. The implementation prioritizes lossless field parity and includes security hardening (IDOR protection, input truncation, dependency patches).
 
 ### 1.2 Completion Status
 
 ```mermaid
-pie title Project Completion
-    "Completed (127h)" : 127
-    "Remaining (17h)" : 17
+pie title Project Completion (71.0%)
+    "Completed (44h)" : 44
+    "Remaining (18h)" : 18
 ```
 
 | Metric | Value |
 |--------|-------|
-| **Total Project Hours** | 144 |
-| **Completed Hours (AI)** | 127 |
-| **Remaining Hours** | 17 |
-| **Completion Percentage** | 88.2% |
+| **Total Project Hours** | 62h |
+| **Completed Hours (AI)** | 44h |
+| **Remaining Hours** | 18h |
+| **Completion Percentage** | 71.0% |
 
-**Calculation:** 127 completed hours / (127 + 17 remaining hours) × 100 = 88.2%
+**Calculation:** 44h completed / (44h + 18h remaining) = 44/62 = 71.0%
 
 ### 1.3 Key Accomplishments
 
-- ✅ Extended `TSurveyElementTypeEnum` from 15 to 17 members with `OpinionScale` and `Payment`
-- ✅ Defined `ZSurveyOpinionScaleElement` and `ZSurveyPaymentElement` Zod schemas with full type-specific validation
-- ✅ Created React UI primitives for OpinionScale (number/smiley/star visual styles) and Payment (Stripe Elements wrapper)
-- ✅ Created Preact respondent-facing renderers with TTC tracking, i18n, and validation messaging
-- ✅ Created editor form components (`OpinionScaleElementForm`, `PaymentElementForm`) following existing patterns
-- ✅ Implemented Stripe PaymentIntent server action with idempotency keys, metadata, and comprehensive error handling
-- ✅ Created API route `/api/v1/client/payment-intent` for cross-origin embedded survey support
-- ✅ Created analytics summary components (`OpinionScaleSummary`, `PaymentSummary`)
-- ✅ Extended 20+ integration touchpoints (API v2, pipeline, email, prefill, Notion, response export, block builder)
-- ✅ All 9 packages build successfully; 5,110 tests passing (100% in-scope pass rate)
-- ✅ Updated all 3 OpenAPI specifications with new element type schemas
-- ✅ Added comprehensive Storybook coverage for both UI components
-- ✅ 87 commits, 82 source files changed, 7,925 lines added
+- ✅ Verified 100% Typeform logic operator coverage (20/20 operators mapped across 32 Formbricks operators)
+- ✅ Confirmed `opinionScale` and `payment` element types fully supported in logic evaluation, web utils, and rule engine editor
+- ✅ Implemented `convertToJson` function with field normalization ensuring lossless export parity
+- ✅ Extended `getResponseDownloadFile` to accept `"json"` format with proper routing
+- ✅ Added JSON download options to CustomFilter, ResponseTable, and selected-row-settings UI components
+- ✅ Implemented V2 Management API format-based export with environment authorization and proper Content-Type headers
+- ✅ Added JSON i18n labels to all 14 locale files (42 new translation keys total)
+- ✅ Created 12 comprehensive unit tests for `convertToJson` covering lossless fidelity metrics
+- ✅ Applied security fixes: React CVE patch, IDOR authorization, Zod input truncation, 6+ dependency overrides
+- ✅ Achieved 174/174 in-scope tests passing (100%), zero TypeScript errors, zero lint violations
 
 ### 1.4 Critical Unresolved Issues
 
 | Issue | Impact | Owner | ETA |
 |-------|--------|-------|-----|
-| Stripe secret key not provisioned for production | Payment element non-functional without valid `STRIPE_SECRET_KEY` | DevOps / Engineering | 1–2 days |
-| No E2E integration test with real Stripe test mode | Cannot validate full payment flow end-to-end | QA Team | 2–3 days |
-| 7 pre-existing test failures in out-of-scope modules | No impact on Sprint 1 features; crypto/auth/license test issues | Maintenance Team | N/A |
+| 15 pre-existing test failures in unrelated modules (crypto, auth, license, storage) | Low — not caused by Sprint 2; may block full CI pipeline | Human Developer | 1–2 days |
+| Lossless export validation against all 7 fidelity metrics not yet performed with real survey data | Medium — unit tests cover key metrics but full-pipeline validation pending | Human Developer | 1 day |
+| No E2E tests for JSON download UI workflow | Medium — UI changes verified via code review but not browser-automated | Human Developer | 1–2 days |
 
 ### 1.5 Access Issues
 
-| System/Resource | Type of Access | Issue Description | Resolution Status | Owner |
-|-----------------|---------------|-------------------|-------------------|-------|
-| Stripe API | Secret Key (`STRIPE_SECRET_KEY`) | Production/test Stripe secret key required for Payment element | Pending provisioning | DevOps |
-| Stripe Webhooks | Webhook Secret (`STRIPE_WEBHOOK_SECRET`) | Webhook endpoint not yet configured for payment status callbacks | Pending setup | DevOps |
+No access issues identified. All files modified are within the monorepo, and no external service credentials, third-party API keys, or special repository permissions were required for Sprint 2 implementation.
 
 ### 1.6 Recommended Next Steps
 
-1. **[High]** Provision Stripe test-mode API keys (`STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`) and configure environment variables for staging
-2. **[High]** Execute end-to-end integration testing: create survey with OpinionScale + Payment → complete as respondent → verify analytics
-3. **[Medium]** Conduct security review of Stripe integration for PCI compliance verification (client-side tokenization, no server-side card data)
-4. **[Medium]** Perform load testing on the `/api/v1/client/payment-intent` endpoint under concurrent survey submissions
-5. **[Low]** Review and polish minor AAP-listed files (`shared-conditions-factory.ts`, `advanced-settings.tsx`) that handle new types generically — verify no type-specific conditions are needed
+1. **[High]** Run integration tests with a real PostgreSQL database and survey data to validate the full JSON export pipeline end-to-end
+2. **[High]** Implement E2E tests (Playwright) for the JSON download UI workflow across CustomFilter, ResponseTable, and selected-row-settings
+3. **[Medium]** Perform comprehensive lossless export validation against all 7 fidelity metrics from `export-parity.mdx` with edge-case survey responses (unicode, file references, metadata fields)
+4. **[Medium]** Investigate and triage the 15 pre-existing test failures in unrelated modules to ensure CI pipeline passes cleanly
+5. **[Low]** Conduct human code review of V2 API format export path focusing on authorization model and error handling
 
 ---
 
@@ -72,136 +66,129 @@ pie title Project Completion
 
 | Component | Hours | Description |
 |-----------|-------|-------------|
-| Type System Foundation | 12 | Enum extension (constants.ts), Zod schemas (elements.ts), validation rules, elements-validation label maps, ZSurvey superRefine + summary types in types.ts |
-| Survey UI Primitives | 20 | OpinionScale React component (447 lines, 3 visual styles), Payment React component (226 lines, Stripe Elements), Storybook stories (422 lines), barrel + vite config |
-| Survey Renderer | 16 | OpinionScaleElement Preact renderer (74 lines), PaymentElement Preact renderer (335 lines, Stripe integration), element-conditional dispatcher, logic evaluation, recall formatting, package.json Stripe deps |
-| Survey Editor | 16 | OpinionScaleElementForm (202 lines), PaymentElementForm (176 lines), element registry presets/icons, block-card registration, logic-rule-engine entries, utils.tsx updates |
-| Payment Server Action | 10 | createPaymentIntentAction server action (78 lines), Stripe helper module (132 lines), payment-intent API route (100 lines), idempotency keys + metadata |
-| Analytics & Summary | 12 | OpinionScaleSummary (198 lines), PaymentSummary (93 lines), SummaryList switch cases, surveySummary computation, response/service + responses + RenderResponse + surveyLogic updates |
-| Integration & Auxiliary | 11 | API v2 element handling, pipeline integrations, Notion constants, prefill (transformers/types/validators), email (index/utils/example-data/follow-up), survey-block-builder, surveys.ts, i18n keys, doc updates |
-| Test Suite | 20 | 5 new test files (1,784 lines), 20 modified test files (3,030 lines added), 4,814 total test lines covering all new components |
-| OpenAPI Specifications | 3 | Updated openapi.json, openapi.yml (v2), openapi.yml (root) with opinionScale and payment element type schemas |
-| Bug Fixes & QA | 5 | 4 Refine PR fixes (Stripe empty options, error handling, idempotency key, metadata), QA findings resolution, code review findings |
-| Documentation | 2 | Updated opinion-scale.mdx, payment.mdx, sprint-roadmap.mdx, gap-report.mdx, question-type-parity.mdx |
-| **Total** | **127** | |
+| **Epic 2.1 — Operator Mapping Verification** | 2.0 | Systematic cross-reference of 32 Formbricks operators against 20 Typeform operators in `logic-parity.mdx`; confirmed 100% coverage in `logic.ts` |
+| **Epic 2.1 — OpinionScale/Payment Logic Verification** | 2.5 | Verified numeric handling in `logic.ts` (line 111), `utils.ts` (line 536), and rule engine (lines 409, 445); confirmed isSubmitted/isSkipped paths for Payment |
+| **Epic 2.1 — Cyclic Detection Verification** | 1.0 | Confirmed `findBlocksWithCyclicLogic` DFS operates at block level; element-type-agnostic |
+| **Epic 2.1 — Test Coverage Verification** | 2.0 | Verified 100 tests across 3 suites (logic.test.ts: 46, utils.test.ts: 28, rule-engine.test.ts: 26) cover OpinionScale and Payment |
+| **Epic 2.1 — Documentation Cross-Reference** | 0.5 | Cross-referenced sprint-roadmap.mdx, logic-parity.mdx, question-type-parity.mdx |
+| **Epic 2.2 — convertToJson Function** | 3.0 | Implemented `convertToJson` in `file-conversion.ts` with field normalization ensuring lossless parity across all export formats |
+| **Epic 2.2 — Service Layer Extension** | 2.0 | Modified `getResponseDownloadFile` format union to `"csv" \| "xlsx" \| "json"`, added JSON branch routing to `convertToJson` |
+| **Epic 2.2 — Server Action Schema** | 0.5 | Extended `ZGetResponsesDownloadUrlAction` format schema to include `z.literal("json")` |
+| **Epic 2.2 — Browser Download Utility** | 1.5 | Added JSON MIME type (`application/json;charset=utf-8`) and file extension handling in `downloadResponsesFile` |
+| **Epic 2.2 — CustomFilter UI** | 2.5 | Added 2 JSON DropdownMenuItems (All/Filtered) with data-testid attributes; extended `handleDownloadResponses` type |
+| **Epic 2.2 — ResponseTable + Selected-Row Settings** | 1.5 | Extended `downloadSelectedRows` format type; added JSON button to selected-row-settings dropdown |
+| **Epic 2.2 — Data-Table Toolbar Verification** | 0.5 | Verified `downloadRowsAction` uses `format: string` — naturally accepts "json" |
+| **Epic 2.2 — V2 API Route Handler** | 5.0 | Implemented format detection, `getResponseDownloadFile` integration, environment authorization, Content-Type mapping, XLSX binary handling, error handling |
+| **Epic 2.2 — V2 API Schema + OpenAPI** | 2.5 | Added `format` field to `ZGetResponsesFilter`; added CSV/XLSX content types to OpenAPI spec; updated V2 YAML with response content types |
+| **Epic 2.2 — OpenAPI Spec Review** | 1.5 | Verified V2 YAML already documents format enum; removed undocumented V1 format param that had no backing implementation |
+| **Epic 2.2 — Localization (14 files)** | 2.0 | Added `all_responses_json`, `filtered_responses_json`, `selected_responses_json` labels to all 14 locale files |
+| **Epic 2.2 — File Conversion Tests** | 4.0 | Created 12 comprehensive unit tests covering JSON validity, type preservation, unicode, empty arrays, large datasets, field normalization, field ordering |
+| **Epic 2.2 — Response Utils Test** | 1.0 | Added JSON extension test case for `getResponsesFileName`; verified 62/62 tests passing |
+| **Epic 2.2 — Integration & Debugging** | 2.5 | Resolved field normalization issue for lossless parity; iterative fix/test cycles |
+| **Security — Zod Input Truncation** | 1.0 | Added MAX_ERROR_MESSAGE_LENGTH truncation in `formatZodError` to prevent log pollution and reflection attacks |
+| **Security — Cache-Control Headers** | 0.5 | Added `private, no-store` Cache-Control to all V2 format export responses |
+| **Security — React CVE Fix** | 1.0 | Upgraded React/ReactDOM from 19.2.3 → 19.2.4 in root and web `package.json`; regenerated `pnpm-lock.yaml` |
+| **Security — Dependency Overrides** | 2.0 | Updated pnpm overrides for axios (≥1.13.5), tar (≥7.5.8), qs (≥6.14.2), fast-xml-parser (≥5.3.5), brace-expansion (≥5.0.1), minimatch (≥3.1.3) |
+| **Security — IDOR Authorization** | 1.0 | Added environment permission check to V2 format export path (CWE-639 prevention) |
+| **Documentation — Sprint Roadmap Fix** | 0.5 | Corrected CustomFilter.tsx path reference from `summary/components/` to `components/` |
+| **Total** | **44.0** | |
 
 ### 2.2 Remaining Work Detail
 
 | Category | Base Hours | Priority | After Multiplier |
 |----------|-----------|----------|-----------------|
-| Stripe Production Configuration | 3 | High | 3.5 |
-| End-to-End Integration Testing | 4 | High | 5 |
-| Security Review (PCI Compliance) | 2 | Medium | 2.5 |
-| Conditions Factory Verification | 1 | Low | 1 |
-| Performance & Load Testing | 2 | Medium | 2.5 |
-| Code Review & Final Polish | 2 | Low | 2.5 |
-| **Total** | **14** | | **17** |
+| Integration testing — full JSON export pipeline with real DB and survey data | 3.0 | High | 3.5 |
+| E2E testing — Playwright tests for JSON download UI workflow (CustomFilter, ResponseTable, selected-row-settings) | 3.0 | High | 3.5 |
+| V2 API integration testing — authenticated format export requests with real responses | 2.0 | High | 2.5 |
+| Lossless export validation — verify all 7 fidelity metrics from `export-parity.mdx` with edge-case data | 2.0 | Medium | 2.5 |
+| Pre-existing test failure triage — investigate 15 failures in crypto, auth, license, storage modules | 1.5 | Medium | 2.0 |
+| Code review and merge — human review of 33 modified files, security review of V2 API export path | 2.0 | Medium | 2.5 |
+| Production deployment verification — validate export pipeline in staging/production environment | 1.0 | Low | 1.5 |
+| **Total** | **14.5** | | **18.0** |
 
 ### 2.3 Enterprise Multipliers Applied
 
 | Multiplier | Value | Rationale |
 |-----------|-------|-----------|
-| Compliance (Stripe/PCI) | 1.10× | Payment processing requires PCI compliance verification and Stripe security best-practices review |
-| Uncertainty Buffer | 1.10× | Stripe test-mode integration may uncover edge cases in connected account flows and webhook handling |
-| **Combined** | **1.21×** | Applied to all remaining base hours: 14 × 1.21 ≈ 17 hours |
+| Compliance Review | 1.10x | Security-sensitive API endpoint changes require compliance review; IDOR and input validation patterns need verification |
+| Uncertainty Buffer | 1.10x | Integration with real database data may reveal edge cases not covered by unit tests; pre-existing failures may need deeper investigation |
+| **Combined** | **1.21x** | Applied to all remaining base hour estimates |
 
 ---
 
 ## 3. Test Results
 
 | Test Category | Framework | Total Tests | Passed | Failed | Coverage % | Notes |
-|--------------|-----------|-------------|--------|--------|------------|-------|
-| Unit — @formbricks/logger | Vitest | 10 | 10 | 0 | — | All passing |
-| Unit — @formbricks/cache | Vitest | 147 | 147 | 0 | — | All passing |
-| Unit — @formbricks/storage | Vitest | 64 | 64 | 0 | — | All passing |
-| Unit — @formbricks/i18n-utils | Vitest | 56 | 56 | 0 | — | All passing |
-| Unit — @formbricks/survey-ui | Vitest | 118 | 118 | 0 | — | Includes new OpinionScale + Payment UI tests |
-| Unit — @formbricks/surveys | Vitest | 609 | 609 | 0 | — | Includes new renderer, logic, recall, validation tests |
-| Unit — @formbricks/js-core | Vitest | 229 | 229 | 0 | — | All passing |
-| Unit — @formbricks/web | Vitest | 3884 | 3877 | 7 | — | 7 failures are pre-existing in out-of-scope modules |
-| **Total** | **Vitest** | **5117** | **5110** | **7** | **—** | **100% in-scope pass rate** |
+|--------------|-----------|-------------|--------|--------|-----------|-------|
+| Unit — Logic Evaluation | Vitest | 46 | 46 | 0 | — | `packages/surveys/src/lib/logic.test.ts` — covers all operators including OpinionScale and Payment |
+| Unit — Web Survey Logic Utils | Vitest | 28 | 28 | 0 | — | `apps/web/lib/surveyLogic/utils.test.ts` — covers OpinionScale numeric conversion and Payment isSubmitted |
+| Unit — Logic Rule Engine | Vitest | 26 | 26 | 0 | — | `apps/web/modules/survey/editor/lib/logic-rule-engine.test.ts` — covers OpinionScale and Payment operator sets |
+| Unit — File Conversion (JSON) | Vitest | 12 | 12 | 0 | — | `apps/web/lib/utils/file-conversion.test.ts` — covers lossless fidelity: types, unicode, truncation, field normalization |
+| Unit — Response Utils | Vitest | 62 | 62 | 0 | — | `apps/web/lib/response/utils.test.ts` — includes JSON extension test for `getResponsesFileName` |
+| **Total In-Scope** | **Vitest** | **174** | **174** | **0** | **100%** | All tests from Blitzy autonomous validation |
 
-**Pre-existing failures (out-of-scope):**
-- `lib/crypto.test.ts` (1) — hashSecret timing/salt issue
-- `modules/storage/utils.test.ts` (1) — timeout on importActual
-- `modules/auth/lib/utils.test.ts` (2) — bcrypt timeout in test environment
-- `modules/ee/license-check/lib/license.test.ts` (2) — mock/timeout issues
-
-**Key in-scope test files (all passing):**
-- `modules/survey/payment/__tests__/actions.test.ts` — 14/14 ✓
-- `packages/survey-ui/src/components/elements/__tests__/opinion-scale.test.tsx` — All passing ✓
-- `packages/survey-ui/src/components/elements/__tests__/payment.test.tsx` — All passing ✓
-- `packages/surveys/src/components/elements/__tests__/opinion-scale-element.test.tsx` — All passing ✓
-- `packages/surveys/src/components/elements/__tests__/payment-element.test.tsx` — All passing ✓
-- 20 additional modified test files — All passing ✓
+**Note:** 15 pre-existing test failures exist in out-of-scope modules (crypto: 2, auth: 2, auth-utils: 2, license: 4, storage: 5). These failures are unrelated to Sprint 2 changes and were present before the branch was created.
 
 ---
 
 ## 4. Runtime Validation & UI Verification
 
-**Build Validation:**
-- ✅ `packages/logger` — Compiled successfully
-- ✅ `packages/cache` — Compiled successfully
-- ✅ `packages/database` — Compiled successfully
-- ✅ `packages/storage` — Compiled successfully
-- ✅ `packages/i18n-utils` — Compiled successfully
-- ✅ `packages/survey-ui` — Compiled successfully (includes OpinionScale + Payment UI)
-- ✅ `packages/surveys` — Compiled successfully (includes Preact renderers + Stripe deps)
-- ✅ `packages/js-core` — Compiled successfully
-- ✅ `packages/email` — Type-checked successfully (tsc --noEmit)
+**TypeScript Compilation:**
+- ✅ `packages/types` — Zero errors
+- ✅ `packages/surveys` — Zero errors
+- ✅ `apps/web` — Zero errors in all in-scope modified files
 
-**Type System Validation:**
-- ✅ `TSurveyElementTypeEnum` extended to 17 members — no type errors
-- ✅ `ZSurveyOpinionScaleElement` schema parses correctly with scaleRange, lowerLabel, upperLabel, visualStyle, isColorCodingEnabled
-- ✅ `ZSurveyPaymentElement` schema parses correctly with currency, amount, stripeIntegration, buttonLabel
-- ✅ `ZSurveyElement` union includes both new schemas appended after existing 15
-- ✅ ZSurvey superRefine validates OpinionScale range boundaries and Payment Stripe configuration
+**Linting & Formatting:**
+- ✅ Prettier — All modified `.ts`/`.tsx`/`.json` files pass formatting check
+- ✅ ESLint — All modified `.ts`/`.tsx` files pass with zero violations
 
-**Backward Compatibility:**
-- ✅ All 15 existing element types compile and render unchanged
-- ✅ No SQL migration required — JSON columns remain untyped
-- ✅ Enum string values immutable (`"opinionScale"`, `"payment"`)
-- ✅ Zod union evaluation order preserved (new schemas appended last)
+**Code Changes Validation:**
+- ✅ `convertToJson` function — Field normalization ensures all records include all header fields
+- ✅ `getResponseDownloadFile` — JSON branch correctly routes to `convertToJson`, returns string (not base64)
+- ✅ `downloadResponsesFile` — JSON uses `application/json;charset=utf-8` MIME type; correct `.json` extension
+- ✅ CustomFilter.tsx — 6 dropdown items (All/Filtered × CSV/XLSX/JSON) with proper event handlers
+- ✅ V2 API route handler — Format detection, environment authorization, Content-Type mapping, binary vs text response handling
 
-**Stripe Integration:**
-- ✅ `@stripe/stripe-js@8.9.0` and `@stripe/react-stripe-js@5.6.1` installed in `packages/surveys`
-- ✅ Server-side Stripe SDK (`stripe@16.12.0`) used only in `apps/web/modules/survey/payment/`
-- ⚠️ Requires `STRIPE_SECRET_KEY` environment variable for runtime operation
-- ⚠️ Webhook handler for payment status callbacks not yet configured
+**API Integration:**
+- ✅ V2 API responses route — `format` query parameter parsed via `ZGetResponsesFilter`
+- ✅ Authorization — Environment permission checked before export; IDOR protection (CWE-639)
+- ✅ Content-Type mapping — `application/json`, `text/csv`, `application/vnd.openxmlformats-officedocument.spreadsheetml.sheet`
+- ✅ Cache-Control — `private, no-store` on all export responses
+- ⚠️ E2E browser testing — Not yet performed; requires Playwright test implementation
 
-**UI Component Verification:**
-- ✅ OpinionScale: number/smiley/star visual styles implemented with 5/7/10 scale ranges
-- ✅ Payment: Stripe `<CardElement>` wrapper with currency formatting and processing states
-- ✅ Storybook stories cover default, variant, RTL, and disabled scenarios
+**Localization:**
+- ✅ All 14 locale files contain all 3 JSON download labels (42 keys total)
 
 ---
 
 ## 5. Compliance & Quality Review
 
-| Compliance Area | Requirement | Status | Evidence |
-|----------------|-------------|--------|----------|
-| Backward Compatibility | All 15 existing element types parse unchanged | ✅ Pass | 5,110 tests passing; no type errors |
-| Enum Immutability | `"opinionScale"` and `"payment"` string values locked | ✅ Pass | Defined as `z.literal()` discriminants |
-| No SQL Migration | Element types stored as JSON, no DB enum changes | ✅ Pass | No Prisma migration files created |
-| Zod Union Order | New schemas appended after existing 15 | ✅ Pass | Verified in elements.ts (lines 354–370) |
-| i18n Support | All user-facing labels use `ZI18nString` | ✅ Pass | lowerLabel, upperLabel, buttonLabel all i18n-ready |
-| TTC Tracking | Respondent components integrate time-to-completion hooks | ✅ Pass | Both renderers use `getUpdatedTtc`/`useTtc` |
-| PCI Compliance | Card details never touch Formbricks server | ✅ Pass | Client-side `<CardElement>` tokenization only |
-| Error Handling | Stripe errors surfaced with user-friendly messages | ✅ Pass | StripeConnectionError, RateLimitError, AuthenticationError handled |
-| Idempotency | PaymentIntent creation uses idempotency key | ✅ Pass | Key format: `pi_{surveyId}_{amount}_{currency}` |
-| Build Success | All 9 packages compile without errors | ✅ Pass | Verified across all packages |
-| Test Coverage | All new components have unit tests | ✅ Pass | 25 test files, 4,814 lines of test code |
-| OpenAPI Specs | New types added to all API specifications | ✅ Pass | openapi.json, openapi.yml (v2), openapi.yml (root) |
+| AAP Deliverable | Status | Evidence | Notes |
+|----------------|--------|----------|-------|
+| Map all Typeform operators → Formbricks equivalents | ✅ Pass | 20/20 mapped in `logic-parity.mdx`; 32 operators in `logic.ts` | Zero gaps found |
+| OpinionScale logic support (8 operators) | ✅ Pass | `logic.ts` L111, `utils.ts` L536, `rule-engine.ts` L409 | Numeric handling verified |
+| Payment logic support (isSubmitted/isSkipped) | ✅ Pass | `logic.ts`, `utils.ts` L409, `rule-engine.ts` L445 | Generic string check verified |
+| Cyclic detection handles new types | ✅ Pass | `blocks-validation.ts` DFS at block level | Element-type-agnostic |
+| Comprehensive logic test coverage | ✅ Pass | 100/100 tests across 3 suites | OpinionScale + Payment covered |
+| convertToJson function (lossless) | ✅ Pass | `file-conversion.ts` + 12 unit tests | Field normalization ensures parity |
+| Extend format parameter in service | ✅ Pass | `service.ts` format union extended | JSON branch added at L427 |
+| Update download UI (CustomFilter) | ✅ Pass | 2 new DropdownMenuItems with data-testid | JSON for All + Filtered |
+| Update ResponseTable + selected-row-settings | ✅ Pass | Format type extended; JSON button added | Consistent with CSV/XLSX pattern |
+| Expose V2 API JSON export | ✅ Pass | `route.ts` + `responses.ts` + `openapi.ts` | Auth + Content-Type + error handling |
+| Localization (14 files) | ✅ Pass | All files verified with grep | 3 keys × 14 files = 42 |
+| Server action schema extension | ✅ Pass | `actions.ts` z.literal("json") added | Zod validation |
+| Browser download utility | ✅ Pass | `utils.ts` JSON MIME + extension | application/json;charset=utf-8 |
+| V1/V2 OpenAPI spec alignment | ✅ Pass | V1 param removed (no backing impl); V2 YAML content types added | Spec matches implementation |
+| Security — IDOR protection | ✅ Pass | Environment auth check in V2 export path | CWE-639 mitigation |
+| Security — Input truncation | ✅ Pass | Zod error message truncation at 100 chars | Log pollution prevention |
+| Security — React CVE | ✅ Pass | 19.2.3 → 19.2.4 | Patch applied |
+| Security — Dependency overrides | ✅ Pass | 6+ packages patched in pnpm overrides | GHSA advisories addressed |
 
-**Fixes Applied During Autonomous Validation:**
-1. Stripe options `{}` bug — Changed fallback from `{}` to `undefined` to prevent Stripe SDK v16 error
-2. Incomplete Stripe error handling — Added StripeConnectionError, RateLimitError, AuthenticationError cases
-3. Missing idempotency key — Added `pi_{surveyId}_{amount}_{currency}` key pattern
-4. Missing PaymentIntent metadata — Added `metadata: { surveyId }` for Stripe Dashboard traceability
-5. i18n keys for Opinion Scale & Payment — Added to `en-US.json`
-6. Payment amount NaN guard — Added defense-in-depth validation
-7. DOMPurify CVE-2026-0540 patch applied
-8. Test environment issues resolved for new test files
+**Autonomous Validation Fixes Applied:**
+1. Normalized JSON export records to include all header fields for lossless field parity
+2. Added environment authorization to V2 format export path (IDOR CWE-639)
+3. Addressed QA security findings: Zod input truncation, Cache-Control headers, React CVE, dependency vulnerabilities
+4. Resolved QA documentation findings: removed undocumented V1 format param, fixed CustomFilter path, added V2 YAML content types
 
 ---
 
@@ -209,14 +196,14 @@ pie title Project Completion
 
 | Risk | Category | Severity | Probability | Mitigation | Status |
 |------|----------|----------|-------------|------------|--------|
-| Stripe secret key not configured | Operational | High | High | Provision `STRIPE_SECRET_KEY` in environment; Payment element gracefully degrades without it | Open |
-| Stripe webhook not configured | Integration | Medium | High | Set up `/api/webhooks/stripe` endpoint and `STRIPE_WEBHOOK_SECRET` for payment status updates | Open |
-| Connected Stripe account flow untested | Integration | Medium | Medium | Test with Stripe Connect test-mode accounts before production | Open |
-| `shared-conditions-factory.ts` not explicitly updated | Technical | Low | Low | Logic rules registered in `logic-rule-engine.ts`; conditions factory delegates generically; verify in code review | Open |
-| `evaluator.ts` not explicitly updated for new types | Technical | Low | Low | Tests pass (89 lines added); generic validation via `APPLICABLE_RULES` works correctly | Mitigated |
-| Pre-existing test failures (7) in auth/crypto/license modules | Technical | Low | N/A | Unrelated to Sprint 1; pre-existing issues in out-of-scope modules | Accepted |
-| Stripe rate limiting under high survey volume | Operational | Medium | Low | Idempotency keys prevent duplicate charges; implement retry with backoff if needed | Mitigated |
-| Currency formatting edge cases | Technical | Low | Low | `formatPaymentAmount` tested with USD/EUR/GBP; additional currencies out of scope | Mitigated |
+| JSON export produces large files for surveys with many responses | Technical | Medium | Medium | `convertToJson` uses streaming-compatible pattern; cursor-based batching in `getResponseDownloadFile` limits memory | Mitigated |
+| V2 API format export bypasses pagination for file downloads | Technical | Low | Low | Export calls existing `getResponseDownloadFile` which uses cursor-based batching with configurable batch size | Mitigated |
+| Pre-existing test failures mask Sprint 2 regressions in CI | Technical | Medium | Medium | Sprint 2 tests isolated to 5 suites (174 tests); pre-existing failures in unrelated modules documented | Partially Mitigated |
+| Zod error messages reflecting user input in API responses | Security | Medium | Low | Truncation at 100 characters applied in `formatZodError`; prevents log pollution and reflection | Mitigated |
+| IDOR in V2 format export (accessing surveys from other environments) | Security | High | Low | Environment permission check added before `getResponseDownloadFile` call | Mitigated |
+| JSON export may not preserve all metadata fields in edge cases | Operational | Medium | Low | Field normalization ensures all header fields present; 12 unit tests verify lossless metrics; full pipeline validation pending | Partially Mitigated |
+| Missing E2E tests for JSON download workflow | Operational | Medium | Medium | Manual code review confirms correct wiring; Playwright tests needed for browser-level validation | Open |
+| V2 API error responses may leak internal details | Security | Low | Low | Generic error messages used; Zod truncation prevents oversized input reflection | Mitigated |
 
 ---
 
@@ -224,21 +211,21 @@ pie title Project Completion
 
 ```mermaid
 pie title Project Hours Breakdown
-    "Completed Work" : 127
-    "Remaining Work" : 17
+    "Completed Work" : 44
+    "Remaining Work" : 18
 ```
 
-**Remaining Hours by Category:**
+**Remaining Work by Category:**
 
-| Category | Hours (After Multiplier) |
-|----------|------------------------|
-| Stripe Production Configuration | 3.5 |
-| End-to-End Integration Testing | 5 |
-| Security Review (PCI) | 2.5 |
-| Conditions Factory Verification | 1 |
-| Performance & Load Testing | 2.5 |
-| Code Review & Polish | 2.5 |
-| **Total Remaining** | **17** |
+| Category | Hours (After Multiplier) | Priority |
+|----------|------------------------|----------|
+| Integration Testing | 3.5 | High |
+| E2E Testing | 3.5 | High |
+| V2 API Testing | 2.5 | High |
+| Lossless Validation | 2.5 | Medium |
+| Test Failure Triage | 2.0 | Medium |
+| Code Review & Merge | 2.5 | Medium |
+| Deployment Verification | 1.5 | Low |
 
 ---
 
@@ -246,28 +233,30 @@ pie title Project Hours Breakdown
 
 ### Achievements
 
-Sprint 1 (Foundation — Question Types) has been delivered at **88.2% completion** (127 of 144 total project hours). The autonomous implementation spans the full stack: type definitions, UI components, survey renderers, editor forms, Stripe payment integration, analytics summaries, and 20+ integration touchpoints across 82 source files with 7,925 lines added. All 9 monorepo packages build successfully, and 5,110 tests pass with a 100% in-scope pass rate.
+Sprint 2 ("Logic & Data") is **71.0% complete** (44h completed out of 62h total). All AAP-scoped deliverables have been fully implemented and autonomously validated:
+
+- **Epic 2.1 (Logic Operator Parity):** 100% verified — all 20 Typeform operators confirmed mapped, `opinionScale` and `payment` element types fully supported across all logic layers, cyclic detection validated, 100 tests passing.
+- **Epic 2.2 (JSON Response Export):** 100% implemented — `convertToJson` with field normalization, full pipeline from service → actions → browser download → UI → V2 API, all 14 locales updated, 74 tests passing.
+- **Security hardening:** IDOR protection, input truncation, React CVE patch, 6+ dependency override updates.
 
 ### Remaining Gaps
 
-The remaining 17 hours (11.8%) consist entirely of path-to-production activities that require human-provisioned credentials and manual validation:
+The 18 remaining hours consist entirely of **path-to-production** activities — no AAP-scoped implementation work is outstanding:
 
-1. **Stripe credential provisioning** (3.5h) — The Payment element requires `STRIPE_SECRET_KEY` and `STRIPE_WEBHOOK_SECRET` environment variables that must be provisioned from a Stripe dashboard
-2. **End-to-end integration testing** (5h) — Full survey lifecycle testing with real Stripe test-mode transactions
-3. **Security/PCI review** (2.5h) — Verification that client-side Stripe Elements tokenization meets compliance requirements
-4. **Performance testing** (2.5h) — Load testing the payment intent creation endpoint
-5. **Minor verification and polish** (3.5h) — Code review of generic handling in conditions factory, advanced settings, and final polish
-
-### Critical Path to Production
-
-1. Provision Stripe API keys for staging environment
-2. Execute E2E integration test suite with Stripe test mode
-3. Security review sign-off on PCI compliance
-4. Deploy to staging → smoke test → production rollout
+1. **Integration and E2E testing (9.5h):** Full-pipeline tests with real database data and Playwright browser automation for the JSON download UI workflow
+2. **Validation and triage (4.5h):** Comprehensive lossless export validation against all 7 fidelity metrics; investigation of 15 pre-existing test failures
+3. **Review and deployment (4.0h):** Human code review, security review of V2 API changes, staging/production deployment verification
 
 ### Production Readiness Assessment
 
-The codebase is **production-ready pending Stripe credential provisioning and E2E validation**. The type system, UI components, renderers, editor, analytics, and all integration touchpoints are fully implemented and tested. No SQL migration is required. Backward compatibility with all existing surveys is maintained. The 4 Refine PR fixes have been applied and validated.
+The codebase is **production-ready from a code quality perspective**: zero compilation errors, zero lint violations, 174/174 in-scope tests passing, and security hardening applied. The remaining work is standard pre-deployment validation that requires human judgment and access to production-like environments.
+
+### Critical Path to Production
+
+1. Integration testing with real survey data (validates lossless export end-to-end)
+2. E2E testing with Playwright (validates UI workflow in browser)
+3. Human code review (validates architectural decisions and security model)
+4. Staging deployment and smoke testing
 
 ---
 
@@ -275,137 +264,122 @@ The codebase is **production-ready pending Stripe credential provisioning and E2
 
 ### System Prerequisites
 
-| Requirement | Version | Notes |
-|------------|---------|-------|
-| Node.js | ≥20.0.0 (22.1.0 recommended) | Check `.nvmrc` for exact version |
-| pnpm | 10.28.2 | Specified in `package.json` `packageManager` field |
-| Docker & Docker Compose | Latest stable | Required for PostgreSQL, Valkey, and Mailhog |
+| Software | Required Version | Notes |
+|----------|-----------------|-------|
+| Node.js | ≥20.0.0 (recommended: 22.1.0) | `.nvmrc` pins 22.1.0 |
+| pnpm | 10.28.2 | Specified in `packageManager` field |
+| Docker + Docker Compose | Latest stable | For local PostgreSQL, MailHog, Valkey, MinIO |
 | Git | Latest stable | For version control |
 
 ### Environment Setup
 
 ```bash
-# 1. Clone the repository and checkout the branch
+# 1. Clone the repository and checkout the Sprint 2 branch
 git clone <repository-url>
 cd formbricks
-git checkout blitzy-81b655fe-d459-4b7e-ace6-e1e10f71ccbe
+git checkout blitzy-242072a5-c376-446a-af06-485d4f2946f1
 
-# 2. Install Node.js (if using nvm)
-nvm install
-nvm use
+# 2. Use correct Node.js version
+nvm use  # reads .nvmrc → 22.1.0
 
-# 3. Copy and configure environment variables
+# 3. Enable pnpm via Corepack
+corepack enable
+corepack prepare pnpm@10.28.2 --activate
+
+# 4. Copy environment configuration
 cp .env.example .env
 
-# 4. Edit .env with required values:
-# - DATABASE_URL (default: postgresql://postgres:postgres@localhost:5432/formbricks?schema=public)
-# - NEXTAUTH_SECRET (generate with: openssl rand -hex 32)
-# - NEXTAUTH_URL=http://localhost:3000
-# - WEBAPP_URL=http://localhost:3000
-# - ENCRYPTION_KEY (generate with: openssl rand -hex 32)
-# - STRIPE_SECRET_KEY=sk_test_... (for Payment element)
-# - STRIPE_WEBHOOK_SECRET=whsec_... (for payment webhooks)
+# 5. Configure required environment variables in .env:
+#    WEBAPP_URL=http://localhost:3000
+#    NEXTAUTH_URL=http://localhost:3000
+#    ENCRYPTION_KEY=<generate with: openssl rand -hex 32>
+#    NEXTAUTH_SECRET=<generate with: openssl rand -hex 32>
+#    CRON_SECRET=<generate with: openssl rand -hex 32>
+#    DATABASE_URL=postgresql://postgres:postgres@localhost:5432/formbricks
 ```
 
 ### Dependency Installation
 
 ```bash
-# 1. Install all dependencies
-pnpm install
+# Install all workspace dependencies (frozen lockfile for reproducibility)
+pnpm install --frozen-lockfile
 
-# 2. Start Docker services (PostgreSQL, Valkey, Mailhog)
+# Start local services (PostgreSQL, MailHog, Valkey, MinIO)
 pnpm db:up
 
-# 3. Generate Prisma client
-pnpm generate
+# Run database migrations
+pnpm db:migrate:deploy
 
-# 4. Run database migrations
-pnpm db:migrate:dev
-
-# 5. Seed the database (optional, for development data)
-pnpm db:seed
-```
-
-### Building the Project
-
-```bash
-# Build all packages in dependency order
+# Build all workspace packages in dependency order
 pnpm build
-
-# Build specific packages (useful during development)
-pnpm build --filter=@formbricks/types
-pnpm build --filter=@formbricks/survey-ui
-pnpm build --filter=@formbricks/surveys
 ```
 
 ### Running Tests
 
 ```bash
-# Run all tests across the monorepo
-CI=true pnpm test -- --watchAll=false
+# Run all Sprint 2 in-scope tests
+cd apps/web
 
-# Run tests for specific packages
-cd packages/survey-ui && pnpm test -- --run
-cd packages/surveys && pnpm test -- --run
-cd apps/web && pnpm test -- --run --watchAll=false
+# Logic evaluation tests (Epic 2.1)
+npx vitest run ../packages/surveys/src/lib/logic.test.ts --no-watch
 
-# Run a specific test file
-cd apps/web && pnpm test -- --run modules/survey/payment/__tests__/actions.test.ts
+# Web logic utils tests (Epic 2.1)
+npx vitest run lib/surveyLogic/utils.test.ts --no-watch
+
+# Logic rule engine tests (Epic 2.1)
+npx vitest run modules/survey/editor/lib/logic-rule-engine.test.ts --no-watch
+
+# File conversion tests including convertToJson (Epic 2.2)
+npx vitest run lib/utils/file-conversion.test.ts --no-watch
+
+# Response utils tests including JSON extension (Epic 2.2)
+npx vitest run lib/response/utils.test.ts --no-watch
+
+# Run all tests at once (from monorepo root)
+cd /path/to/formbricks
+pnpm test -- --no-cache
 ```
 
-### Starting the Application
+### Application Startup
 
 ```bash
-# Start all services in development mode
+# Start the development server (from monorepo root)
 pnpm dev
 
-# The web application will be available at:
-# - http://localhost:3000 (main app)
-# - http://localhost:8025 (Mailhog email viewer)
+# The web app will be available at http://localhost:3000
 ```
 
 ### Verification Steps
 
 ```bash
-# 1. Verify all packages build without errors
-pnpm build
+# 1. Verify TypeScript compilation (zero errors expected)
+cd apps/web
+npx tsc --noEmit --pretty
 
-# 2. Verify TypeScript compilation
-npx tsc --noEmit
+# 2. Verify linting passes
+npx eslint lib/utils/file-conversion.ts lib/response/service.ts --no-fix
 
-# 3. Verify tests pass
-CI=true pnpm test -- --watchAll=false
+# 3. Verify formatting passes
+npx prettier --check "lib/utils/file-conversion.ts" "lib/response/service.ts"
 
-# 4. Verify the new element types are registered
-grep -c "OpinionScale\|Payment" packages/types/surveys/constants.ts
-# Expected output: 2
-
-# 5. Verify Stripe dependencies installed
-grep "@stripe" packages/surveys/package.json
-# Expected: @stripe/stripe-js and @stripe/react-stripe-js listed
-```
-
-### Storybook (Component Development)
-
-```bash
-# Start Storybook for survey-ui components
-cd packages/survey-ui
-pnpm storybook
-
-# View OpinionScale stories at: http://localhost:6006
-# View Payment stories at: http://localhost:6006
+# 4. Verify JSON export function works
+node -e "
+const { convertToJson } = require('./lib/utils/file-conversion');
+const result = convertToJson(['name', 'score'], [{name: 'Test', score: 99}]);
+console.log(result);
+console.log('✅ convertToJson produces valid JSON');
+"
 ```
 
 ### Troubleshooting
 
 | Issue | Resolution |
 |-------|-----------|
-| `pnpm install` fails with lockfile errors | Run `pnpm install --no-frozen-lockfile` |
-| Database connection refused | Ensure Docker is running: `pnpm db:up` |
-| Prisma client not found | Run `pnpm generate` to regenerate |
-| Payment element shows "Stripe not configured" | Set `STRIPE_SECRET_KEY` in `.env` |
-| Tests hang in watch mode | Use `CI=true` prefix or `--watchAll=false` flag |
-| Build fails on `packages/surveys` | Ensure `@stripe/stripe-js` and `@stripe/react-stripe-js` are installed |
+| `pnpm: command not found` | Run `corepack enable && corepack prepare pnpm@10.28.2 --activate` |
+| Database connection errors | Ensure Docker is running and `pnpm db:up` has been executed; verify `DATABASE_URL` in `.env` |
+| Pre-existing test failures (crypto, auth, license, storage) | These are unrelated to Sprint 2; they exist on `main` as well. Sprint 2 tests are isolated to the 5 suites listed above |
+| `Module not found` errors during tests | Run `pnpm build` from monorepo root first to build all workspace packages |
+| XLSX tests fail with missing vendor package | Ensure `vendor/xlsx-0.20.3.tgz` exists; run `pnpm install --frozen-lockfile` |
 
 ---
 
@@ -413,104 +387,82 @@ pnpm storybook
 
 ### A. Command Reference
 
-| Command | Purpose |
-|---------|---------|
-| `pnpm install` | Install all monorepo dependencies |
-| `pnpm build` | Build all packages in dependency order |
-| `pnpm dev` | Start development server |
-| `pnpm db:up` | Start Docker services (Postgres, Valkey, Mailhog) |
-| `pnpm db:down` | Stop Docker services |
-| `pnpm db:migrate:dev` | Run database migrations |
-| `pnpm db:seed` | Seed development database |
-| `pnpm generate` | Generate Prisma client |
-| `pnpm test` | Run all tests |
-| `pnpm fb-migrate-dev` | Create a new database migration |
-| `pnpm clean` | Clean build artifacts |
+| Command | Purpose | Working Directory |
+|---------|---------|-------------------|
+| `pnpm install --frozen-lockfile` | Install all dependencies | Monorepo root |
+| `pnpm build` | Build all workspace packages | Monorepo root |
+| `pnpm dev` | Start development server | Monorepo root |
+| `pnpm test` | Run all tests | Monorepo root |
+| `pnpm db:up` | Start Docker services | Monorepo root |
+| `pnpm db:down` | Stop Docker services | Monorepo root |
+| `pnpm db:migrate:deploy` | Run database migrations | Monorepo root |
+| `npx vitest run <file> --no-watch` | Run specific test file | `apps/web` |
+| `npx tsc --noEmit` | TypeScript type check | `apps/web` |
 
 ### B. Port Reference
 
-| Port | Service |
-|------|---------|
-| 3000 | Formbricks web application |
-| 5432 | PostgreSQL database |
-| 6379 | Valkey (Redis-compatible cache) |
-| 8025 | Mailhog web UI |
-| 1025 | Mailhog SMTP |
-| 6006 | Storybook (when running) |
+| Service | Port | Purpose |
+|---------|------|---------|
+| Next.js Web App | 3000 | Main application |
+| PostgreSQL | 5432 | Primary database |
+| MailHog SMTP | 1025 | Email testing (SMTP) |
+| MailHog UI | 8025 | Email testing (Web UI) |
+| Valkey (Redis) | 6379 | Caching layer |
+| MinIO API | 9000 | Object storage |
+| MinIO Console | 9001 | Object storage UI |
 
 ### C. Key File Locations
 
 | File | Purpose |
 |------|---------|
-| `packages/types/surveys/constants.ts` | `TSurveyElementTypeEnum` definition (17 members) |
-| `packages/types/surveys/elements.ts` | All Zod element schemas including `ZSurveyOpinionScaleElement` and `ZSurveyPaymentElement` |
-| `packages/types/surveys/types.ts` | `ZSurvey` schema with superRefine validation and summary types |
-| `packages/survey-ui/src/components/elements/opinion-scale.tsx` | React OpinionScale UI component |
-| `packages/survey-ui/src/components/elements/payment.tsx` | React Payment UI component |
-| `packages/surveys/src/components/elements/opinion-scale-element.tsx` | Preact OpinionScale renderer |
-| `packages/surveys/src/components/elements/payment-element.tsx` | Preact Payment renderer (Stripe Elements) |
-| `packages/surveys/src/components/general/element-conditional.tsx` | Element type dispatcher (switch statement) |
-| `apps/web/modules/survey/lib/elements.tsx` | Element presets, icons, and registry |
-| `apps/web/modules/survey/editor/components/opinion-scale-element-form.tsx` | OpinionScale editor form |
-| `apps/web/modules/survey/editor/components/payment-element-form.tsx` | Payment editor form |
-| `apps/web/modules/survey/payment/actions.ts` | Stripe PaymentIntent server action |
-| `apps/web/modules/survey/payment/lib/stripe.ts` | Stripe API helper functions |
-| `apps/web/app/api/v1/client/payment-intent/route.ts` | Client-facing PaymentIntent API route |
-| `.env.example` | Environment variable template |
+| `apps/web/lib/utils/file-conversion.ts` | `convertToJson`, `convertToCsv`, `convertToXlsxBuffer` functions |
+| `apps/web/lib/response/service.ts` | `getResponseDownloadFile` — main export orchestrator |
+| `apps/web/app/(app)/environments/[environmentId]/surveys/[surveyId]/actions.ts` | Server action with format schema validation |
+| `apps/web/app/(app)/environments/[environmentId]/surveys/[surveyId]/utils.ts` | Browser download utility |
+| `apps/web/app/(app)/environments/[environmentId]/surveys/[surveyId]/components/CustomFilter.tsx` | Download dropdown UI (All/Filtered × CSV/XLSX/JSON) |
+| `apps/web/modules/api/v2/management/responses/route.ts` | V2 API GET handler with format export |
+| `apps/web/modules/api/v2/management/responses/types/responses.ts` | `ZGetResponsesFilter` with format field |
+| `packages/types/surveys/logic.ts` | `ZSurveyLogicConditionsOperator` (32 operators) |
+| `packages/surveys/src/lib/logic.ts` | Runtime logic evaluation engine |
+| `apps/web/modules/survey/editor/lib/logic-rule-engine.ts` | Logic editor operator configuration |
 
 ### D. Technology Versions
 
-| Technology | Version | Location |
-|-----------|---------|----------|
-| Node.js | ≥20.0.0 (22.1.0 in .nvmrc) | Runtime |
-| pnpm | 10.28.2 | Package manager |
-| React | 19.2.3 | Root workspace |
-| Next.js | 16.1.6 | apps/web |
-| Preact | 10.28.2 | packages/surveys |
-| TypeScript | 5.8.3 | Compiler |
-| Zod | 3.24.4 | packages/types |
-| Stripe (server) | 16.12.0 | apps/web |
-| @stripe/stripe-js | 8.9.0 | packages/surveys |
-| @stripe/react-stripe-js | 5.6.1 | packages/surveys |
-| Prisma | 6.14.0 | packages/database |
-| Vitest | 3.1.3 | Test runner |
-| Tailwind CSS | 4.1.17 (surveys) / 3.4.17 (web) | Styling |
-| Turbo | 2.5.3 | Monorepo build |
-| Storybook | 8.5.4 | packages/survey-ui |
-| Lucide React | 0.507.0 | Icon library |
+| Technology | Version | Source |
+|-----------|---------|--------|
+| Node.js | 22.1.0 | `.nvmrc` |
+| pnpm | 10.28.2 | `package.json` → `packageManager` |
+| Next.js | 16.1.6 | `package.json` |
+| React | 19.2.4 | `package.json` (patched from 19.2.3) |
+| Zod | 3.24.4 | `apps/web/package.json` |
+| Vitest | 3.1.3 | `apps/web/package.json` |
+| Turbo | 2.5.3 | `package.json` |
+| @json2csv/node | 7.0.6 | `apps/web/package.json` |
+| xlsx (SheetJS) | 0.20.3 | Vendored: `vendor/xlsx-0.20.3.tgz` |
+| TypeScript | Latest workspace | Managed via `@formbricks/config-typescript` |
 
 ### E. Environment Variable Reference
 
 | Variable | Required | Default | Purpose |
 |----------|----------|---------|---------|
-| `DATABASE_URL` | Yes | `postgresql://postgres:postgres@localhost:5432/formbricks?schema=public` | PostgreSQL connection string |
-| `NEXTAUTH_URL` | Yes | `http://localhost:3000` | NextAuth.js base URL |
-| `NEXTAUTH_SECRET` | Yes | — | NextAuth.js secret (generate with `openssl rand -hex 32`) |
-| `WEBAPP_URL` | Yes | `http://localhost:3000` | Application base URL |
-| `ENCRYPTION_KEY` | Yes | — | Data encryption key (generate with `openssl rand -hex 32`) |
-| `STRIPE_SECRET_KEY` | For Payment | — | Stripe API secret key (server-side) |
-| `STRIPE_WEBHOOK_SECRET` | For Payment | — | Stripe webhook signing secret |
-
-### F. Developer Tools Guide
-
-| Tool | Usage |
-|------|-------|
-| **Storybook** | `cd packages/survey-ui && pnpm storybook` — Visual component development and testing |
-| **Prisma Studio** | `npx prisma studio` — Database GUI for inspecting survey data |
-| **Mailhog** | `http://localhost:8025` — Email testing for survey notifications |
-| **Stripe CLI** | `stripe listen --forward-to localhost:3000/api/webhooks/stripe` — Local webhook testing |
-| **Turbo** | `pnpm build --filter=<package>` — Targeted builds with caching |
+| `WEBAPP_URL` | Yes | `http://localhost:3000` | Base URL for the web application |
+| `NEXTAUTH_URL` | Yes | `http://localhost:3000` | NextAuth.js callback URL |
+| `ENCRYPTION_KEY` | Yes | — | 32-byte hex key for data encryption |
+| `NEXTAUTH_SECRET` | Yes | — | NextAuth.js session signing secret |
+| `CRON_SECRET` | Yes | — | API secret for cron job authentication |
+| `DATABASE_URL` | Yes | — | PostgreSQL connection string |
+| `REDIS_URL` | No | — | Valkey/Redis connection for caching |
 
 ### G. Glossary
 
 | Term | Definition |
 |------|-----------|
-| **Element Type** | A survey question/component type (e.g., OpenText, Rating, OpinionScale, Payment) |
-| **TSurveyElementTypeEnum** | TypeScript enum defining all 17 survey element types |
-| **ZSurveyElement** | Zod discriminated union of all element type schemas |
-| **TTC** | Time-to-completion tracking for survey respondent analytics |
-| **PaymentIntent** | Stripe API object representing a payment to be collected |
-| **Preact** | Lightweight React alternative used in the survey respondent renderer |
-| **superRefine** | Zod method for custom cross-field validation logic |
-| **APPLICABLE_RULES** | Record mapping element types to their allowed validation rule types |
-| **Connected Account** | A Stripe account linked to a survey creator for receiving payments |
+| AAP | Agent Action Plan — the primary directive containing all Sprint 2 requirements |
+| Epic 2.1 | Logic Operator Parity — verifying Typeform-to-Formbricks operator mapping |
+| Epic 2.2 | JSON Response Export — adding JSON as a third export format |
+| `convertToJson` | New function in `file-conversion.ts` that produces lossless JSON from response data |
+| IDOR | Insecure Direct Object Reference — authorization vulnerability (CWE-639) |
+| Lossless Export | Export that preserves every response field without truncation, rounding, or encoding loss |
+| Fidelity Metrics | 7 validation criteria from `export-parity.mdx` for verifying export quality |
+| OpinionScale | Survey element type for rating/opinion collection (1–N scale) |
+| Cyclic Detection | DFS algorithm in `blocks-validation.ts` that detects circular logic jumps |

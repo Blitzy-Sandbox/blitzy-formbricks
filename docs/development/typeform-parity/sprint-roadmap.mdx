@@ -220,7 +220,7 @@ Source: `apps/web/lib/response/service.ts` (function `getResponseDownloadFile` a
     Create a `convertToJson` function in `apps/web/lib/utils/file-conversion.ts` that produces structured JSON output with survey metadata, column definitions, and response data.
   </Step>
   <Step title="Update download UI">
-    Add a JSON option to the export dropdown in `apps/web/app/(app)/environments/[environmentId]/surveys/[surveyId]/(analysis)/summary/components/CustomFilter.tsx`.
+    Add a JSON option to the export dropdown in `apps/web/app/(app)/environments/[environmentId]/surveys/[surveyId]/components/CustomFilter.tsx`.
   </Step>
   <Step title="Add API endpoint">
     Expose JSON export through the REST API with filter criteria support, documented in both `docs/api-reference/openapi.json` (v1) and `docs/api-v2-reference/openapi.yml` (v2).

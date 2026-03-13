@@ -205,7 +205,7 @@ export const ResponseTable = ({
   };
 
   // Handle downloading selected responses
-  const downloadSelectedRows = async (responseIds: string[], format: "csv" | "xlsx") => {
+  const downloadSelectedRows = async (responseIds: string[], format: "csv" | "xlsx" | "json") => {
     try {
       const downloadResponse = await getResponsesDownloadUrlAction({
         surveyId: survey.id,

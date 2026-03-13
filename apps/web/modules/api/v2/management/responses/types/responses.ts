@@ -5,6 +5,10 @@ import { ZGetFilter } from "@/modules/api/v2/types/api-filter";
 export const ZGetResponsesFilter = ZGetFilter.extend({
   surveyId: z.string().cuid2().optional(),
   contactId: z.string().optional(),
+  format: z
+    .enum(["json", "csv", "xlsx"])
+    .optional()
+    .describe("Export format. When specified, returns file contents instead of JSON API response."),
 }).refine(
   (data) => {
     if (data.startDate && data.endDate && data.startDate > data.endDate) {

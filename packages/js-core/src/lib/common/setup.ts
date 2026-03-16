@@ -96,7 +96,7 @@ const initPopoverEmbed = (configInput: TConfigInput, logger: Logger): void => {
   button.style.cursor = "pointer";
   button.style.boxShadow = "0 4px 12px rgba(0,0,0,0.15)";
   Object.assign(button.style, positionStyles);
-  button.innerHTML = popoverConfig?.icon ?? "💬";
+  button.textContent = popoverConfig?.icon ?? "💬";
 
   // Create the expandable form container (initially hidden)
   const formContainer = document.createElement("div");

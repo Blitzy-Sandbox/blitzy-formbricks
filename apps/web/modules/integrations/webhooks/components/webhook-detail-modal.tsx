@@ -62,7 +62,7 @@ export const WebhookModal = ({ open, setOpen, webhook, surveys, isReadOnly }: We
             {webhookName} {/* NOSONAR // We want to check for empty strings */}
             {webhook.payloadFormat === "typeform" && (
               <span className="ml-2 inline-flex items-center rounded-full bg-purple-100 px-2 py-0.5 text-xs font-medium text-purple-700">
-                {t("environments.integrations.webhooks.typeform_compatible")}
+                {t("environments.integrations.webhooks.payload_format_typeform")}
               </span>
             )}
           </DialogTitle>

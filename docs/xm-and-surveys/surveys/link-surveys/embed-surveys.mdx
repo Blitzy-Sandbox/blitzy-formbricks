@@ -99,22 +99,24 @@ The slider embed mode displays your survey in a side-sliding panel that slides i
 
 ### Configuration Options
 
-| Option              | Description                                              | Default     |
-| ------------------- | -------------------------------------------------------- | ----------- |
-| `sliderDirection`   | Direction the panel slides in from — `"left"` or `"right"` | `"right"`   |
-| `sliderWidth`       | Width of the slider panel                                | `"400px"`   |
-| `animationDuration` | Duration of the slide animation in milliseconds          | `300`       |
+| Option                    | Description                                              | Default     |
+| ------------------------- | -------------------------------------------------------- | ----------- |
+| `sliderConfig.direction`  | Direction the panel slides in from — `"left"` or `"right"` | `"right"`   |
+| `sliderConfig.width`      | Width of the slider panel                                | `"400px"`   |
+| `sliderConfig.animation`  | Duration of the slide animation in milliseconds          | `300`       |
 
 ### Example Code
 
 ```javascript Slider Embed Example
 window.formbricks.init({
   environmentId: "<your-environment-id>",
-  apiHost: "https://app.formbricks.com",
+  appUrl: "https://app.formbricks.com",
   embedMode: "slider",
-  sliderDirection: "right",
-  sliderWidth: "400px",
-  animationDuration: 300,
+  sliderConfig: {
+    direction: "right",
+    width: "400px",
+    animation: 300,
+  },
 });
 ```
 
@@ -126,24 +128,27 @@ The popover embed mode adds a floating action button (FAB) to your page that, wh
 
 ### Configuration Options
 
-| Option           | Description                                                                                      | Default          |
-| ---------------- | ------------------------------------------------------------------------------------------------ | ---------------- |
-| `buttonPosition` | Position of the floating button — `"bottom-right"`, `"bottom-left"`, `"top-right"`, or `"top-left"` | `"bottom-right"` |
-| `buttonColor`    | Background color of the floating button                                                          | `"#000000"`      |
-| `formWidth`      | Width of the expanded survey form                                                                | `"400px"`        |
-| `formHeight`     | Height of the expanded survey form                                                               | `"500px"`        |
+| Option                          | Description                                                                                      | Default          |
+| ------------------------------- | ------------------------------------------------------------------------------------------------ | ---------------- |
+| `popoverConfig.buttonPosition`  | Position of the floating button — `"bottom-right"`, `"bottom-left"`, `"top-right"`, or `"top-left"` | `"bottom-right"` |
+| `popoverConfig.icon`            | Icon or emoji displayed on the floating button                                                   | `"💬"`           |
+| `popoverConfig.color`           | Background color of the floating button                                                          | `"#1e293b"`      |
+| `popoverConfig.formWidth`       | Width of the expanded survey form                                                                | `"400px"`        |
+| `popoverConfig.formHeight`      | Height of the expanded survey form                                                               | `"500px"`        |
 
 ### Example Code
 
 ```javascript Popover Embed Example
 window.formbricks.init({
   environmentId: "<your-environment-id>",
-  apiHost: "https://app.formbricks.com",
+  appUrl: "https://app.formbricks.com",
   embedMode: "popover",
-  buttonPosition: "bottom-right",
-  buttonColor: "#000000",
-  formWidth: "400px",
-  formHeight: "500px",
+  popoverConfig: {
+    buttonPosition: "bottom-right",
+    color: "#1e293b",
+    formWidth: "400px",
+    formHeight: "500px",
+  },
 });
 ```
 
@@ -155,22 +160,24 @@ The side tab embed mode displays a fixed vertical tab anchored to the left or ri
 
 ### Configuration Options
 
-| Option        | Description                                                  | Default      |
-| ------------- | ------------------------------------------------------------ | ------------ |
-| `tabLabel`    | Text displayed on the vertical tab                           | `"Feedback"` |
-| `tabPosition` | Which edge the tab is anchored to — `"left"` or `"right"`   | `"right"`    |
-| `tabColor`    | Background color of the tab                                  | `"#000000"`  |
+| Option                      | Description                                                  | Default      |
+| --------------------------- | ------------------------------------------------------------ | ------------ |
+| `sideTabConfig.tabLabel`    | Text displayed on the vertical tab                           | `"Feedback"` |
+| `sideTabConfig.position`    | Which edge the tab is anchored to — `"left"` or `"right"`   | `"right"`    |
+| `sideTabConfig.color`       | Background color of the tab                                  | `"#1e293b"`  |
 
 ### Example Code
 
 ```javascript Side Tab Embed Example
 window.formbricks.init({
   environmentId: "<your-environment-id>",
-  apiHost: "https://app.formbricks.com",
+  appUrl: "https://app.formbricks.com",
   embedMode: "sideTab",
-  tabLabel: "Feedback",
-  tabPosition: "right",
-  tabColor: "#000000",
+  sideTabConfig: {
+    tabLabel: "Feedback",
+    position: "right",
+    color: "#1e293b",
+  },
 });
 ```
 

@@ -93,6 +93,89 @@ It can be enabled by simply appending **?embed=true** to your survey link or fro
 
    ![Toggle embed mode](/images/xm-and-surveys/surveys/link-surveys/embed-surveys/embed-mode-disabled.webp)
 
+## Slider Embed
+
+The slider embed mode displays your survey in a side-sliding panel that slides in from the left or right edge of the page when triggered. This provides an unobtrusive way to present surveys without navigating users away from your content.
+
+### Configuration Options
+
+| Option              | Description                                              | Default     |
+| ------------------- | -------------------------------------------------------- | ----------- |
+| `sliderDirection`   | Direction the panel slides in from — `"left"` or `"right"` | `"right"`   |
+| `sliderWidth`       | Width of the slider panel                                | `"400px"`   |
+| `animationDuration` | Duration of the slide animation in milliseconds          | `300`       |
+
+### Example Code
+
+```javascript Slider Embed Example
+window.formbricks.init({
+  environmentId: "<your-environment-id>",
+  apiHost: "https://app.formbricks.com",
+  embedMode: "slider",
+  sliderDirection: "right",
+  sliderWidth: "400px",
+  animationDuration: 300,
+});
+```
+
+When triggered, the survey slides in from the specified side of the page as a panel. The slider can be dismissed by clicking outside the panel or completing the survey.
+
+## Popover Embed
+
+The popover embed mode adds a floating action button (FAB) to your page that, when clicked, expands into the survey form as a popover overlay. This is ideal for collecting feedback without interrupting the user experience.
+
+### Configuration Options
+
+| Option           | Description                                                                                      | Default          |
+| ---------------- | ------------------------------------------------------------------------------------------------ | ---------------- |
+| `buttonPosition` | Position of the floating button — `"bottom-right"`, `"bottom-left"`, `"top-right"`, or `"top-left"` | `"bottom-right"` |
+| `buttonColor`    | Background color of the floating button                                                          | `"#000000"`      |
+| `formWidth`      | Width of the expanded survey form                                                                | `"400px"`        |
+| `formHeight`     | Height of the expanded survey form                                                               | `"500px"`        |
+
+### Example Code
+
+```javascript Popover Embed Example
+window.formbricks.init({
+  environmentId: "<your-environment-id>",
+  apiHost: "https://app.formbricks.com",
+  embedMode: "popover",
+  buttonPosition: "bottom-right",
+  buttonColor: "#000000",
+  formWidth: "400px",
+  formHeight: "500px",
+});
+```
+
+A floating action button appears at the specified corner of the page. When clicked, it expands into the survey form as a popover. The survey can be closed by clicking the button again or completing the survey.
+
+## Side Tab Embed
+
+The side tab embed mode displays a fixed vertical tab anchored to the left or right edge of the page. When clicked, the tab opens the survey in a panel. This provides a persistent, always-visible entry point for collecting feedback.
+
+### Configuration Options
+
+| Option        | Description                                                  | Default      |
+| ------------- | ------------------------------------------------------------ | ------------ |
+| `tabLabel`    | Text displayed on the vertical tab                           | `"Feedback"` |
+| `tabPosition` | Which edge the tab is anchored to — `"left"` or `"right"`   | `"right"`    |
+| `tabColor`    | Background color of the tab                                  | `"#000000"`  |
+
+### Example Code
+
+```javascript Side Tab Embed Example
+window.formbricks.init({
+  environmentId: "<your-environment-id>",
+  apiHost: "https://app.formbricks.com",
+  embedMode: "sideTab",
+  tabLabel: "Feedback",
+  tabPosition: "right",
+  tabColor: "#000000",
+});
+```
+
+A fixed vertical tab appears on the specified edge of the page. When clicked, it opens the survey in a panel. The tab remains visible at all times, providing a persistent entry point for the survey.
+
 ## Embedding Surveys in Emails
 
 Embedding Formbricks surveys directly into your emails allows you to collect valuable feedback from your users at every touchpoint. Seamlessly integrate interactive surveys into your email campaigns to gather insights and improve user experience.

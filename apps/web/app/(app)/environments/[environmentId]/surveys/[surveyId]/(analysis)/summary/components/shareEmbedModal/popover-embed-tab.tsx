@@ -10,9 +10,10 @@ import { CodeBlock } from "@/modules/ui/components/code-block";
 
 interface PopoverEmbedTabProps {
   surveyUrl: string;
+  environmentId: string;
 }
 
-export const PopoverEmbedTab = ({ surveyUrl }: PopoverEmbedTabProps) => {
+export const PopoverEmbedTab = ({ surveyUrl, environmentId }: PopoverEmbedTabProps) => {
   const { t } = useTranslation();
   const [buttonPosition, setButtonPosition] = useState<string>("bottom-right");
   const [buttonColor, setButtonColor] = useState<string>("#00C4B8");
@@ -20,17 +21,12 @@ export const PopoverEmbedTab = ({ surveyUrl }: PopoverEmbedTabProps) => {
   const [formWidth, setFormWidth] = useState<number>(400);
   const [formHeight, setFormHeight] = useState<number>(500);
 
-  let environmentId = "YOUR_ENVIRONMENT_ID";
   let apiHost = surveyUrl;
   try {
     const urlObj = new URL(surveyUrl);
-    const pathSegments = urlObj.pathname.split("/").filter(Boolean);
-    if (pathSegments.length >= 2) {
-      environmentId = pathSegments[pathSegments.length - 2];
-    }
     apiHost = urlObj.origin;
   } catch {
-    // If the URL is malformed, fall back to defaults
+    // If the URL is malformed, fall back to the raw surveyUrl
   }
 
   const snippetCode = `<script type="text/javascript">

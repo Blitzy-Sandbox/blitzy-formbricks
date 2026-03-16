@@ -9,25 +9,23 @@ import { CodeBlock } from "@/modules/ui/components/code-block";
 
 interface SideTabEmbedTabProps {
   surveyUrl: string;
+  environmentId: string;
 }
 
-export const SideTabEmbedTab = ({ surveyUrl }: SideTabEmbedTabProps) => {
+const DEFAULT_TAB_LABEL = "Feedback";
+
+export const SideTabEmbedTab = ({ surveyUrl, environmentId }: SideTabEmbedTabProps) => {
   const { t } = useTranslation();
-  const [tabLabel, setTabLabel] = useState<string>("Feedback");
+  const [tabLabel, setTabLabel] = useState<string>(DEFAULT_TAB_LABEL);
   const [position, setPosition] = useState<"left" | "right">("right");
   const [tabColor, setTabColor] = useState<string>("#00C4B8");
 
   let apiHost = surveyUrl;
-  let environmentId = "YOUR_ENVIRONMENT_ID";
   try {
     const urlObj = new URL(surveyUrl);
     apiHost = urlObj.origin;
-    const pathSegments = urlObj.pathname.split("/").filter(Boolean);
-    if (pathSegments.length >= 2) {
-      environmentId = pathSegments[pathSegments.length - 2];
-    }
   } catch {
-    // If the URL is malformed, fall back to defaults
+    // If the URL is malformed, fall back to the raw surveyUrl
   }
 
   const snippetCode = `<script type="text/javascript">
@@ -60,6 +58,11 @@ window.formbricks.init({
           type="text"
           value={tabLabel}
           onChange={(e) => setTabLabel(e.target.value)}
+          onBlur={() => {
+            if (!tabLabel.trim()) {
+              setTabLabel(DEFAULT_TAB_LABEL);
+            }
+          }}
           className="focus:border-brand-dark flex h-10 w-full rounded-md border border-slate-300 bg-transparent px-3 py-2 text-sm text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-400 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
         />
       </div>

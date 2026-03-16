@@ -1899,6 +1899,21 @@
           "upgrade_prompt_title": "Use personal links with a higher plan",
           "work_with_segments": "Personal links work with segments."
         },
+        "popover_embed": {
+          "button_color": "Button Color",
+          "button_position": "Button Position",
+          "description": "Add a floating action button that expands into the survey form as a popover overlay.",
+          "embed_code_copied_to_clipboard": "Embed code copied to clipboard!",
+          "form_dimensions": "Form Dimensions",
+          "form_dimensions_description": "Set the width and height of the expanded survey form.",
+          "form_height": "Form Height (px)",
+          "form_width": "Form Width (px)",
+          "nav_title": "Popover",
+          "position_bottom_left": "Bottom Left",
+          "position_bottom_right": "Bottom Right",
+          "position_top_left": "Top Left",
+          "position_top_right": "Top Right"
+        },
         "pretty_url": {
           "description": "Create a custom, memorable URL for your survey",
           "remove_description": "Your survey will still be accessible via its original URL.",
@@ -1927,6 +1942,28 @@
         },
         "share_settings_title": "Share settings",
         "share_view_title": "Share via",
+        "side_tab_embed": {
+          "description": "Display a fixed vertical tab on the page edge that opens the survey when clicked.",
+          "embed_code_copied_to_clipboard": "Embed code copied to clipboard!",
+          "nav_title": "Side Tab",
+          "position": "Position",
+          "position_left": "Left",
+          "position_right": "Right",
+          "tab_color": "Tab Color",
+          "tab_label": "Tab Label"
+        },
+        "slider_embed": {
+          "animation_duration": "Duration (ms)",
+          "animation_settings": "Animation Settings",
+          "animation_settings_description": "Configure the slide animation duration for the panel.",
+          "description": "Display your survey in a side-sliding panel that slides in from the edge of the page.",
+          "direction": "Slide Direction",
+          "direction_left": "Left",
+          "direction_right": "Right",
+          "embed_code_copied_to_clipboard": "Embed code copied to clipboard!",
+          "nav_title": "Slider",
+          "width": "Width (px)"
+        },
         "social_media": {
           "description": "Get responses from your contacts on various social media networks.",
           "source_tracking_enabled": "Source tracking enabled",

@@ -146,7 +146,7 @@ export const ShareSurveyModal = ({
         title: t("environments.surveys.share.slider_embed.nav_title"),
         description: t("environments.surveys.share.slider_embed.description"),
         componentType: SliderEmbedTab,
-        componentProps: { surveyUrl },
+        componentProps: { surveyUrl, environmentId },
         disabled: survey.singleUse?.enabled,
       },
       {
@@ -157,7 +157,7 @@ export const ShareSurveyModal = ({
         title: t("environments.surveys.share.popover_embed.nav_title"),
         description: t("environments.surveys.share.popover_embed.description"),
         componentType: PopoverEmbedTab,
-        componentProps: { surveyUrl },
+        componentProps: { surveyUrl, environmentId },
         disabled: survey.singleUse?.enabled,
       },
       {
@@ -168,7 +168,7 @@ export const ShareSurveyModal = ({
         title: t("environments.surveys.share.side_tab_embed.nav_title"),
         description: t("environments.surveys.share.side_tab_embed.description"),
         componentType: SideTabEmbedTab,
-        componentProps: { surveyUrl },
+        componentProps: { surveyUrl, environmentId },
         disabled: survey.singleUse?.enabled,
       },
       {

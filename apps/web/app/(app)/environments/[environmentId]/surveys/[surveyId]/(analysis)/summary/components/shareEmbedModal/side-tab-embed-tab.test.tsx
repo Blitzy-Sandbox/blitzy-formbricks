@@ -64,7 +64,9 @@ describe("SideTabEmbedTab", () => {
   });
 
   test("renders with default props", () => {
-    render(<SideTabEmbedTab surveyUrl="https://example.com/s/test123" />);
+    render(
+      <SideTabEmbedTab surveyUrl="https://example.com/s/test123" environmentId="cltest00000000000000" />
+    );
 
     // Verify the code block is rendered with snippet content
     expect(screen.getByTestId("code-block")).toBeInTheDocument();
@@ -74,7 +76,9 @@ describe("SideTabEmbedTab", () => {
   });
 
   test('default tab label is "Feedback"', () => {
-    render(<SideTabEmbedTab surveyUrl="https://example.com/s/test123" />);
+    render(
+      <SideTabEmbedTab surveyUrl="https://example.com/s/test123" environmentId="cltest00000000000000" />
+    );
 
     const codeBlock = screen.getByTestId("code-block");
 
@@ -86,7 +90,9 @@ describe("SideTabEmbedTab", () => {
   });
 
   test("tab label input changes update the code snippet", () => {
-    render(<SideTabEmbedTab surveyUrl="https://example.com/s/test123" />);
+    render(
+      <SideTabEmbedTab surveyUrl="https://example.com/s/test123" environmentId="cltest00000000000000" />
+    );
 
     // Find the tab label text input which has default value "Feedback"
     const tabLabelInput = screen.getByDisplayValue("Feedback");
@@ -100,7 +106,9 @@ describe("SideTabEmbedTab", () => {
   });
 
   test("position selection changes update the code snippet", () => {
-    render(<SideTabEmbedTab surveyUrl="https://example.com/s/test123" />);
+    render(
+      <SideTabEmbedTab surveyUrl="https://example.com/s/test123" environmentId="cltest00000000000000" />
+    );
 
     // Verify the default position is "right"
     const rightRadio = screen.getByLabelText("environments.surveys.share.side_tab_embed.position_right");
@@ -116,7 +124,9 @@ describe("SideTabEmbedTab", () => {
   });
 
   test("color picker configuration changes update the code snippet", () => {
-    render(<SideTabEmbedTab surveyUrl="https://example.com/s/test123" />);
+    render(
+      <SideTabEmbedTab surveyUrl="https://example.com/s/test123" environmentId="cltest00000000000000" />
+    );
 
     // Find the color text input by its accessible name (aria-label)
     const colorTextInput = screen.getByRole("textbox", {
@@ -132,7 +142,9 @@ describe("SideTabEmbedTab", () => {
   });
 
   test("copy-to-clipboard functionality triggers toast", async () => {
-    render(<SideTabEmbedTab surveyUrl="https://example.com/s/test123" />);
+    render(
+      <SideTabEmbedTab surveyUrl="https://example.com/s/test123" environmentId="cltest00000000000000" />
+    );
 
     // Find and click the copy button using the i18n key
     const copyButton = screen.getByText("common.copy_code");
@@ -155,7 +167,9 @@ describe("SideTabEmbedTab", () => {
   });
 
   test("i18n keys render correctly", () => {
-    render(<SideTabEmbedTab surveyUrl="https://example.com/s/test123" />);
+    render(
+      <SideTabEmbedTab surveyUrl="https://example.com/s/test123" environmentId="cltest00000000000000" />
+    );
 
     // Verify all expected i18n key strings are rendered in the component output
     // Since useTranslation is mocked to return keys as-is, these keys appear as visible text

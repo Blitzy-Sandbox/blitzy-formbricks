@@ -10,25 +10,33 @@ import { CodeBlock } from "@/modules/ui/components/code-block";
 
 interface SliderEmbedTabProps {
   surveyUrl: string;
+  environmentId: string;
 }
 
-export const SliderEmbedTab = ({ surveyUrl }: SliderEmbedTabProps) => {
+export const SliderEmbedTab = ({ surveyUrl, environmentId }: SliderEmbedTabProps) => {
   const { t } = useTranslation();
   const [direction, setDirection] = useState<"left" | "right">("right");
   const [width, setWidth] = useState<number>(400);
   const [animation, setAnimation] = useState<number>(300);
   const [showAnimationSettings, setShowAnimationSettings] = useState(false);
 
-  const parsedUrl = new URL(surveyUrl);
-  const pathSegments = surveyUrl.split("/");
-  const environmentId = pathSegments.slice(-2, -1)[0] || "YOUR_ENVIRONMENT_ID";
+  const MIN_WIDTH = 200;
+  const MAX_WIDTH = 1200;
+
+  let apiHost = surveyUrl;
+  try {
+    const parsedUrl = new URL(surveyUrl);
+    apiHost = parsedUrl.origin;
+  } catch {
+    // If the URL is malformed, fall back to the raw surveyUrl
+  }
 
   const snippetCode = `<script type="text/javascript">
 !function(){var e=document.createElement("script");e.src="https://unpkg.com/@formbricks/js@latest/dist/index.umd.js";
 e.async=true;document.head.appendChild(e);e.onload=function(){
 window.formbricks.init({
   environmentId: "${environmentId}",
-  apiHost: "${parsedUrl.origin}",
+  apiHost: "${apiHost}",
   embedMode: "slider",
   sliderConfig: {
     direction: "${direction}",
@@ -81,10 +89,14 @@ window.formbricks.init({
         <input
           id="sliderWidth"
           type="number"
-          min={200}
-          max={1200}
+          min={MIN_WIDTH}
+          max={MAX_WIDTH}
           value={width}
           onChange={(e) => setWidth(Number(e.target.value))}
+          onBlur={() => {
+            if (width < MIN_WIDTH) setWidth(MIN_WIDTH);
+            else if (width > MAX_WIDTH) setWidth(MAX_WIDTH);
+          }}
           className="w-32 rounded-md border border-slate-300 bg-white px-3 py-1.5 text-sm text-slate-700 focus:border-slate-500 focus:outline-none focus:ring-1 focus:ring-slate-500"
         />
       </div>

@@ -69,7 +69,7 @@ const initSliderEmbed = (configInput: TConfigInput, logger: Logger): void => {
 const initPopoverEmbed = (configInput: TConfigInput, logger: Logger): void => {
   const popoverConfig = configInput.popoverConfig;
   const buttonPosition = popoverConfig?.buttonPosition ?? "bottom-right";
-  const color = popoverConfig?.color ?? "#1e293b";
+  const color = popoverConfig?.color ?? "#00C4B8";
   const formWidth = popoverConfig?.formWidth ?? "400px";
   const formHeight = popoverConfig?.formHeight ?? "500px";
 
@@ -131,7 +131,7 @@ const initSideTabEmbed = (configInput: TConfigInput, logger: Logger): void => {
   const sideTabConfig = configInput.sideTabConfig;
   const tabLabel = sideTabConfig?.tabLabel ?? "Feedback";
   const position = sideTabConfig?.position ?? "right";
-  const color = sideTabConfig?.color ?? "#1e293b";
+  const color = sideTabConfig?.color ?? "#00C4B8";
 
   // Guard against duplicate container creation
   if (document.getElementById(SIDE_TAB_CONTAINER_ID)) return;

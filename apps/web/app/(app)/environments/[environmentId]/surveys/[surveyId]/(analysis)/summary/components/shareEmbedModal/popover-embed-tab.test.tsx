@@ -78,7 +78,9 @@ describe("PopoverEmbedTab", () => {
   });
 
   test("renders with default props", () => {
-    render(<PopoverEmbedTab surveyUrl="https://example.com/s/test123" />);
+    render(
+      <PopoverEmbedTab surveyUrl="https://example.com/s/test123" environmentId="cltest00000000000000" />
+    );
 
     // Verify the code block is rendered with snippet content
     expect(screen.getByTestId("code-block")).toBeInTheDocument();
@@ -88,7 +90,9 @@ describe("PopoverEmbedTab", () => {
   });
 
   test('default button position is "bottom-right"', () => {
-    render(<PopoverEmbedTab surveyUrl="https://example.com/s/test123" />);
+    render(
+      <PopoverEmbedTab surveyUrl="https://example.com/s/test123" environmentId="cltest00000000000000" />
+    );
 
     const codeBlock = screen.getByTestId("code-block");
 
@@ -100,7 +104,9 @@ describe("PopoverEmbedTab", () => {
   });
 
   test("position selection changes update the code snippet", () => {
-    render(<PopoverEmbedTab surveyUrl="https://example.com/s/test123" />);
+    render(
+      <PopoverEmbedTab surveyUrl="https://example.com/s/test123" environmentId="cltest00000000000000" />
+    );
 
     // Find the position selector (the <select> element) via its combobox role
     const positionSelect = screen.getByRole("combobox");
@@ -114,7 +120,9 @@ describe("PopoverEmbedTab", () => {
   });
 
   test("color picker configuration changes update the code snippet", () => {
-    render(<PopoverEmbedTab surveyUrl="https://example.com/s/test123" />);
+    render(
+      <PopoverEmbedTab surveyUrl="https://example.com/s/test123" environmentId="cltest00000000000000" />
+    );
 
     // Find the color text input by its accessible name (aria-label)
     const colorTextInput = screen.getByRole("textbox", {
@@ -130,7 +138,9 @@ describe("PopoverEmbedTab", () => {
   });
 
   test("form dimension inputs via AdvancedOptionToggle", () => {
-    render(<PopoverEmbedTab surveyUrl="https://example.com/s/test123" />);
+    render(
+      <PopoverEmbedTab surveyUrl="https://example.com/s/test123" environmentId="cltest00000000000000" />
+    );
 
     // Toggle the advanced settings to reveal width/height inputs
     const toggleButton = screen.getByTestId("advanced-toggle");
@@ -153,7 +163,9 @@ describe("PopoverEmbedTab", () => {
   });
 
   test("copy-to-clipboard functionality triggers toast", async () => {
-    render(<PopoverEmbedTab surveyUrl="https://example.com/s/test123" />);
+    render(
+      <PopoverEmbedTab surveyUrl="https://example.com/s/test123" environmentId="cltest00000000000000" />
+    );
 
     // Find and click the copy button using the i18n key
     const copyButton = screen.getByText("common.copy_code");
@@ -176,7 +188,9 @@ describe("PopoverEmbedTab", () => {
   });
 
   test("i18n keys render correctly", () => {
-    render(<PopoverEmbedTab surveyUrl="https://example.com/s/test123" />);
+    render(
+      <PopoverEmbedTab surveyUrl="https://example.com/s/test123" environmentId="cltest00000000000000" />
+    );
 
     // Verify all expected i18n key strings are rendered in the component output
     // Since useTranslation is mocked to return keys as-is, these keys appear as visible text

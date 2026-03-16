@@ -47,7 +47,7 @@ export const getWebhooks = async (
 };
 
 export const createWebhook = async (webhook: TWebhookInput): Promise<Result<Webhook, ApiErrorResponseV2>> => {
-  const { environmentId, name, url, source, triggers, surveyIds } = webhook;
+  const { environmentId, name, url, source, triggers, surveyIds, payloadFormat } = webhook;
 
   try {
     const secret = generateWebhookSecret();
@@ -63,6 +63,7 @@ export const createWebhook = async (webhook: TWebhookInput): Promise<Result<Webh
       source,
       triggers,
       surveyIds,
+      payloadFormat,
       secret,
     };
 

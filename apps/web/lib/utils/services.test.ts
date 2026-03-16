@@ -373,8 +373,8 @@ describe("Service Functions", () => {
     const webhookId = "webhook123";
 
     test("returns the webhook when found", async () => {
-      const mockWebhook = { environmentId: "env123" };
-      vi.mocked(prisma.webhook.findUnique).mockResolvedValue(mockWebhook);
+      const mockWebhook = { environmentId: "env123" } as { environmentId: string };
+      vi.mocked(prisma.webhook.findUnique).mockResolvedValue(mockWebhook as any);
 
       const result = await getWebhook(webhookId);
       expect(validateInputs).toHaveBeenCalled();

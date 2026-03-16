@@ -20,6 +20,7 @@ export const createWebhook = async (webhookInput: TWebhookInput): Promise<Webhoo
         source: webhookInput.source,
         surveyIds: webhookInput.surveyIds || [],
         triggers: webhookInput.triggers || [],
+        payloadFormat: webhookInput.payloadFormat,
         secret,
         environment: {
           connect: {

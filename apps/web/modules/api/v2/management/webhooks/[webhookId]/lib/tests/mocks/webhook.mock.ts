@@ -11,6 +11,8 @@ export const mockedPrismaWebhookUpdateReturn = {
   environmentId: "",
   triggers: [],
   surveyIds: [],
+  secret: null,
+  payloadFormat: null,
 };
 
 export const prismaNotFoundError = new Prisma.PrismaClientKnownRequestError("Record does not exist", {

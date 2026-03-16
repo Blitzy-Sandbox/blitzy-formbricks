@@ -20,12 +20,12 @@ vi.mock("@formbricks/database", () => ({
 
 describe("getWebhook", () => {
   test("returns ok if webhook is found", async () => {
-    vi.mocked(prisma.webhook.findUnique).mockResolvedValueOnce({ id: "123" });
+    vi.mocked(prisma.webhook.findUnique).mockResolvedValueOnce(mockedPrismaWebhookUpdateReturn);
     const result = await getWebhook("123");
     expect(result.ok).toBe(true);
 
     if (result.ok) {
-      expect(result.data).toEqual({ id: "123" });
+      expect(result.data).toEqual(mockedPrismaWebhookUpdateReturn);
     }
   });
 
@@ -35,7 +35,7 @@ describe("getWebhook", () => {
     expect(result.ok).toBe(false);
 
     if (!result.ok) {
-      expect(result.error?.type).toBe("not_found");
+      expect((result.error as Record<string, unknown>)?.type).toBe("not_found");
     }
   });
 
@@ -45,7 +45,7 @@ describe("getWebhook", () => {
     expect(result.ok).toBe(false);
 
     if (!result.ok) {
-      expect(result.error.type).toBe("internal_server_error");
+      expect((result.error as Record<string, unknown>).type).toBe("internal_server_error");
     }
   });
 });

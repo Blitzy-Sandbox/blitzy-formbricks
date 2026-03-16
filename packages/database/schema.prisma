@@ -52,6 +52,7 @@ model Webhook {
   triggers      PipelineTriggers[]
   surveyIds     String[]
   secret        String?
+  payloadFormat String?            @default("default")
 
   @@index([environmentId])
 }

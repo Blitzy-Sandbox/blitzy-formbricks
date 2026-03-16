@@ -42,7 +42,7 @@ export const ZWebhook = z.object({
   secret: z.string().nullable().openapi({
     description: "The shared secret used to generate HMAC signatures for webhook requests",
   }),
-  payloadFormat: z.string().nullable().openapi({
+  payloadFormat: z.enum(["default", "typeform"]).nullable().openapi({
     description:
       "The payload format for webhook delivery. 'default' sends standard Formbricks format, 'typeform' sends Typeform-compatible format with typed answers array.",
   }),

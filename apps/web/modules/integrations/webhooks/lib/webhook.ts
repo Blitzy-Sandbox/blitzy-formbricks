@@ -28,6 +28,7 @@ export const updateWebhook = async (
         url: webhookInput.url,
         triggers: webhookInput.triggers,
         surveyIds: webhookInput.surveyIds || [],
+        payloadFormat: webhookInput.payloadFormat,
       },
     });
 

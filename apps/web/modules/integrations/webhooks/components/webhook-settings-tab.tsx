@@ -50,6 +50,9 @@ export const WebhookSettingsTab = ({ webhook, surveys, setOpen, isReadOnly }: We
   const [selectedAllSurveys, setSelectedAllSurveys] = useState(webhook.surveyIds.length === 0);
   const [showSecret, setShowSecret] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [selectedPayloadFormat, setSelectedPayloadFormat] = useState<"default" | "typeform">(
+    (webhook.payloadFormat as "default" | "typeform") ?? "default"
+  );
 
   const copyToClipboard = async (text: string) => {
     await navigator.clipboard.writeText(text);
@@ -134,6 +137,7 @@ export const WebhookSettingsTab = ({ webhook, surveys, setOpen, isReadOnly }: We
       source: data.source,
       triggers: selectedTriggers,
       surveyIds: selectedSurveys,
+      payloadFormat: selectedPayloadFormat,
     };
     setIsUpdatingWebhook(true);
     const updateWebhookActionResult = await updateWebhookAction({
@@ -220,7 +224,7 @@ export const WebhookSettingsTab = ({ webhook, surveys, setOpen, isReadOnly }: We
                 />
                 <button
                   type="button"
-                  className="absolute top-1/2 right-3 -translate-y-1/2 transform"
+                  className="absolute right-3 top-1/2 -translate-y-1/2 transform"
                   onClick={() => setShowSecret(!showSecret)}>
                   {showSecret ? (
                     <EyeOff className="h-5 w-5 text-slate-400" />
@@ -259,6 +263,40 @@ export const WebhookSettingsTab = ({ webhook, surveys, setOpen, isReadOnly }: We
             </Link>
           </div>
         )}
+
+        <div>
+          <Label htmlFor="payloadFormat">{t("environments.integrations.webhooks.payload_format")}</Label>
+          <div className="mt-1 space-y-2">
+            <label className="flex items-center space-x-2">
+              <input
+                type="radio"
+                name="payloadFormat"
+                value="default"
+                checked={selectedPayloadFormat === "default"}
+                onChange={() => setSelectedPayloadFormat("default")}
+                disabled={webhook.source !== "user" || isReadOnly}
+                className="text-brand-dark h-4 w-4 border-slate-300 focus:ring-0 focus:ring-offset-0 disabled:cursor-not-allowed disabled:opacity-50"
+              />
+              <span className="text-sm text-slate-700">
+                {t("environments.integrations.webhooks.payload_format_default")}
+              </span>
+            </label>
+            <label className="flex items-center space-x-2">
+              <input
+                type="radio"
+                name="payloadFormat"
+                value="typeform"
+                checked={selectedPayloadFormat === "typeform"}
+                onChange={() => setSelectedPayloadFormat("typeform")}
+                disabled={webhook.source !== "user" || isReadOnly}
+                className="text-brand-dark h-4 w-4 border-slate-300 focus:ring-0 focus:ring-offset-0 disabled:cursor-not-allowed disabled:opacity-50"
+              />
+              <span className="text-sm text-slate-700">
+                {t("environments.integrations.webhooks.payload_format_typeform")}
+              </span>
+            </label>
+          </div>
+        </div>
 
         <div>
           <Label htmlFor="Triggers">{t("environments.integrations.webhooks.triggers")}</Label>

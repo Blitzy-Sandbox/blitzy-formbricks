@@ -25,6 +25,156 @@ import {
   okVoid,
 } from "@/types/error";
 
+// Embed mode DOM element IDs — follow the formbricks- prefix convention from constants.ts
+const SLIDER_CONTAINER_ID = "formbricks-slider-container";
+const POPOVER_CONTAINER_ID = "formbricks-popover-container";
+const POPOVER_BUTTON_ID = "formbricks-popover-button";
+const SIDE_TAB_CONTAINER_ID = "formbricks-side-tab-container";
+const SIDE_TAB_BUTTON_ID = "formbricks-side-tab-button";
+
+/**
+ * Creates a fixed-position slider panel container for the slider embed mode.
+ * The slider slides in from the left or right edge of the viewport.
+ * Container starts off-screen (translated) and can be revealed by toggling the transform.
+ */
+const initSliderEmbed = (configInput: TConfigInput, logger: Logger): void => {
+  const sliderConfig = configInput.sliderConfig;
+  const direction = sliderConfig?.direction ?? "right";
+  const width = sliderConfig?.width ?? "400px";
+  const animationMs = sliderConfig?.animation ?? 300;
+
+  // Guard against duplicate container creation
+  if (document.getElementById(SLIDER_CONTAINER_ID)) return;
+
+  const container = document.createElement("div");
+  container.id = SLIDER_CONTAINER_ID;
+  container.style.position = "fixed";
+  container.style.top = "0";
+  container.style[direction === "left" ? "left" : "right"] = "0";
+  container.style.width = width;
+  container.style.height = "100%";
+  container.style.zIndex = "999999";
+  container.style.transition = `transform ${String(animationMs)}ms ease-in-out`;
+  container.style.transform = direction === "left" ? "translateX(-100%)" : "translateX(100%)";
+
+  document.body.appendChild(container);
+  logger.debug("Slider embed container created");
+};
+
+/**
+ * Creates a floating action button (FAB) and an expandable form container
+ * for the popover embed mode. The FAB toggles the form container visibility.
+ * Position is configurable via buttonPosition (bottom-left, bottom-right, top-left, top-right).
+ */
+const initPopoverEmbed = (configInput: TConfigInput, logger: Logger): void => {
+  const popoverConfig = configInput.popoverConfig;
+  const buttonPosition = popoverConfig?.buttonPosition ?? "bottom-right";
+  const color = popoverConfig?.color ?? "#1e293b";
+  const formWidth = popoverConfig?.formWidth ?? "400px";
+  const formHeight = popoverConfig?.formHeight ?? "500px";
+
+  // Guard against duplicate container creation
+  if (document.getElementById(POPOVER_CONTAINER_ID)) return;
+
+  // Calculate CSS position offsets from the buttonPosition string
+  const positionStyles: Record<string, string> = {};
+  if (buttonPosition.includes("bottom")) positionStyles.bottom = "20px";
+  if (buttonPosition.includes("top")) positionStyles.top = "20px";
+  if (buttonPosition.includes("right")) positionStyles.right = "20px";
+  if (buttonPosition.includes("left")) positionStyles.left = "20px";
+
+  // Create the floating action button
+  const button = document.createElement("button");
+  button.id = POPOVER_BUTTON_ID;
+  button.style.position = "fixed";
+  button.style.zIndex = "999998";
+  button.style.width = "56px";
+  button.style.height = "56px";
+  button.style.borderRadius = "50%";
+  button.style.backgroundColor = color;
+  button.style.border = "none";
+  button.style.cursor = "pointer";
+  button.style.boxShadow = "0 4px 12px rgba(0,0,0,0.15)";
+  Object.assign(button.style, positionStyles);
+  button.innerHTML = popoverConfig?.icon ?? "💬";
+
+  // Create the expandable form container (initially hidden)
+  const formContainer = document.createElement("div");
+  formContainer.id = POPOVER_CONTAINER_ID;
+  formContainer.style.position = "fixed";
+  formContainer.style.zIndex = "999999";
+  formContainer.style.width = formWidth;
+  formContainer.style.height = formHeight;
+  formContainer.style.display = "none";
+  formContainer.style.borderRadius = "12px";
+  formContainer.style.overflow = "hidden";
+  formContainer.style.boxShadow = "0 8px 32px rgba(0,0,0,0.2)";
+  Object.assign(formContainer.style, positionStyles);
+
+  // Toggle form container visibility on button click
+  button.addEventListener("click", () => {
+    const isVisible = formContainer.style.display !== "none";
+    formContainer.style.display = isVisible ? "none" : "block";
+  });
+
+  document.body.appendChild(button);
+  document.body.appendChild(formContainer);
+  logger.debug("Popover embed container created");
+};
+
+/**
+ * Creates a vertical tab button fixed to the page edge and an expandable container
+ * for the side tab embed mode. The tab button toggles the container visibility.
+ * Position (left/right) and label text are configurable.
+ */
+const initSideTabEmbed = (configInput: TConfigInput, logger: Logger): void => {
+  const sideTabConfig = configInput.sideTabConfig;
+  const tabLabel = sideTabConfig?.tabLabel ?? "Feedback";
+  const position = sideTabConfig?.position ?? "right";
+  const color = sideTabConfig?.color ?? "#1e293b";
+
+  // Guard against duplicate container creation
+  if (document.getElementById(SIDE_TAB_CONTAINER_ID)) return;
+
+  // Create the vertical tab button fixed to the page edge
+  const tabButton = document.createElement("button");
+  tabButton.id = SIDE_TAB_BUTTON_ID;
+  tabButton.style.position = "fixed";
+  tabButton.style.top = "50%";
+  tabButton.style[position] = "0";
+  tabButton.style.transform = `translateY(-50%) ${position === "right" ? "rotate(-90deg)" : "rotate(90deg)"}`;
+  tabButton.style.transformOrigin = position === "right" ? "right bottom" : "left bottom";
+  tabButton.style.zIndex = "999998";
+  tabButton.style.backgroundColor = color;
+  tabButton.style.color = "#ffffff";
+  tabButton.style.border = "none";
+  tabButton.style.padding = "8px 16px";
+  tabButton.style.cursor = "pointer";
+  tabButton.style.borderRadius = "8px 8px 0 0";
+  tabButton.textContent = tabLabel;
+
+  // Create the expandable container (initially hidden)
+  const container = document.createElement("div");
+  container.id = SIDE_TAB_CONTAINER_ID;
+  container.style.position = "fixed";
+  container.style.top = "0";
+  container.style[position] = "0";
+  container.style.width = "400px";
+  container.style.height = "100%";
+  container.style.zIndex = "999999";
+  container.style.display = "none";
+
+  // Toggle container visibility on tab button click
+  tabButton.addEventListener("click", () => {
+    const isVisible = container.style.display !== "none";
+    container.style.display = isVisible ? "none" : "block";
+  });
+
+  document.body.appendChild(tabButton);
+  document.body.appendChild(container);
+  logger.debug("Side tab embed container created");
+};
+
 const migrateLocalStorage = (): { changed: boolean; newState?: TConfig } => {
   const existingConfig = localStorage.getItem(JS_LOCAL_STORAGE_KEY);
 
@@ -315,6 +465,24 @@ export const setup = async (
   logger.debug("Adding event listeners");
   addEventListeners();
   addCleanupEventListeners();
+
+  // Initialize embed mode DOM structures if specified in configInput
+  if (configInput.embedMode) {
+    logger.debug(`Initializing embed mode: ${configInput.embedMode}`);
+    switch (configInput.embedMode) {
+      case "slider":
+        initSliderEmbed(configInput, logger);
+        break;
+      case "popover":
+        initPopoverEmbed(configInput, logger);
+        break;
+      case "sideTab":
+        initSideTabEmbed(configInput, logger);
+        break;
+      default:
+        logger.debug(`Unknown embed mode: ${String(configInput.embedMode)}`);
+    }
+  }
 
   setIsSetup(true);
   logger.debug("Set up complete");

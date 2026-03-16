@@ -22,6 +22,7 @@ import { resolveStorageUrlsInObject } from "@/modules/storage/utils";
 import { sendFollowUpsForResponse } from "@/modules/survey/follow-ups/lib/follow-ups";
 import { FollowUpSendError } from "@/modules/survey/follow-ups/types/follow-up";
 import { handleIntegrations } from "./lib/handleIntegrations";
+import { transformToTypeformPayload } from "./lib/payload-transformer";
 
 export const POST = async (request: Request) => {
   const requestHeaders = await headers();
@@ -99,21 +100,25 @@ export const POST = async (request: Request) => {
   const resolvedResponseData = resolveStorageUrlsInObject(response.data);
 
   const webhookPromises = webhooks.map((webhook) => {
-    const body = JSON.stringify({
-      webhookId: webhook.id,
-      event,
-      data: {
-        ...response,
-        data: resolvedResponseData,
-        survey: {
-          title: survey.name,
-          type: survey.type,
-          status: survey.status,
-          createdAt: survey.createdAt,
-          updatedAt: survey.updatedAt,
-        },
-      },
-    });
+    const body = JSON.stringify(
+      webhook.payloadFormat === "typeform"
+        ? transformToTypeformPayload(response, survey, resolvedResponseData)
+        : {
+            webhookId: webhook.id,
+            event,
+            data: {
+              ...response,
+              data: resolvedResponseData,
+              survey: {
+                title: survey.name,
+                type: survey.type,
+                status: survey.status,
+                createdAt: survey.createdAt,
+                updatedAt: survey.updatedAt,
+              },
+            },
+          }
+    );
 
     // Generate Standard Webhooks headers
     const webhookMessageId = uuidv7();

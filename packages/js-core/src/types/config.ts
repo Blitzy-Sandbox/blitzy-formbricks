@@ -83,9 +83,35 @@ export type TConfigUpdateInput = Omit<TConfig, "status"> & {
 
 export type TAttributes = Record<string, string | number>;
 
+export type TEmbedMode = "slider" | "popover" | "sideTab";
+
+export interface TSliderConfig {
+  direction: "left" | "right";
+  width?: string;
+  animation?: number;
+}
+
+export interface TPopoverConfig {
+  buttonPosition: "bottom-left" | "bottom-right" | "top-left" | "top-right";
+  icon?: string;
+  color?: string;
+  formWidth?: string;
+  formHeight?: string;
+}
+
+export interface TSideTabConfig {
+  tabLabel: string;
+  position: "left" | "right";
+  color?: string;
+}
+
 export interface TConfigInput {
   environmentId: string;
   appUrl: string;
+  embedMode?: TEmbedMode;
+  sliderConfig?: TSliderConfig;
+  popoverConfig?: TPopoverConfig;
+  sideTabConfig?: TSideTabConfig;
 }
 
 export interface TStylingColor {

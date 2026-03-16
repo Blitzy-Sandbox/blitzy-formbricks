@@ -383,10 +383,10 @@ export const transformToTypeformPayload = (
     event_id: uuidv7(),
     event_type: "form_response",
     form_id: survey.id,
-    landed_at: response.updatedAt
+    landed_at: new Date(response.createdAt).toISOString(),
+    submitted_at: response.updatedAt
       ? new Date(response.updatedAt).toISOString()
       : new Date(response.createdAt).toISOString(),
-    submitted_at: new Date(response.createdAt).toISOString(),
     definition: {
       id: survey.id,
       title: survey.name,

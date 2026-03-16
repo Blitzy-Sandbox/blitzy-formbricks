@@ -16,7 +16,7 @@ export const SliderEmbedTab = ({ surveyUrl }: SliderEmbedTabProps) => {
   const { t } = useTranslation();
   const [direction, setDirection] = useState<"left" | "right">("right");
   const [width, setWidth] = useState<number>(400);
-  const [animationDuration, setAnimationDuration] = useState<number>(300);
+  const [animation, setAnimation] = useState<number>(300);
   const [showAnimationSettings, setShowAnimationSettings] = useState(false);
 
   const parsedUrl = new URL(surveyUrl);
@@ -32,8 +32,8 @@ window.formbricks.init({
   embedMode: "slider",
   sliderConfig: {
     direction: "${direction}",
-    width: ${width},
-    animationDuration: ${animationDuration}
+    width: "${width}px",
+    animation: ${animation}
   }
 })}}();
 </script>`;
@@ -105,8 +105,8 @@ window.formbricks.init({
             type="number"
             min={0}
             max={2000}
-            value={animationDuration}
-            onChange={(e) => setAnimationDuration(Number(e.target.value))}
+            value={animation}
+            onChange={(e) => setAnimation(Number(e.target.value))}
             className="w-24 rounded-md border border-slate-300 bg-white px-3 py-1.5 text-sm text-slate-700 focus:border-slate-500 focus:outline-none focus:ring-1 focus:ring-slate-500"
           />
         </div>

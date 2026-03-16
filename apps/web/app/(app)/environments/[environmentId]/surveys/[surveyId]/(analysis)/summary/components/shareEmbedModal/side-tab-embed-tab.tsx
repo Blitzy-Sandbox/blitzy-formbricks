@@ -17,17 +17,30 @@ export const SideTabEmbedTab = ({ surveyUrl }: SideTabEmbedTabProps) => {
   const [position, setPosition] = useState<"left" | "right">("right");
   const [tabColor, setTabColor] = useState<string>("#00C4B8");
 
+  let apiHost = surveyUrl;
+  let environmentId = "YOUR_ENVIRONMENT_ID";
+  try {
+    const urlObj = new URL(surveyUrl);
+    apiHost = urlObj.origin;
+    const pathSegments = urlObj.pathname.split("/").filter(Boolean);
+    if (pathSegments.length >= 2) {
+      environmentId = pathSegments[pathSegments.length - 2];
+    }
+  } catch {
+    // If the URL is malformed, fall back to defaults
+  }
+
   const snippetCode = `<script type="text/javascript">
 !function(){var e=document.createElement("script");e.src="https://unpkg.com/@formbricks/js@latest/dist/index.umd.js";
 e.async=true;document.head.appendChild(e);e.onload=function(){
 window.formbricks.init({
-  environmentId: "${surveyUrl.split("/").slice(-2, -1)[0] || "YOUR_ENVIRONMENT_ID"}",
-  apiHost: "${new URL(surveyUrl).origin}",
+  environmentId: "${environmentId}",
+  apiHost: "${apiHost}",
   embedMode: "sideTab",
   sideTabConfig: {
     tabLabel: "${tabLabel}",
     position: "${position}",
-    tabColor: "${tabColor}"
+    color: "${tabColor}"
   }
 })}}();
 </script>`;
@@ -102,7 +115,12 @@ window.formbricks.init({
           <input
             type="text"
             value={tabColor}
-            onChange={(e) => setTabColor(e.target.value)}
+            onChange={(e) => {
+              const value = e.target.value;
+              if (/^#[0-9A-Fa-f]{0,6}$/.test(value) || value === "") {
+                setTabColor(value);
+              }
+            }}
             aria-label={t("environments.surveys.share.side_tab_embed.tab_color")}
             className="focus:border-brand-dark flex h-10 w-full rounded-md border border-slate-300 bg-transparent px-3 py-2 text-sm text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-400 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
           />

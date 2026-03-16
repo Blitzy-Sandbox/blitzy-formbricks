@@ -42,9 +42,9 @@ window.formbricks.init({
   embedMode: "popover",
   popoverConfig: {
     buttonPosition: "${buttonPosition}",
-    buttonColor: "${buttonColor}",
-    formWidth: ${formWidth},
-    formHeight: ${formHeight}
+    color: "${buttonColor}",
+    formWidth: "${formWidth}px",
+    formHeight: "${formHeight}px"
   }
 })}}();
 </script>`;
@@ -96,7 +96,12 @@ window.formbricks.init({
               type="text"
               className="focus-visible:ring-ring rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 focus-visible:outline-none focus-visible:ring-1"
               value={buttonColor}
-              onChange={(e) => setButtonColor(e.target.value)}
+              onChange={(e) => {
+                const value = e.target.value;
+                if (/^#[0-9A-Fa-f]{0,6}$/.test(value) || value === "") {
+                  setButtonColor(value);
+                }
+              }}
               aria-label={t("environments.surveys.share.popover_embed.button_color")}
             />
           </div>

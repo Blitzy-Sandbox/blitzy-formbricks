@@ -4,6 +4,14 @@ import toast from "react-hot-toast";
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { PopoverEmbedTab } from "./popover-embed-tab";
 
+// Mock react-hot-toast to provide spy functions for toast.success/error assertions
+vi.mock("react-hot-toast", () => ({
+  default: {
+    success: vi.fn(),
+    error: vi.fn(),
+  },
+}));
+
 // Mock react-i18next with a pass-through useTranslation hook that returns i18n keys as-is,
 // allowing tests to verify i18n key rendering without actual translation files
 vi.mock("react-i18next", () => ({

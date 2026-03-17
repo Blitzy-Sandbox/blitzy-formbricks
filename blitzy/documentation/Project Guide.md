@@ -1,4 +1,4 @@
-# Blitzy Project Guide — Sprint 2: Logic & Data (Typeform Parity)
+# Blitzy Project Guide — Typeform Feature Parity Sprints 3, 4 & 5
 
 ---
 
@@ -6,57 +6,60 @@
 
 ### 1.1 Project Overview
 
-Sprint 2 ("Logic & Data") of the Formbricks Typeform parity initiative delivers two parallel epics within the Formbricks monorepo. **Epic 2.1 — Logic Operator Parity** systematically verifies that all 20 Typeform logic condition types map to equivalent operators in Formbricks' 32-operator system, confirms `opinionScale` and `payment` element types are fully supported as logic operands, and validates cyclic detection handles all element types. **Epic 2.2 — JSON Response Export** adds `"json"` as a third export format alongside `"csv"` and `"xlsx"` across the full export pipeline — from the conversion layer through the service layer, server actions, UI components, V2 REST API, and all 14 locale files. The implementation prioritizes lossless field parity and includes security hardening (IDOR protection, input truncation, dependency patches).
+This project implements Sprints 3, 4, and 5 of the Typeform feature parity initiative within the Formbricks open-source survey platform. The scope spans five epics: **Webhook Payload Parity** (transforming webhook payloads to Typeform-compatible format), **Embed and Share Enhancements** (adding slider, popover, and side-tab embed modes), **Workspace Parity** (auditing governance model alignment), **Migration Safety** (validating backward compatibility of all schema changes), and **End-to-End Validation** (comprehensive regression and parity testing). The target is to achieve structural equivalence with Typeform across webhooks, embeds, and governance while preserving full backward compatibility with all existing Formbricks integrations and surveys.
 
 ### 1.2 Completion Status
 
 ```mermaid
-pie title Project Completion (71.0%)
-    "Completed (44h)" : 44
-    "Remaining (18h)" : 18
+pie title Project Completion — 81.0%
+    "Completed (136h)" : 136
+    "Remaining (32h)" : 32
 ```
 
 | Metric | Value |
-|--------|-------|
-| **Total Project Hours** | 62h |
-| **Completed Hours (AI)** | 44h |
-| **Remaining Hours** | 18h |
-| **Completion Percentage** | 71.0% |
-
-**Calculation:** 44h completed / (44h + 18h remaining) = 44/62 = 71.0%
+|---|---|
+| **Total Project Hours** | 168h |
+| **Completed Hours (AI)** | 136h |
+| **Remaining Hours** | 32h |
+| **Completion Percentage** | 81.0% (136 / 168) |
 
 ### 1.3 Key Accomplishments
 
-- ✅ Verified 100% Typeform logic operator coverage (20/20 operators mapped across 32 Formbricks operators)
-- ✅ Confirmed `opinionScale` and `payment` element types fully supported in logic evaluation, web utils, and rule engine editor
-- ✅ Implemented `convertToJson` function with field normalization ensuring lossless export parity
-- ✅ Extended `getResponseDownloadFile` to accept `"json"` format with proper routing
-- ✅ Added JSON download options to CustomFilter, ResponseTable, and selected-row-settings UI components
-- ✅ Implemented V2 Management API format-based export with environment authorization and proper Content-Type headers
-- ✅ Added JSON i18n labels to all 14 locale files (42 new translation keys total)
-- ✅ Created 12 comprehensive unit tests for `convertToJson` covering lossless fidelity metrics
-- ✅ Applied security fixes: React CVE patch, IDOR authorization, Zod input truncation, 6+ dependency overrides
-- ✅ Achieved 174/174 in-scope tests passing (100%), zero TypeScript errors, zero lint violations
+- ✅ Full Typeform-compatible webhook payload transformer implemented — converts all 17 Formbricks element types to typed `answers` array format with field definitions, hidden fields, variables, and calculated scores
+- ✅ Per-webhook `payloadFormat` toggle (opt-in, backward-compatible) with Prisma schema, SQL migration, Zod validation, and complete UI integration
+- ✅ Three new embed tab components (Slider, Popover, Side Tab) with configurable options, copy-to-clipboard code snippets, and i18n compliance
+- ✅ `@formbricks/js-core` SDK extended with embed mode type definitions and DOM setup handlers for all three new modes
+- ✅ V1 and V2 webhook APIs updated with `payloadFormat` support; OpenAPI v1 and v2 specifications updated
+- ✅ Backward-compatibility test suite validating `ZSurveyElement` discriminated union with all 17 element types (49 tests)
+- ✅ Sprint 1-3 audit migration script (256 lines) with documented rollback procedure
+- ✅ 478 autonomous tests passing across 19 test files (100% pass rate)
+- ✅ Full Turborepo build succeeds; zero ESLint violations across 41 modified files
 
 ### 1.4 Critical Unresolved Issues
 
 | Issue | Impact | Owner | ETA |
-|-------|--------|-------|-----|
-| 15 pre-existing test failures in unrelated modules (crypto, auth, license, storage) | Low — not caused by Sprint 2; may block full CI pipeline | Human Developer | 1–2 days |
-| Lossless export validation against all 7 fidelity metrics not yet performed with real survey data | Medium — unit tests cover key metrics but full-pipeline validation pending | Human Developer | 1 day |
-| No E2E tests for JSON download UI workflow | Medium — UI changes verified via code review but not browser-automated | Human Developer | 1–2 days |
+|---|---|---|---|
+| Workspace Parity Audit (Epic 4.1) not performed | Cannot confirm governance model alignment with Typeform | Human Developer | 2–3 days |
+| Playwright E2E tests not executed | Webhook CRUD, embed variant, and org/team E2E flows unverified in browser | Human Developer | 1–2 days |
+| Performance benchmarking not executed | Export performance with 10,000+ responses unvalidated | Human Developer | 1 day |
+| Migration rollback not verified in staging | Rollback procedure untested in a live environment | Human Developer / DevOps | 1 day |
+| Vitest config picks up `.next/standalone/` test files | Pre-existing issue causing false-positive failures in full suite runs; not in scope but affects CI reliability | Human Developer | 0.5 days |
 
 ### 1.5 Access Issues
 
-No access issues identified. All files modified are within the monorepo, and no external service credentials, third-party API keys, or special repository permissions were required for Sprint 2 implementation.
+| System/Resource | Type of Access | Issue Description | Resolution Status | Owner |
+|---|---|---|---|---|
+| PostgreSQL database | Database connection | No database instance available in CI/validation environment; Prisma migration not applied | Unresolved | DevOps |
+| Staging environment | Deployment access | No staging environment provisioned for migration rollback verification | Unresolved | DevOps |
+| Playwright browser env | E2E test infrastructure | Full app with seeded database required for Playwright E2E execution | Unresolved | Human Developer |
 
 ### 1.6 Recommended Next Steps
 
-1. **[High]** Run integration tests with a real PostgreSQL database and survey data to validate the full JSON export pipeline end-to-end
-2. **[High]** Implement E2E tests (Playwright) for the JSON download UI workflow across CustomFilter, ResponseTable, and selected-row-settings
-3. **[Medium]** Perform comprehensive lossless export validation against all 7 fidelity metrics from `export-parity.mdx` with edge-case survey responses (unicode, file references, metadata fields)
-4. **[Medium]** Investigate and triage the 15 pre-existing test failures in unrelated modules to ensure CI pipeline passes cleanly
-5. **[Low]** Conduct human code review of V2 API format export path focusing on authorization model and error handling
+1. **[High]** Execute the Workspace Parity Audit (Epic 4.1) — verify Organization/Project/Team hierarchy, role permissions, and API key scoping against Typeform's model
+2. **[High]** Apply the Prisma migration (`20260301120000_add_payload_format_to_webhook`) to a live database via `pnpm fb-migrate-dev`
+3. **[High]** Run Playwright E2E tests for webhook CRUD, embed variants, and organization/team flows with a seeded database
+4. **[Medium]** Execute export performance benchmarking with 10,000+ response datasets
+5. **[Medium]** Verify migration rollback procedure (`ALTER TABLE "Webhook" DROP COLUMN "payloadFormat"`) in staging environment
 
 ---
 
@@ -65,145 +68,146 @@ No access issues identified. All files modified are within the monorepo, and no 
 ### 2.1 Completed Work Detail
 
 | Component | Hours | Description |
-|-----------|-------|-------------|
-| **Epic 2.1 — Operator Mapping Verification** | 2.0 | Systematic cross-reference of 32 Formbricks operators against 20 Typeform operators in `logic-parity.mdx`; confirmed 100% coverage in `logic.ts` |
-| **Epic 2.1 — OpinionScale/Payment Logic Verification** | 2.5 | Verified numeric handling in `logic.ts` (line 111), `utils.ts` (line 536), and rule engine (lines 409, 445); confirmed isSubmitted/isSkipped paths for Payment |
-| **Epic 2.1 — Cyclic Detection Verification** | 1.0 | Confirmed `findBlocksWithCyclicLogic` DFS operates at block level; element-type-agnostic |
-| **Epic 2.1 — Test Coverage Verification** | 2.0 | Verified 100 tests across 3 suites (logic.test.ts: 46, utils.test.ts: 28, rule-engine.test.ts: 26) cover OpinionScale and Payment |
-| **Epic 2.1 — Documentation Cross-Reference** | 0.5 | Cross-referenced sprint-roadmap.mdx, logic-parity.mdx, question-type-parity.mdx |
-| **Epic 2.2 — convertToJson Function** | 3.0 | Implemented `convertToJson` in `file-conversion.ts` with field normalization ensuring lossless parity across all export formats |
-| **Epic 2.2 — Service Layer Extension** | 2.0 | Modified `getResponseDownloadFile` format union to `"csv" \| "xlsx" \| "json"`, added JSON branch routing to `convertToJson` |
-| **Epic 2.2 — Server Action Schema** | 0.5 | Extended `ZGetResponsesDownloadUrlAction` format schema to include `z.literal("json")` |
-| **Epic 2.2 — Browser Download Utility** | 1.5 | Added JSON MIME type (`application/json;charset=utf-8`) and file extension handling in `downloadResponsesFile` |
-| **Epic 2.2 — CustomFilter UI** | 2.5 | Added 2 JSON DropdownMenuItems (All/Filtered) with data-testid attributes; extended `handleDownloadResponses` type |
-| **Epic 2.2 — ResponseTable + Selected-Row Settings** | 1.5 | Extended `downloadSelectedRows` format type; added JSON button to selected-row-settings dropdown |
-| **Epic 2.2 — Data-Table Toolbar Verification** | 0.5 | Verified `downloadRowsAction` uses `format: string` — naturally accepts "json" |
-| **Epic 2.2 — V2 API Route Handler** | 5.0 | Implemented format detection, `getResponseDownloadFile` integration, environment authorization, Content-Type mapping, XLSX binary handling, error handling |
-| **Epic 2.2 — V2 API Schema + OpenAPI** | 2.5 | Added `format` field to `ZGetResponsesFilter`; added CSV/XLSX content types to OpenAPI spec; updated V2 YAML with response content types |
-| **Epic 2.2 — OpenAPI Spec Review** | 1.5 | Verified V2 YAML already documents format enum; removed undocumented V1 format param that had no backing implementation |
-| **Epic 2.2 — Localization (14 files)** | 2.0 | Added `all_responses_json`, `filtered_responses_json`, `selected_responses_json` labels to all 14 locale files |
-| **Epic 2.2 — File Conversion Tests** | 4.0 | Created 12 comprehensive unit tests covering JSON validity, type preservation, unicode, empty arrays, large datasets, field normalization, field ordering |
-| **Epic 2.2 — Response Utils Test** | 1.0 | Added JSON extension test case for `getResponsesFileName`; verified 62/62 tests passing |
-| **Epic 2.2 — Integration & Debugging** | 2.5 | Resolved field normalization issue for lossless parity; iterative fix/test cycles |
-| **Security — Zod Input Truncation** | 1.0 | Added MAX_ERROR_MESSAGE_LENGTH truncation in `formatZodError` to prevent log pollution and reflection attacks |
-| **Security — Cache-Control Headers** | 0.5 | Added `private, no-store` Cache-Control to all V2 format export responses |
-| **Security — React CVE Fix** | 1.0 | Upgraded React/ReactDOM from 19.2.3 → 19.2.4 in root and web `package.json`; regenerated `pnpm-lock.yaml` |
-| **Security — Dependency Overrides** | 2.0 | Updated pnpm overrides for axios (≥1.13.5), tar (≥7.5.8), qs (≥6.14.2), fast-xml-parser (≥5.3.5), brace-expansion (≥5.0.1), minimatch (≥3.1.3) |
-| **Security — IDOR Authorization** | 1.0 | Added environment permission check to V2 format export path (CWE-639 prevention) |
-| **Documentation — Sprint Roadmap Fix** | 0.5 | Corrected CustomFilter.tsx path reference from `summary/components/` to `components/` |
-| **Total** | **44.0** | |
+|---|---|---|
+| Webhook Prisma Schema + Migration | 2 | Added `payloadFormat` field to Webhook model; SQL migration with rollback |
+| Webhook Zod Schemas | 4 | Extended `ZWebhook`; created `ZTypeformAnswer`, `ZTypeformFieldDefinition`, `ZTypeformCompatiblePayload` (232 lines) |
+| Payload Transformer Core | 16 | `transformToTypeformPayload` function (404 lines) mapping all 17 element types to typed answers with field definitions, hidden fields, variables, scores |
+| Pipeline Route Integration | 3 | Payload format branching in `route.ts` with try/catch resilience |
+| Webhook Service/Types/Actions | 3 | Updated `createWebhook`, `updateWebhook`, webhook input types across internal module |
+| Webhook UI Components | 8 | Payload format selector in add-webhook-modal, detail-modal, settings-tab; Typeform badge display |
+| V1 + V2 Webhook API Integration | 6 | payloadFormat support in V1 webhook create/update/read, V2 webhook CRUD, mock data, types (7 files) |
+| OpenAPI Specification Updates | 2 | payloadFormat field added to V1 `openapi.json` and V2 `openapi.yml` |
+| Payload Transformer Tests | 8 | 60 unit tests covering all element types, edge cases, backward compatibility |
+| Embed Tab Components (3) | 12 | SliderEmbedTab (140 lines), PopoverEmbedTab (159 lines), SideTabEmbedTab (146 lines) with configurable options |
+| Share Modal Integration | 2.5 | ShareViaType enum extension; tab registration in share-survey-modal.tsx |
+| JS-Core SDK Extension | 11 | Embed mode type definitions (config.ts, types/config.ts), setup handlers (168 lines), public API exports |
+| Embed Documentation | 3 | Slider, popover, and side tab embed documentation (91 lines added to embed-surveys.mdx) |
+| Embed Tab Unit Tests | 6 | 21 tests across 3 test files for slider, popover, and side-tab components |
+| i18n Localization | 2 | 40+ i18n keys for webhook payload format and embed tab UI strings |
+| Migration Audit Script | 4 | Sprint 1-3 backward-compatibility audit migration (256 lines) |
+| Backward-Compatibility Tests | 6 | 49 tests validating ZSurveyElement union with all 17 element types |
+| Sprint 5: Webhook Parity Validation | 8 | 65 tests verifying Typeform-compatible payload structural equivalence |
+| Sprint 5: Export Lossless Validation | 6 | 35 tests verifying CSV, XLSX, JSON export data fidelity |
+| Sprint 5: Regression Test Execution | 4 | Full regression across logic (46), response (111), webhook (25), integration (13), telemetry (7) tests |
+| Code Review Fixes + QA | 8 | 5 QA findings resolved, 12 code review findings, pipeline resilience, documentation fixes |
+| Webhook Table Component Update | 0.5 | Default payloadFormat in webhook table component |
+| **Total Completed** | **136** | |
 
 ### 2.2 Remaining Work Detail
 
-| Category | Base Hours | Priority | After Multiplier |
-|----------|-----------|----------|-----------------|
-| Integration testing — full JSON export pipeline with real DB and survey data | 3.0 | High | 3.5 |
-| E2E testing — Playwright tests for JSON download UI workflow (CustomFilter, ResponseTable, selected-row-settings) | 3.0 | High | 3.5 |
-| V2 API integration testing — authenticated format export requests with real responses | 2.0 | High | 2.5 |
-| Lossless export validation — verify all 7 fidelity metrics from `export-parity.mdx` with edge-case data | 2.0 | Medium | 2.5 |
-| Pre-existing test failure triage — investigate 15 failures in crypto, auth, license, storage modules | 1.5 | Medium | 2.0 |
-| Code review and merge — human review of 33 modified files, security review of V2 API export path | 2.0 | Medium | 2.5 |
-| Production deployment verification — validate export pipeline in staging/production environment | 1.0 | Low | 1.5 |
-| **Total** | **14.5** | | **18.0** |
-
-### 2.3 Enterprise Multipliers Applied
-
-| Multiplier | Value | Rationale |
-|-----------|-------|-----------|
-| Compliance Review | 1.10x | Security-sensitive API endpoint changes require compliance review; IDOR and input validation patterns need verification |
-| Uncertainty Buffer | 1.10x | Integration with real database data may reveal edge cases not covered by unit tests; pre-existing failures may need deeper investigation |
-| **Combined** | **1.21x** | Applied to all remaining base hour estimates |
+| Category | Hours | Priority |
+|---|---|---|
+| Workspace Parity Audit — Hierarchy Verification (Epic 4.1) | 4 | High |
+| Workspace Parity Audit — Role Permissions Verification (Epic 4.1) | 3 | High |
+| Workspace Parity Audit — API Key Scope Verification (Epic 4.1) | 2 | Medium |
+| Workspace Parity Audit — Documentation (Epic 4.1) | 3 | Medium |
+| Migration Safety — Existing Test Suite Backward-Compat Updates (Epic 4.2) | 2 | Medium |
+| Sprint 5 — Playwright E2E Test Execution | 6 | High |
+| Sprint 5 — Export Performance Benchmarking (10K+ responses) | 4 | Medium |
+| Sprint 5 — Migration Rollback Verification in Staging | 3 | High |
+| Path-to-Production — Database Migration Application | 2 | High |
+| Path-to-Production — Environment Configuration & CI/CD | 3 | Medium |
+| **Total Remaining** | **32** | |
 
 ---
 
 ## 3. Test Results
 
 | Test Category | Framework | Total Tests | Passed | Failed | Coverage % | Notes |
-|--------------|-----------|-------------|--------|--------|-----------|-------|
-| Unit — Logic Evaluation | Vitest | 46 | 46 | 0 | — | `packages/surveys/src/lib/logic.test.ts` — covers all operators including OpinionScale and Payment |
-| Unit — Web Survey Logic Utils | Vitest | 28 | 28 | 0 | — | `apps/web/lib/surveyLogic/utils.test.ts` — covers OpinionScale numeric conversion and Payment isSubmitted |
-| Unit — Logic Rule Engine | Vitest | 26 | 26 | 0 | — | `apps/web/modules/survey/editor/lib/logic-rule-engine.test.ts` — covers OpinionScale and Payment operator sets |
-| Unit — File Conversion (JSON) | Vitest | 12 | 12 | 0 | — | `apps/web/lib/utils/file-conversion.test.ts` — covers lossless fidelity: types, unicode, truncation, field normalization |
-| Unit — Response Utils | Vitest | 62 | 62 | 0 | — | `apps/web/lib/response/utils.test.ts` — includes JSON extension test for `getResponsesFileName` |
-| **Total In-Scope** | **Vitest** | **174** | **174** | **0** | **100%** | All tests from Blitzy autonomous validation |
-
-**Note:** 15 pre-existing test failures exist in out-of-scope modules (crypto: 2, auth: 2, auth-utils: 2, license: 4, storage: 5). These failures are unrelated to Sprint 2 changes and were present before the branch was created.
+|---|---|---|---|---|---|---|
+| Payload Transformer Unit Tests | Vitest 3.1.3 | 60 | 60 | 0 | N/A | All 17 element types, edge cases, backward compat |
+| Webhook Parity Validation | Vitest 3.1.3 | 65 | 65 | 0 | N/A | Field-by-field structural equivalence verification |
+| Backward-Compatibility Tests | Vitest 3.1.3 | 49 | 49 | 0 | N/A | ZSurveyElement union with all 17 types |
+| Export Lossless Validation | Vitest 3.1.3 | 35 | 35 | 0 | N/A | CSV, XLSX, JSON format fidelity |
+| Embed Tab Components (3 files) | Vitest 3.1.3 | 21 | 21 | 0 | N/A | Slider, Popover, Side Tab rendering + interactions |
+| Webhook API V1 (detail) | Vitest 3.1.3 | 12 | 12 | 0 | N/A | payloadFormat in CRUD operations |
+| Webhook API V2 (detail) | Vitest 3.1.3 | 9 | 9 | 0 | N/A | payloadFormat in V2 CRUD |
+| Webhook API V2 (list) | Vitest 3.1.3 | 4 | 4 | 0 | N/A | V2 list endpoint |
+| Webhook V1 (list) | Vitest 3.1.3 | 5 | 5 | 0 | N/A | V1 list endpoint |
+| V2 Webhook Utils | Vitest 3.1.3 | 3 | 3 | 0 | N/A | Utility tests |
+| Response Service Tests | Vitest 3.1.3 | 38 | 38 | 0 | N/A | Regression: response CRUD |
+| Response Download/Export | Vitest 3.1.3 | 11 | 11 | 0 | N/A | Regression: export pipeline |
+| Response Utils | Vitest 3.1.3 | 62 | 62 | 0 | N/A | Regression: response utilities |
+| Integration Handlers | Vitest 3.1.3 | 13 | 13 | 0 | N/A | Regression: pipeline integrations |
+| Telemetry | Vitest 3.1.3 | 7 | 7 | 0 | N/A | Regression: pipeline telemetry |
+| Services (File Conversion) | Vitest 3.1.3 | 38 | 38 | 0 | N/A | Regression: CSV/XLSX/JSON conversion |
+| Logic Operators | Vitest 3.1.3 | 46 | 46 | 0 | N/A | Regression: all 32+ logic operators |
+| **Total** | | **478** | **478** | **0** | **100%** | |
 
 ---
 
 ## 4. Runtime Validation & UI Verification
 
-**TypeScript Compilation:**
-- ✅ `packages/types` — Zero errors
-- ✅ `packages/surveys` — Zero errors
-- ✅ `apps/web` — Zero errors in all in-scope modified files
+**Application Startup**
+- ✅ Prisma client generation succeeds (v6.14.0)
+- ✅ Full Turborepo build completes (10 tasks, `CI=true pnpm build`)
+- ✅ Next.js application starts on port 3001 (`NODE_ENV=production`)
+- ✅ Login page renders correctly (HTTP 200)
+- ✅ Zero console errors or warnings at startup
 
-**Linting & Formatting:**
-- ✅ Prettier — All modified `.ts`/`.tsx`/`.json` files pass formatting check
-- ✅ ESLint — All modified `.ts`/`.tsx` files pass with zero violations
+**API Routes**
+- ✅ Pipeline route responds correctly (405 Method Not Allowed for GET — POST-only endpoint as expected)
+- ✅ Auth/login route returns HTTP 200
+- ✅ API route compilation verified through build success
 
-**Code Changes Validation:**
-- ✅ `convertToJson` function — Field normalization ensures all records include all header fields
-- ✅ `getResponseDownloadFile` — JSON branch correctly routes to `convertToJson`, returns string (not base64)
-- ✅ `downloadResponsesFile` — JSON uses `application/json;charset=utf-8` MIME type; correct `.json` extension
-- ✅ CustomFilter.tsx — 6 dropdown items (All/Filtered × CSV/XLSX/JSON) with proper event handlers
-- ✅ V2 API route handler — Format detection, environment authorization, Content-Type mapping, binary vs text response handling
+**Webhook Payload Format**
+- ✅ `payloadFormat` field persisted in Prisma schema
+- ✅ Zod validation accepts `"default"` and `"typeform"` values
+- ✅ Pipeline route branches on `webhook.payloadFormat` at runtime
+- ✅ Transformer function handles all 17 element types with proper type mapping
+- ✅ Try/catch wrapper prevents transformer errors from breaking webhook delivery
 
-**API Integration:**
-- ✅ V2 API responses route — `format` query parameter parsed via `ZGetResponsesFilter`
-- ✅ Authorization — Environment permission checked before export; IDOR protection (CWE-639)
-- ✅ Content-Type mapping — `application/json`, `text/csv`, `application/vnd.openxmlformats-officedocument.spreadsheetml.sheet`
-- ✅ Cache-Control — `private, no-store` on all export responses
-- ⚠️ E2E browser testing — Not yet performed; requires Playwright test implementation
+**Embed Components**
+- ✅ All 3 embed tab components render without errors (verified via unit tests with jsdom)
+- ✅ Generated embed code snippets include correct SDK configuration
+- ✅ Copy-to-clipboard functionality verified in tests
+- ⚠ Visual browser verification pending (requires running application with seeded data)
 
-**Localization:**
-- ✅ All 14 locale files contain all 3 JSON download labels (42 keys total)
+**Linting**
+- ✅ ESLint: All 41 modified TypeScript/TSX files pass with zero violations
 
 ---
 
 ## 5. Compliance & Quality Review
 
-| AAP Deliverable | Status | Evidence | Notes |
-|----------------|--------|----------|-------|
-| Map all Typeform operators → Formbricks equivalents | ✅ Pass | 20/20 mapped in `logic-parity.mdx`; 32 operators in `logic.ts` | Zero gaps found |
-| OpinionScale logic support (8 operators) | ✅ Pass | `logic.ts` L111, `utils.ts` L536, `rule-engine.ts` L409 | Numeric handling verified |
-| Payment logic support (isSubmitted/isSkipped) | ✅ Pass | `logic.ts`, `utils.ts` L409, `rule-engine.ts` L445 | Generic string check verified |
-| Cyclic detection handles new types | ✅ Pass | `blocks-validation.ts` DFS at block level | Element-type-agnostic |
-| Comprehensive logic test coverage | ✅ Pass | 100/100 tests across 3 suites | OpinionScale + Payment covered |
-| convertToJson function (lossless) | ✅ Pass | `file-conversion.ts` + 12 unit tests | Field normalization ensures parity |
-| Extend format parameter in service | ✅ Pass | `service.ts` format union extended | JSON branch added at L427 |
-| Update download UI (CustomFilter) | ✅ Pass | 2 new DropdownMenuItems with data-testid | JSON for All + Filtered |
-| Update ResponseTable + selected-row-settings | ✅ Pass | Format type extended; JSON button added | Consistent with CSV/XLSX pattern |
-| Expose V2 API JSON export | ✅ Pass | `route.ts` + `responses.ts` + `openapi.ts` | Auth + Content-Type + error handling |
-| Localization (14 files) | ✅ Pass | All files verified with grep | 3 keys × 14 files = 42 |
-| Server action schema extension | ✅ Pass | `actions.ts` z.literal("json") added | Zod validation |
-| Browser download utility | ✅ Pass | `utils.ts` JSON MIME + extension | application/json;charset=utf-8 |
-| V1/V2 OpenAPI spec alignment | ✅ Pass | V1 param removed (no backing impl); V2 YAML content types added | Spec matches implementation |
-| Security — IDOR protection | ✅ Pass | Environment auth check in V2 export path | CWE-639 mitigation |
-| Security — Input truncation | ✅ Pass | Zod error message truncation at 100 chars | Log pollution prevention |
-| Security — React CVE | ✅ Pass | 19.2.3 → 19.2.4 | Patch applied |
-| Security — Dependency overrides | ✅ Pass | 6+ packages patched in pnpm overrides | GHSA advisories addressed |
-
-**Autonomous Validation Fixes Applied:**
-1. Normalized JSON export records to include all header fields for lossless field parity
-2. Added environment authorization to V2 format export path (IDOR CWE-639)
-3. Addressed QA security findings: Zod input truncation, Cache-Control headers, React CVE, dependency vulnerabilities
-4. Resolved QA documentation findings: removed undocumented V1 format param, fixed CustomFilter path, added V2 YAML content types
+| AAP Requirement | Status | Evidence | Notes |
+|---|---|---|---|
+| Webhook structural parity (Typeform format) | ✅ Pass | 404-line transformer + 65 parity validation tests | All 17 element types mapped |
+| Per-webhook payloadFormat toggle | ✅ Pass | Prisma field, Zod validation, UI selector | Opt-in, backward-compatible |
+| HMAC-SHA256 signing preserved | ✅ Pass | No changes to `generateStandardWebhookSignature` | Signs transformed payload body |
+| Slider embed tab component | ✅ Pass | 140 lines + 7 unit tests | Direction, width, animation configurable |
+| Popover embed tab component | ✅ Pass | 159 lines + 7 unit tests | Position, icon, color, dimensions configurable |
+| Side tab embed component | ✅ Pass | 146 lines + 7 unit tests | Label, position, color configurable |
+| JS-Core SDK embed modes | ✅ Pass | Config types, setup handlers, public exports | TEmbedMode, TSliderConfig, TPopoverConfig, TSideTabConfig |
+| Share modal tab registration | ✅ Pass | 3 tabs registered with icons and labels | Auto-renders via tabs prop array |
+| i18n compliance | ✅ Pass | 40+ keys in en-US.json | All UI strings use useTranslation() |
+| SQL migration (additive-only) | ✅ Pass | ALTER TABLE ADD COLUMN with DEFAULT | Rollback documented |
+| Backward-compatibility tests | ✅ Pass | 49 tests across all element types | ZSurveyElement union validated |
+| Lossless export validation | ✅ Pass | 35 tests across CSV, XLSX, JSON | Field-by-field fidelity |
+| 100% logic jump coverage | ✅ Pass | 46 logic operator tests passing | All 32+ operators verified |
+| No broken existing forms | ✅ Pass | 49 backward-compat + 111 response tests | Schema changes additive only |
+| V1/V2 API backward compatibility | ✅ Pass | 30 API tests passing + OpenAPI updated | payloadFormat is additive field |
+| Workspace parity audit | ❌ Not Started | No evidence | Epic 4.1 entirely pending |
+| Playwright E2E execution | ❌ Not Started | Requires live app + database | Browser-based verification pending |
+| Performance benchmarking | ❌ Not Started | Requires 10K+ response dataset | Export pipeline untested at scale |
+| Migration rollback verification | ❌ Not Started | Requires staging environment | Rollback procedure documented but untested |
 
 ---
 
 ## 6. Risk Assessment
 
 | Risk | Category | Severity | Probability | Mitigation | Status |
-|------|----------|----------|-------------|------------|--------|
-| JSON export produces large files for surveys with many responses | Technical | Medium | Medium | `convertToJson` uses streaming-compatible pattern; cursor-based batching in `getResponseDownloadFile` limits memory | Mitigated |
-| V2 API format export bypasses pagination for file downloads | Technical | Low | Low | Export calls existing `getResponseDownloadFile` which uses cursor-based batching with configurable batch size | Mitigated |
-| Pre-existing test failures mask Sprint 2 regressions in CI | Technical | Medium | Medium | Sprint 2 tests isolated to 5 suites (174 tests); pre-existing failures in unrelated modules documented | Partially Mitigated |
-| Zod error messages reflecting user input in API responses | Security | Medium | Low | Truncation at 100 characters applied in `formatZodError`; prevents log pollution and reflection | Mitigated |
-| IDOR in V2 format export (accessing surveys from other environments) | Security | High | Low | Environment permission check added before `getResponseDownloadFile` call | Mitigated |
-| JSON export may not preserve all metadata fields in edge cases | Operational | Medium | Low | Field normalization ensures all header fields present; 12 unit tests verify lossless metrics; full pipeline validation pending | Partially Mitigated |
-| Missing E2E tests for JSON download workflow | Operational | Medium | Medium | Manual code review confirms correct wiring; Playwright tests needed for browser-level validation | Open |
-| V2 API error responses may leak internal details | Security | Low | Low | Generic error messages used; Zod truncation prevents oversized input reflection | Mitigated |
+|---|---|---|---|---|---|
+| Workspace parity gaps undiscovered | Integration | High | Medium | Execute Epic 4.1 audit before production | Open |
+| Prisma migration not applied to live DB | Technical | High | High | Run `pnpm fb-migrate-dev` in staging first | Open |
+| Vitest config false positives in CI | Technical | Medium | High | Exclude `.next/standalone/` in vitest config | Open (pre-existing) |
+| Payload transformer edge cases | Technical | Medium | Low | 60 unit tests + 65 validation tests cover all types | Mitigated |
+| Embed mode DOM injection (XSS) | Security | Medium | Low | innerHTML security fix applied per code review | Mitigated |
+| Export performance at scale | Operational | Medium | Medium | Benchmark with 10K+ responses before production | Open |
+| Webhook delivery failure on transform error | Operational | Medium | Low | Try/catch wrapper falls back to default format | Mitigated |
+| Missing i18n translations for non-English locales | Integration | Low | High | Only en-US.json updated; other locales need keys | Open |
+| Flaky out-of-scope tests (bcrypt timing) | Technical | Low | Medium | Pre-existing; not caused by this PR | Acknowledged |
+| SDK embed mode browser compatibility | Technical | Low | Low | Uses standard DOM APIs; needs cross-browser testing | Open |
 
 ---
 
@@ -211,52 +215,49 @@ No access issues identified. All files modified are within the monorepo, and no 
 
 ```mermaid
 pie title Project Hours Breakdown
-    "Completed Work" : 44
-    "Remaining Work" : 18
+    "Completed Work" : 136
+    "Remaining Work" : 32
 ```
 
 **Remaining Work by Category:**
 
-| Category | Hours (After Multiplier) | Priority |
-|----------|------------------------|----------|
-| Integration Testing | 3.5 | High |
-| E2E Testing | 3.5 | High |
-| V2 API Testing | 2.5 | High |
-| Lossless Validation | 2.5 | Medium |
-| Test Failure Triage | 2.0 | Medium |
-| Code Review & Merge | 2.5 | Medium |
-| Deployment Verification | 1.5 | Low |
+| Category | Hours | Priority |
+|---|---|---|
+| Workspace Parity Audit (Epic 4.1) | 12 | High/Medium |
+| Migration Safety Remaining (Epic 4.2) | 2 | Medium |
+| Sprint 5 Validation Remaining | 13 | High/Medium |
+| Path-to-Production | 5 | High/Medium |
+| **Total Remaining** | **32** | |
 
 ---
 
 ## 8. Summary & Recommendations
 
-### Achievements
+### Achievement Summary
 
-Sprint 2 ("Logic & Data") is **71.0% complete** (44h completed out of 62h total). All AAP-scoped deliverables have been fully implemented and autonomously validated:
+The Typeform feature parity initiative Sprints 3–5 is **81.0% complete** (136 hours completed out of 168 total hours). The two largest epics — **Webhook Payload Parity (Epic 3.1)** and **Embed & Share Enhancements (Epic 3.2)** — are fully implemented with comprehensive test coverage. The project delivered 5,795 lines of production code across 41 files, with 478 tests passing at a 100% rate.
 
-- **Epic 2.1 (Logic Operator Parity):** 100% verified — all 20 Typeform operators confirmed mapped, `opinionScale` and `payment` element types fully supported across all logic layers, cyclic detection validated, 100 tests passing.
-- **Epic 2.2 (JSON Response Export):** 100% implemented — `convertToJson` with field normalization, full pipeline from service → actions → browser download → UI → V2 API, all 14 locales updated, 74 tests passing.
-- **Security hardening:** IDOR protection, input truncation, React CVE patch, 6+ dependency override updates.
+The payload transformer is the centerpiece deliverable — a 404-line pure function that converts all 17 Formbricks element types to Typeform-compatible typed answer objects, complete with field definitions, hidden field extraction, variable restructuring, and calculated score computation. This is supported by 125 dedicated tests (60 unit + 65 parity validation).
 
 ### Remaining Gaps
 
-The 18 remaining hours consist entirely of **path-to-production** activities — no AAP-scoped implementation work is outstanding:
+The primary gap is **Epic 4.1 (Workspace Parity Audit)** at 12 hours — this is an evaluation-only task that was not started by the autonomous agents. Based on the AAP's own analysis, the existing Formbricks governance model likely meets or exceeds Typeform's capabilities (4 roles vs 3, environment-scoped API keys vs personal tokens), but the formal audit and documentation have not been produced.
 
-1. **Integration and E2E testing (9.5h):** Full-pipeline tests with real database data and Playwright browser automation for the JSON download UI workflow
-2. **Validation and triage (4.5h):** Comprehensive lossless export validation against all 7 fidelity metrics; investigation of 15 pre-existing test failures
-3. **Review and deployment (4.0h):** Human code review, security review of V2 API changes, staging/production deployment verification
-
-### Production Readiness Assessment
-
-The codebase is **production-ready from a code quality perspective**: zero compilation errors, zero lint violations, 174/174 in-scope tests passing, and security hardening applied. The remaining work is standard pre-deployment validation that requires human judgment and access to production-like environments.
+Secondary gaps are Sprint 5 items requiring infrastructure not available in the CI environment: Playwright E2E tests (6h), export performance benchmarking (4h), and migration rollback verification (3h). These require a running application with a seeded database and staging environment.
 
 ### Critical Path to Production
 
-1. Integration testing with real survey data (validates lossless export end-to-end)
-2. E2E testing with Playwright (validates UI workflow in browser)
-3. Human code review (validates architectural decisions and security model)
-4. Staging deployment and smoke testing
+1. Apply the Prisma migration to staging database
+2. Complete the Workspace Parity Audit (Epic 4.1)
+3. Execute Playwright E2E tests with seeded database
+4. Run performance benchmarks with large datasets
+5. Verify migration rollback procedure in staging
+6. Add i18n keys for non-English locales
+7. Deploy to production with `payloadFormat` defaulting to `"default"` for all existing webhooks
+
+### Production Readiness Assessment
+
+The codebase is **production-quality** for all implemented features. The webhook payload parity system is backward-compatible by design (opt-in per webhook), the embed components follow established patterns, and all schema changes are additive-only. The 32 remaining hours of work are primarily audit, verification, and infrastructure tasks that do not require code changes to the delivered implementation.
 
 ---
 
@@ -264,122 +265,144 @@ The codebase is **production-ready from a code quality perspective**: zero compi
 
 ### System Prerequisites
 
-| Software | Required Version | Notes |
-|----------|-----------------|-------|
-| Node.js | ≥20.0.0 (recommended: 22.1.0) | `.nvmrc` pins 22.1.0 |
-| pnpm | 10.28.2 | Specified in `packageManager` field |
-| Docker + Docker Compose | Latest stable | For local PostgreSQL, MailHog, Valkey, MinIO |
-| Git | Latest stable | For version control |
+| Software | Version | Purpose |
+|---|---|---|
+| Node.js | ≥20.0.0 | JavaScript runtime |
+| pnpm | 10.28.2 | Package manager (enforced via `packageManager` field) |
+| Docker & Docker Compose | Latest | Local infrastructure (PostgreSQL, Valkey, MinIO, MailHog) |
+| Git | Latest | Version control |
 
 ### Environment Setup
 
+**1. Clone and checkout the branch:**
+
 ```bash
-# 1. Clone the repository and checkout the Sprint 2 branch
 git clone <repository-url>
 cd formbricks
-git checkout blitzy-242072a5-c376-446a-af06-485d4f2946f1
+git checkout blitzy-7a9d25be-d124-40bf-b715-2cf66eb7b11a
+```
 
-# 2. Use correct Node.js version
-nvm use  # reads .nvmrc → 22.1.0
+**2. Start local infrastructure:**
 
-# 3. Enable pnpm via Corepack
-corepack enable
-corepack prepare pnpm@10.28.2 --activate
+```bash
+docker compose -f docker-compose.dev.yml up -d
+```
 
-# 4. Copy environment configuration
-cp .env.example .env
+This starts:
+- PostgreSQL (pgvector) on port `5432`
+- MailHog on ports `8025` (UI) / `1025` (SMTP)
+- Valkey (Redis-compatible) on port `6379`
+- MinIO on ports `9000` (S3) / `9001` (console)
 
-# 5. Configure required environment variables in .env:
-#    WEBAPP_URL=http://localhost:3000
-#    NEXTAUTH_URL=http://localhost:3000
-#    ENCRYPTION_KEY=<generate with: openssl rand -hex 32>
-#    NEXTAUTH_SECRET=<generate with: openssl rand -hex 32>
-#    CRON_SECRET=<generate with: openssl rand -hex 32>
-#    DATABASE_URL=postgresql://postgres:postgres@localhost:5432/formbricks
+**3. Configure environment variables:**
+
+```bash
+cp .env.example apps/web/.env
+```
+
+Edit `apps/web/.env` with required values:
+
+```env
+WEBAPP_URL=http://localhost:3000
+NEXTAUTH_URL=http://localhost:3000
+NEXTAUTH_SECRET=<generate-with-openssl-rand-hex-32>
+ENCRYPTION_KEY=<generate-with-openssl-rand-hex-32>
+DATABASE_URL='postgresql://postgres:postgres@localhost:5432/formbricks?schema=public'
 ```
 
 ### Dependency Installation
 
 ```bash
-# Install all workspace dependencies (frozen lockfile for reproducibility)
-pnpm install --frozen-lockfile
-
-# Start local services (PostgreSQL, MailHog, Valkey, MinIO)
-pnpm db:up
-
-# Run database migrations
-pnpm db:migrate:deploy
-
-# Build all workspace packages in dependency order
-pnpm build
+pnpm install
 ```
 
-### Running Tests
+### Database Setup
 
 ```bash
-# Run all Sprint 2 in-scope tests
-cd apps/web
+# Generate Prisma client
+npx prisma generate --schema packages/database/schema.prisma
 
-# Logic evaluation tests (Epic 2.1)
-npx vitest run ../packages/surveys/src/lib/logic.test.ts --no-watch
-
-# Web logic utils tests (Epic 2.1)
-npx vitest run lib/surveyLogic/utils.test.ts --no-watch
-
-# Logic rule engine tests (Epic 2.1)
-npx vitest run modules/survey/editor/lib/logic-rule-engine.test.ts --no-watch
-
-# File conversion tests including convertToJson (Epic 2.2)
-npx vitest run lib/utils/file-conversion.test.ts --no-watch
-
-# Response utils tests including JSON extension (Epic 2.2)
-npx vitest run lib/response/utils.test.ts --no-watch
-
-# Run all tests at once (from monorepo root)
-cd /path/to/formbricks
-pnpm test -- --no-cache
+# Apply database migrations (requires running PostgreSQL)
+npx prisma migrate deploy --schema packages/database/schema.prisma
 ```
+
+### Build
+
+```bash
+CI=true pnpm build
+```
+
+Expected: 10 Turborepo tasks complete successfully.
 
 ### Application Startup
 
 ```bash
-# Start the development server (from monorepo root)
+cd apps/web
 pnpm dev
-
-# The web app will be available at http://localhost:3000
 ```
+
+The application starts on `http://localhost:3000`.
+
+### Running Tests
+
+**All in-scope tests (Sprint 3-5 deliverables):**
+
+```bash
+cd apps/web
+CI=true NODE_ENV=test npx vitest run \
+  "app/api/(internal)/pipeline/lib/payload-transformer.test.ts" \
+  "app/api/(internal)/pipeline/lib/webhook-parity-validation.test.ts" \
+  "lib/response/tests/backward-compat.test.ts" \
+  "lib/response/tests/export-lossless-validation.test.ts" \
+  "app/(app)/environments/[environmentId]/surveys/[surveyId]/(analysis)/summary/components/shareEmbedModal/slider-embed-tab.test.tsx" \
+  "app/(app)/environments/[environmentId]/surveys/[surveyId]/(analysis)/summary/components/shareEmbedModal/popover-embed-tab.test.tsx" \
+  "app/(app)/environments/[environmentId]/surveys/[surveyId]/(analysis)/summary/components/shareEmbedModal/side-tab-embed-tab.test.tsx" \
+  --no-watch
+```
+
+**Regression tests:**
+
+```bash
+cd apps/web
+CI=true NODE_ENV=test npx vitest run \
+  "lib/response/tests/response.test.ts" \
+  "lib/response/service.test.ts" \
+  "lib/response/utils.test.ts" \
+  "app/api/(internal)/pipeline/lib/handleIntegrations.test.ts" \
+  "app/api/(internal)/pipeline/lib/telemetry.test.ts" \
+  "app/api/v1/webhooks/[webhookId]/lib/webhook.test.ts" \
+  "modules/api/v2/management/webhooks/lib/tests/webhook.test.ts" \
+  "modules/api/v2/management/webhooks/[webhookId]/lib/tests/webhook.test.ts" \
+  "lib/utils/services.test.ts" \
+  --no-watch
+```
+
+**Logic operator tests:**
+
+```bash
+CI=true NODE_ENV=test npx vitest run \
+  "packages/surveys/src/lib/logic.test.ts" \
+  --no-watch
+```
+
+Expected: 478 tests pass (100%).
 
 ### Verification Steps
 
-```bash
-# 1. Verify TypeScript compilation (zero errors expected)
-cd apps/web
-npx tsc --noEmit --pretty
-
-# 2. Verify linting passes
-npx eslint lib/utils/file-conversion.ts lib/response/service.ts --no-fix
-
-# 3. Verify formatting passes
-npx prettier --check "lib/utils/file-conversion.ts" "lib/response/service.ts"
-
-# 4. Verify JSON export function works
-node -e "
-const { convertToJson } = require('./lib/utils/file-conversion');
-const result = convertToJson(['name', 'score'], [{name: 'Test', score: 99}]);
-console.log(result);
-console.log('✅ convertToJson produces valid JSON');
-"
-```
+1. **Prisma client**: `npx prisma generate --schema packages/database/schema.prisma` completes without errors
+2. **Build**: `CI=true pnpm build` completes all 10 tasks
+3. **Tests**: All 478 tests pass with exit code 0
+4. **Lint**: `npx eslint --no-fix <file>` returns 0 violations for any modified file
 
 ### Troubleshooting
 
 | Issue | Resolution |
-|-------|-----------|
-| `pnpm: command not found` | Run `corepack enable && corepack prepare pnpm@10.28.2 --activate` |
-| Database connection errors | Ensure Docker is running and `pnpm db:up` has been executed; verify `DATABASE_URL` in `.env` |
-| Pre-existing test failures (crypto, auth, license, storage) | These are unrelated to Sprint 2; they exist on `main` as well. Sprint 2 tests are isolated to the 5 suites listed above |
-| `Module not found` errors during tests | Run `pnpm build` from monorepo root first to build all workspace packages |
-| XLSX tests fail with missing vendor package | Ensure `vendor/xlsx-0.20.3.tgz` exists; run `pnpm install --frozen-lockfile` |
+|---|---|
+| `pnpm install` fails with engine error | Ensure Node.js ≥20 and pnpm 10.28.2 via `corepack enable && corepack prepare pnpm@10.28.2 --activate` |
+| Prisma generate fails | Run from repository root; ensure `packages/database/schema.prisma` exists |
+| Vitest picks up `.next/standalone/` files | Pre-existing issue; run specific test files rather than full suite |
+| Docker Compose ports in use | Stop conflicting services or change ports in `docker-compose.dev.yml` |
+| Missing environment variables | Copy `.env.example` to `apps/web/.env` and fill required values |
 
 ---
 
@@ -388,81 +411,82 @@ console.log('✅ convertToJson produces valid JSON');
 ### A. Command Reference
 
 | Command | Purpose | Working Directory |
-|---------|---------|-------------------|
-| `pnpm install --frozen-lockfile` | Install all dependencies | Monorepo root |
-| `pnpm build` | Build all workspace packages | Monorepo root |
-| `pnpm dev` | Start development server | Monorepo root |
-| `pnpm test` | Run all tests | Monorepo root |
-| `pnpm db:up` | Start Docker services | Monorepo root |
-| `pnpm db:down` | Stop Docker services | Monorepo root |
-| `pnpm db:migrate:deploy` | Run database migrations | Monorepo root |
-| `npx vitest run <file> --no-watch` | Run specific test file | `apps/web` |
-| `npx tsc --noEmit` | TypeScript type check | `apps/web` |
+|---|---|---|
+| `pnpm install` | Install all dependencies | Repository root |
+| `npx prisma generate --schema packages/database/schema.prisma` | Generate Prisma client | Repository root |
+| `npx prisma migrate deploy --schema packages/database/schema.prisma` | Apply database migrations | Repository root |
+| `CI=true pnpm build` | Full monorepo build | Repository root |
+| `pnpm dev` | Start development server | `apps/web/` |
+| `CI=true NODE_ENV=test npx vitest run <file> --no-watch` | Run specific test file | `apps/web/` |
+| `npx eslint --no-fix <file>` | Lint a specific file | `apps/web/` |
+| `docker compose -f docker-compose.dev.yml up -d` | Start local infrastructure | Repository root |
 
 ### B. Port Reference
 
-| Service | Port | Purpose |
-|---------|------|---------|
-| Next.js Web App | 3000 | Main application |
-| PostgreSQL | 5432 | Primary database |
-| MailHog SMTP | 1025 | Email testing (SMTP) |
-| MailHog UI | 8025 | Email testing (Web UI) |
-| Valkey (Redis) | 6379 | Caching layer |
-| MinIO API | 9000 | Object storage |
-| MinIO Console | 9001 | Object storage UI |
+| Port | Service | Protocol |
+|---|---|---|
+| 3000 | Formbricks Web App (dev) | HTTP |
+| 5432 | PostgreSQL (pgvector) | TCP |
+| 6379 | Valkey (Redis-compatible) | TCP |
+| 8025 | MailHog Web UI | HTTP |
+| 1025 | MailHog SMTP | SMTP |
+| 9000 | MinIO S3 API | HTTP |
+| 9001 | MinIO Console | HTTP |
 
 ### C. Key File Locations
 
 | File | Purpose |
-|------|---------|
-| `apps/web/lib/utils/file-conversion.ts` | `convertToJson`, `convertToCsv`, `convertToXlsxBuffer` functions |
-| `apps/web/lib/response/service.ts` | `getResponseDownloadFile` — main export orchestrator |
-| `apps/web/app/(app)/environments/[environmentId]/surveys/[surveyId]/actions.ts` | Server action with format schema validation |
-| `apps/web/app/(app)/environments/[environmentId]/surveys/[surveyId]/utils.ts` | Browser download utility |
-| `apps/web/app/(app)/environments/[environmentId]/surveys/[surveyId]/components/CustomFilter.tsx` | Download dropdown UI (All/Filtered × CSV/XLSX/JSON) |
-| `apps/web/modules/api/v2/management/responses/route.ts` | V2 API GET handler with format export |
-| `apps/web/modules/api/v2/management/responses/types/responses.ts` | `ZGetResponsesFilter` with format field |
-| `packages/types/surveys/logic.ts` | `ZSurveyLogicConditionsOperator` (32 operators) |
-| `packages/surveys/src/lib/logic.ts` | Runtime logic evaluation engine |
-| `apps/web/modules/survey/editor/lib/logic-rule-engine.ts` | Logic editor operator configuration |
+|---|---|
+| `apps/web/app/api/(internal)/pipeline/lib/payload-transformer.ts` | Typeform-compatible payload transformation function |
+| `packages/database/zod/webhook-payload.ts` | Typeform payload Zod schemas |
+| `packages/database/schema.prisma` | Prisma schema (Webhook.payloadFormat at line 55) |
+| `packages/database/migration/20260301120000_add_payload_format_to_webhook/migration.sql` | SQL migration for payloadFormat column |
+| `packages/database/migration/20260301130000_audit_sprint1_3_changes/migration.ts` | Sprint 1-3 audit script |
+| `apps/web/app/api/(internal)/pipeline/route.ts` | Webhook dispatch with format branching |
+| `apps/web/.../shareEmbedModal/slider-embed-tab.tsx` | Slider embed tab component |
+| `apps/web/.../shareEmbedModal/popover-embed-tab.tsx` | Popover embed tab component |
+| `apps/web/.../shareEmbedModal/side-tab-embed-tab.tsx` | Side tab embed tab component |
+| `packages/js-core/src/lib/common/setup.ts` | SDK embed mode DOM setup handlers |
+| `packages/js-core/src/types/config.ts` | SDK embed mode type definitions |
+| `apps/web/locales/en-US.json` | i18n keys for webhook and embed UI |
 
 ### D. Technology Versions
 
-| Technology | Version | Source |
-|-----------|---------|--------|
-| Node.js | 22.1.0 | `.nvmrc` |
-| pnpm | 10.28.2 | `package.json` → `packageManager` |
-| Next.js | 16.1.6 | `package.json` |
-| React | 19.2.4 | `package.json` (patched from 19.2.3) |
-| Zod | 3.24.4 | `apps/web/package.json` |
-| Vitest | 3.1.3 | `apps/web/package.json` |
-| Turbo | 2.5.3 | `package.json` |
-| @json2csv/node | 7.0.6 | `apps/web/package.json` |
-| xlsx (SheetJS) | 0.20.3 | Vendored: `vendor/xlsx-0.20.3.tgz` |
-| TypeScript | Latest workspace | Managed via `@formbricks/config-typescript` |
+| Technology | Version |
+|---|---|
+| Next.js | 16.1.6 |
+| React | 19.2.4 |
+| TypeScript | (workspace) |
+| Prisma | 6.14.0 |
+| Zod | (workspace) |
+| Vitest | 3.1.3 |
+| Playwright | 1.56.1 |
+| Node.js | ≥20.0.0 |
+| pnpm | 10.28.2 |
+| Turbo | 2.5.3 |
 
 ### E. Environment Variable Reference
 
-| Variable | Required | Default | Purpose |
-|----------|----------|---------|---------|
-| `WEBAPP_URL` | Yes | `http://localhost:3000` | Base URL for the web application |
-| `NEXTAUTH_URL` | Yes | `http://localhost:3000` | NextAuth.js callback URL |
+| Variable | Required | Default | Description |
+|---|---|---|---|
+| `WEBAPP_URL` | Yes | `http://localhost:3000` | Public URL of the web application |
+| `NEXTAUTH_URL` | Yes | `http://localhost:3000` | NextAuth callback URL |
+| `NEXTAUTH_SECRET` | Yes | — | Random secret for JWT signing |
 | `ENCRYPTION_KEY` | Yes | — | 32-byte hex key for data encryption |
-| `NEXTAUTH_SECRET` | Yes | — | NextAuth.js session signing secret |
-| `CRON_SECRET` | Yes | — | API secret for cron job authentication |
 | `DATABASE_URL` | Yes | — | PostgreSQL connection string |
-| `REDIS_URL` | No | — | Valkey/Redis connection for caching |
+| `REDIS_URL` | No | — | Valkey/Redis connection string |
+| `S3_ACCESS_KEY` | No | — | MinIO/S3 access key |
+| `S3_SECRET_KEY` | No | — | MinIO/S3 secret key |
+| `S3_BUCKET_NAME` | No | — | S3 bucket for file uploads |
 
-### G. Glossary
+### F. Glossary
 
 | Term | Definition |
-|------|-----------|
-| AAP | Agent Action Plan — the primary directive containing all Sprint 2 requirements |
-| Epic 2.1 | Logic Operator Parity — verifying Typeform-to-Formbricks operator mapping |
-| Epic 2.2 | JSON Response Export — adding JSON as a third export format |
-| `convertToJson` | New function in `file-conversion.ts` that produces lossless JSON from response data |
-| IDOR | Insecure Direct Object Reference — authorization vulnerability (CWE-639) |
-| Lossless Export | Export that preserves every response field without truncation, rounding, or encoding loss |
-| Fidelity Metrics | 7 validation criteria from `export-parity.mdx` for verifying export quality |
-| OpinionScale | Survey element type for rating/opinion collection (1–N scale) |
-| Cyclic Detection | DFS algorithm in `blocks-validation.ts` that detects circular logic jumps |
+|---|---|
+| AAP | Agent Action Plan — the governing specification for all project deliverables |
+| payloadFormat | Webhook setting controlling payload structure (`"default"` or `"typeform"`) |
+| Typeform-compatible payload | Restructured webhook body matching Typeform's schema: typed `answers` array, `definition.fields`, `hidden`, `variables`, `calculated.score` |
+| Embed mode | SDK configuration for survey display: slider (side panel), popover (floating button), side tab (edge tab) |
+| ZSurveyElement | Zod discriminated union of all 17 survey element types |
+| fb-migrate-dev | Custom Formbricks migration workflow using Prisma under the hood |
+| Standard Webhooks | HMAC-SHA256 signing specification using `webhook-id`, `webhook-timestamp`, `webhook-signature` headers |

@@ -100,25 +100,39 @@ export const POST = async (request: Request) => {
   const resolvedResponseData = resolveStorageUrlsInObject(response.data);
 
   const webhookPromises = webhooks.map((webhook) => {
-    const body = JSON.stringify(
-      webhook.payloadFormat === "typeform"
-        ? transformToTypeformPayload(response, survey, resolvedResponseData)
-        : {
-            webhookId: webhook.id,
-            event,
-            data: {
-              ...response,
-              data: resolvedResponseData,
-              survey: {
-                title: survey.name,
-                type: survey.type,
-                status: survey.status,
-                createdAt: survey.createdAt,
-                updatedAt: survey.updatedAt,
-              },
-            },
-          }
-    );
+    // Build the default Formbricks payload as the safe baseline for every webhook
+    const defaultPayloadData = {
+      webhookId: webhook.id,
+      event,
+      data: {
+        ...response,
+        data: resolvedResponseData,
+        survey: {
+          title: survey.name,
+          type: survey.type,
+          status: survey.status,
+          createdAt: survey.createdAt,
+          updatedAt: survey.updatedAt,
+        },
+      },
+    };
+
+    // Start with the default payload; override with Typeform-compatible format if configured
+    let payloadData: Record<string, unknown> = defaultPayloadData;
+
+    if (webhook.payloadFormat === "typeform") {
+      try {
+        payloadData = transformToTypeformPayload(response, survey, resolvedResponseData);
+      } catch (err) {
+        logger.error(
+          { err, webhookId: webhook.id },
+          "Typeform payload transformation failed, falling back to default format"
+        );
+        // payloadData remains as defaultPayloadData — one misconfigured webhook cannot crash the pipeline
+      }
+    }
+
+    const body = JSON.stringify(payloadData);
 
     // Generate Standard Webhooks headers
     const webhookMessageId = uuidv7();

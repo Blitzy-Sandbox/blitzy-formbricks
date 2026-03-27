@@ -1,10 +1,12 @@
 /* eslint-disable @typescript-eslint/unbound-method -- required for testing */
+/* eslint-disable @typescript-eslint/no-unsafe-assignment -- vi.fn() returns any in test mocks */
+/* eslint-disable @typescript-eslint/no-unnecessary-condition -- runtime conditions differ from static analysis in mocked environments */
 import { type Mock, type MockInstance, afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { Config } from "@/lib/common/config";
 import { JS_LOCAL_STORAGE_KEY } from "@/lib/common/constants";
 import { addCleanupEventListeners, addEventListeners } from "@/lib/common/event-listeners";
 import { Logger } from "@/lib/common/logger";
-import { handleErrorOnFirstSetup, setup, tearDown } from "@/lib/common/setup";
+import { handleErrorOnFirstSetup, putFormbricksInErrorState, setup, tearDown } from "@/lib/common/setup";
 import { setIsSetup } from "@/lib/common/status";
 import { filterSurveys, getIsDebug, isNowExpired } from "@/lib/common/utils";
 import type * as Utils from "@/lib/common/utils";
@@ -70,6 +72,11 @@ vi.mock("@/lib/survey/no-code-action", () => ({
   checkPageUrl: vi.fn(),
 }));
 
+// 9) Mock closeSurvey (used by tearDown and putFormbricksInErrorState)
+vi.mock("@/lib/survey/widget", () => ({
+  closeSurvey: vi.fn(),
+}));
+
 describe("setup.ts", () => {
   let getInstanceConfigMock: MockInstance<() => Config>;
   let getInstanceLoggerMock: MockInstance<() => Logger>;
@@ -92,6 +99,18 @@ describe("setup.ts", () => {
 
   afterEach(() => {
     vi.restoreAllMocks();
+    // Clean up any DOM elements created by embed mode tests
+    const ids = [
+      "formbricks-slider-container",
+      "formbricks-popover-container",
+      "formbricks-popover-button",
+      "formbricks-side-tab-container",
+      "formbricks-side-tab-button",
+    ];
+    for (const id of ids) {
+      const el = document.getElementById(id);
+      if (el) el.remove();
+    }
   });
 
   describe("setup()", () => {
@@ -377,6 +396,376 @@ describe("setup.ts", () => {
         JS_LOCAL_STORAGE_KEY,
         expect.stringContaining('"value":"error"')
       );
+    });
+
+    test("logs generic error for non-forbidden code", async () => {
+      const errorObj = { code: "server_error", responseMessage: "Internal error" };
+
+      await expect(async () => {
+        await handleErrorOnFirstSetup(errorObj);
+      }).rejects.toThrow("Could not set up formbricks");
+
+      expect(mockLogger.error).toHaveBeenCalledWith(expect.stringContaining("Error during first setup"));
+    });
+  });
+
+  describe("putFormbricksInErrorState()", () => {
+    test("sets config status to error and calls tearDown", () => {
+      (getIsDebug as Mock).mockReturnValue(false);
+
+      const mockConfig = {
+        get: vi.fn().mockReturnValue({
+          environment: { data: { surveys: [] } },
+          user: DEFAULT_USER_STATE_NO_USER_ID,
+          status: { value: "success", expiresAt: null },
+        }),
+        update: vi.fn(),
+      };
+
+      getInstanceConfigMock.mockReturnValue(mockConfig as unknown as Config);
+
+      putFormbricksInErrorState(mockConfig as unknown as Config);
+
+      expect(mockConfig.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          status: expect.objectContaining({ value: "error" }),
+        })
+      );
+    });
+
+    test("skips error state in debug mode", () => {
+      (getIsDebug as Mock).mockReturnValue(true);
+
+      const mockConfig = {
+        get: vi.fn(),
+        update: vi.fn(),
+      };
+
+      putFormbricksInErrorState(mockConfig as unknown as Config);
+
+      expect(mockConfig.update).not.toHaveBeenCalled();
+    });
+  });
+
+  describe("setup() with embed modes", () => {
+    // Store created elements so we can look them up by id
+    let createdElements: Record<string, Record<string, unknown>> = {};
+
+    beforeEach(() => {
+      // Clear our tracking map
+      createdElements = {};
+
+      // Override document.createElement to return objects that support
+      // the DOM methods used by the embed init functions
+      (document.createElement as Mock).mockImplementation(() => {
+        const listeners: Record<string, (() => void)[]> = {};
+        const styleObj: Record<string, string> = {};
+        const el: Record<string, unknown> = {
+          setAttribute: vi.fn(),
+          style: styleObj,
+          addEventListener: vi.fn((event: string, cb: () => void) => {
+            if (!listeners[event]) listeners[event] = [];
+            listeners[event].push(cb);
+          }),
+          click: vi.fn(() => {
+            const clickHandlers = listeners.click;
+            if (clickHandlers) {
+              for (const cb of clickHandlers) cb();
+            }
+          }),
+          set id(val: string) {
+            el._id = val;
+            createdElements[val] = el;
+          },
+          get id() {
+            return el._id as string;
+          },
+          set textContent(val: string) {
+            el._textContent = val;
+          },
+          get textContent() {
+            return el._textContent as string;
+          },
+        };
+        return el;
+      });
+
+      // Override getElementById to look up our created elements
+      (document.getElementById as Mock).mockImplementation((id: string) => {
+        return createdElements[id] ?? null;
+      });
+    });
+
+    test("setup with slider embedMode creates slider container", async () => {
+      setIsSetup(false);
+      (getIsDebug as Mock).mockReturnValue(false);
+      (isNowExpired as Mock).mockReturnValue(false);
+
+      const mockConfig = {
+        get: vi.fn().mockReturnValue({
+          environmentId: "env_slider",
+          appUrl: "https://test.app",
+          environment: {
+            data: { surveys: [] },
+            expiresAt: new Date(Date.now() + 60000).toISOString(),
+          },
+          user: DEFAULT_USER_STATE_NO_USER_ID,
+          status: { value: "success", expiresAt: null },
+          filteredSurveys: [],
+        }),
+        update: vi.fn(),
+        resetConfig: vi.fn(),
+      };
+
+      getInstanceConfigMock.mockReturnValue(mockConfig as unknown as Config);
+      (filterSurveys as Mock).mockReturnValue([]);
+
+      const result = await setup({
+        environmentId: "env_slider",
+        appUrl: "https://test.app",
+        embedMode: "slider",
+        sliderConfig: { direction: "right", width: "400px", animation: 300 },
+      });
+
+      expect(result.ok).toBe(true);
+      expect(mockLogger.debug).toHaveBeenCalledWith("Slider embed container created");
+      expect(document.body.appendChild).toHaveBeenCalled();
+    });
+
+    test("setup with popover embedMode creates popover container and button", async () => {
+      setIsSetup(false);
+      (getIsDebug as Mock).mockReturnValue(false);
+      (isNowExpired as Mock).mockReturnValue(false);
+
+      const mockConfig = {
+        get: vi.fn().mockReturnValue({
+          environmentId: "env_popover",
+          appUrl: "https://test.app",
+          environment: {
+            data: { surveys: [] },
+            expiresAt: new Date(Date.now() + 60000).toISOString(),
+          },
+          user: DEFAULT_USER_STATE_NO_USER_ID,
+          status: { value: "success", expiresAt: null },
+          filteredSurveys: [],
+        }),
+        update: vi.fn(),
+        resetConfig: vi.fn(),
+      };
+
+      getInstanceConfigMock.mockReturnValue(mockConfig as unknown as Config);
+      (filterSurveys as Mock).mockReturnValue([]);
+
+      const result = await setup({
+        environmentId: "env_popover",
+        appUrl: "https://test.app",
+        embedMode: "popover",
+        popoverConfig: {
+          buttonPosition: "bottom-right",
+          color: "#FF0000",
+          formWidth: "400px",
+          formHeight: "500px",
+        },
+      });
+
+      expect(result.ok).toBe(true);
+      expect(mockLogger.debug).toHaveBeenCalledWith("Popover embed container created");
+      // Two elements appended: button + form container
+      expect(document.body.appendChild).toHaveBeenCalledTimes(2);
+    });
+
+    test("setup with sideTab embedMode creates side tab container and button", async () => {
+      setIsSetup(false);
+      (getIsDebug as Mock).mockReturnValue(false);
+      (isNowExpired as Mock).mockReturnValue(false);
+
+      const mockConfig = {
+        get: vi.fn().mockReturnValue({
+          environmentId: "env_sidetab",
+          appUrl: "https://test.app",
+          environment: {
+            data: { surveys: [] },
+            expiresAt: new Date(Date.now() + 60000).toISOString(),
+          },
+          user: DEFAULT_USER_STATE_NO_USER_ID,
+          status: { value: "success", expiresAt: null },
+          filteredSurveys: [],
+        }),
+        update: vi.fn(),
+        resetConfig: vi.fn(),
+      };
+
+      getInstanceConfigMock.mockReturnValue(mockConfig as unknown as Config);
+      (filterSurveys as Mock).mockReturnValue([]);
+
+      const result = await setup({
+        environmentId: "env_sidetab",
+        appUrl: "https://test.app",
+        embedMode: "sideTab",
+        sideTabConfig: { tabLabel: "Feedback", position: "right", color: "#00C4B8" },
+      });
+
+      expect(result.ok).toBe(true);
+      expect(mockLogger.debug).toHaveBeenCalledWith("Side tab embed container created");
+      // Two elements appended: tab button + container
+      expect(document.body.appendChild).toHaveBeenCalledTimes(2);
+    });
+
+    test("popover button click toggles form container visibility", async () => {
+      setIsSetup(false);
+      (getIsDebug as Mock).mockReturnValue(false);
+      (isNowExpired as Mock).mockReturnValue(false);
+
+      const mockConfig = {
+        get: vi.fn().mockReturnValue({
+          environmentId: "env_popover_toggle",
+          appUrl: "https://test.app",
+          environment: {
+            data: { surveys: [] },
+            expiresAt: new Date(Date.now() + 60000).toISOString(),
+          },
+          user: DEFAULT_USER_STATE_NO_USER_ID,
+          status: { value: "success", expiresAt: null },
+          filteredSurveys: [],
+        }),
+        update: vi.fn(),
+        resetConfig: vi.fn(),
+      };
+
+      getInstanceConfigMock.mockReturnValue(mockConfig as unknown as Config);
+      (filterSurveys as Mock).mockReturnValue([]);
+
+      await setup({
+        environmentId: "env_popover_toggle",
+        appUrl: "https://test.app",
+        embedMode: "popover",
+        popoverConfig: { buttonPosition: "bottom-left" },
+      });
+
+      const popoverBtn = createdElements["formbricks-popover-button"];
+      const formContainer = createdElements["formbricks-popover-container"];
+
+      expect(formContainer).toBeDefined();
+      expect((formContainer.style as Record<string, string>).display).toBe("none");
+      // Trigger click via stored listener
+      (popoverBtn.click as Mock)();
+      expect((formContainer.style as Record<string, string>).display).toBe("block");
+      (popoverBtn.click as Mock)();
+      expect((formContainer.style as Record<string, string>).display).toBe("none");
+    });
+
+    test("side tab button click toggles container visibility", async () => {
+      setIsSetup(false);
+      (getIsDebug as Mock).mockReturnValue(false);
+      (isNowExpired as Mock).mockReturnValue(false);
+
+      const mockConfig = {
+        get: vi.fn().mockReturnValue({
+          environmentId: "env_sidetab_toggle",
+          appUrl: "https://test.app",
+          environment: {
+            data: { surveys: [] },
+            expiresAt: new Date(Date.now() + 60000).toISOString(),
+          },
+          user: DEFAULT_USER_STATE_NO_USER_ID,
+          status: { value: "success", expiresAt: null },
+          filteredSurveys: [],
+        }),
+        update: vi.fn(),
+        resetConfig: vi.fn(),
+      };
+
+      getInstanceConfigMock.mockReturnValue(mockConfig as unknown as Config);
+      (filterSurveys as Mock).mockReturnValue([]);
+
+      await setup({
+        environmentId: "env_sidetab_toggle",
+        appUrl: "https://test.app",
+        embedMode: "sideTab",
+        sideTabConfig: { tabLabel: "Help", position: "left", color: "#333" },
+      });
+
+      const tabBtn = createdElements["formbricks-side-tab-button"];
+      const container = createdElements["formbricks-side-tab-container"];
+
+      expect(container).toBeDefined();
+      expect((container.style as Record<string, string>).display).toBe("none");
+      (tabBtn.click as Mock)();
+      expect((container.style as Record<string, string>).display).toBe("block");
+      (tabBtn.click as Mock)();
+      expect((container.style as Record<string, string>).display).toBe("none");
+    });
+
+    test("slider left direction creates container with left position", async () => {
+      setIsSetup(false);
+      (getIsDebug as Mock).mockReturnValue(false);
+      (isNowExpired as Mock).mockReturnValue(false);
+
+      const mockConfig = {
+        get: vi.fn().mockReturnValue({
+          environmentId: "env_slider_left",
+          appUrl: "https://test.app",
+          environment: {
+            data: { surveys: [] },
+            expiresAt: new Date(Date.now() + 60000).toISOString(),
+          },
+          user: DEFAULT_USER_STATE_NO_USER_ID,
+          status: { value: "success", expiresAt: null },
+          filteredSurveys: [],
+        }),
+        update: vi.fn(),
+        resetConfig: vi.fn(),
+      };
+
+      getInstanceConfigMock.mockReturnValue(mockConfig as unknown as Config);
+      (filterSurveys as Mock).mockReturnValue([]);
+
+      const result = await setup({
+        environmentId: "env_slider_left",
+        appUrl: "https://test.app",
+        embedMode: "slider",
+        sliderConfig: { direction: "left" },
+      });
+
+      expect(result.ok).toBe(true);
+      const sliderEl = createdElements["formbricks-slider-container"];
+      expect(sliderEl).toBeDefined();
+      expect((sliderEl.style as Record<string, string>).left).toBe("0");
+      expect((sliderEl.style as Record<string, string>).transform).toBe("translateX(-100%)");
+    });
+
+    test("setup with unknown embedMode logs debug message", async () => {
+      setIsSetup(false);
+      (getIsDebug as Mock).mockReturnValue(false);
+      (isNowExpired as Mock).mockReturnValue(false);
+
+      const mockConfig = {
+        get: vi.fn().mockReturnValue({
+          environmentId: "env_unknown",
+          appUrl: "https://test.app",
+          environment: {
+            data: { surveys: [] },
+            expiresAt: new Date(Date.now() + 60000).toISOString(),
+          },
+          user: DEFAULT_USER_STATE_NO_USER_ID,
+          status: { value: "success", expiresAt: null },
+          filteredSurveys: [],
+        }),
+        update: vi.fn(),
+        resetConfig: vi.fn(),
+      };
+
+      getInstanceConfigMock.mockReturnValue(mockConfig as unknown as Config);
+      (filterSurveys as Mock).mockReturnValue([]);
+
+      const result = await setup({
+        environmentId: "env_unknown",
+        appUrl: "https://test.app",
+        embedMode: "unknown" as "slider",
+      });
+
+      expect(result.ok).toBe(true);
+      expect(mockLogger.debug).toHaveBeenCalledWith(expect.stringContaining("Unknown embed mode"));
     });
   });
 });

@@ -5,12 +5,15 @@ import { ZId } from "@formbricks/types/common";
 import { ResourceNotFoundError } from "@formbricks/types/errors";
 import { type TSurveyBlock } from "@formbricks/types/surveys/blocks";
 import { TSurveyElementTypeEnum } from "@formbricks/types/surveys/constants";
+import { getOrganizationByEnvironmentId } from "@/lib/organization/service";
 import { getSurvey } from "@/lib/survey/service";
 import { actionClient } from "@/lib/utils/action-client";
 import { createPaymentIntent } from "@/modules/survey/payment/lib/stripe";
 
 // Zod input schema for the createPaymentIntentAction server action.
 // Validates all required parameters before the handler executes.
+// Note: stripeAccountId is NO LONGER accepted from the client. It is resolved
+// server-side from the organization's stored Stripe Connect credentials.
 const ZCreatePaymentIntentAction = z.object({
   // CUID2-validated survey identifier used to verify the survey exists and has a matching Payment element.
   surveyId: ZId,
@@ -19,9 +22,6 @@ const ZCreatePaymentIntentAction = z.object({
   // Positive integer in the smallest currency unit (cents for USD/EUR, pence for GBP).
   // Must be >= 1 to prevent zero-amount payment intents.
   amount: z.number().int().positive().min(1),
-  // Optional connected Stripe account ID for multi-tenant payment routing via Stripe Connect.
-  // When provided, the PaymentIntent is created on the connected account.
-  stripeAccountId: z.string().optional(),
 });
 
 /**
@@ -36,8 +36,8 @@ const ZCreatePaymentIntentAction = z.object({
  * 2. The survey contains at least one Payment element
  * 3. The requested amount and currency match a Payment element in the survey
  *
- * This prevents abuse by ensuring PaymentIntents can only be created for
- * amounts/currencies that a survey owner has explicitly configured.
+ * The connected Stripe account is resolved server-side from the organization's
+ * stored Stripe Connect credentials. The client NEVER provides the stripeAccountId.
  *
  * This module is COMPLETELY SEPARATE from the billing module at
  * apps/web/modules/ee/billing/. The billing module handles platform subscription management.
@@ -46,7 +46,7 @@ const ZCreatePaymentIntentAction = z.object({
 export const createPaymentIntentAction = actionClient
   .schema(ZCreatePaymentIntentAction)
   .action(async ({ parsedInput }) => {
-    const { surveyId, amount, currency, stripeAccountId } = parsedInput;
+    const { surveyId, amount, currency } = parsedInput;
 
     // Verify the survey exists — throws ResourceNotFoundError if not found
     const survey = await getSurvey(surveyId);
@@ -67,6 +67,20 @@ export const createPaymentIntentAction = actionClient
       throw new ResourceNotFoundError(
         "Payment element",
         `No Payment element found in survey ${surveyId} with amount=${String(amount)} and currency=${currency}`
+      );
+    }
+
+    // Resolve the connected Stripe account from the organization's stored credentials.
+    // The stripeAccountId MUST come from the database, never from the client.
+    const organization = await getOrganizationByEnvironmentId(survey.environmentId);
+    if (!organization) {
+      throw new ResourceNotFoundError("Organization", `for environment ${survey.environmentId}`);
+    }
+
+    const stripeAccountId = organization.stripeConnectAccountId ?? undefined;
+    if (!stripeAccountId) {
+      throw new Error(
+        "No Stripe account is connected for this organization. Please connect a Stripe account in the survey editor."
       );
     }
 

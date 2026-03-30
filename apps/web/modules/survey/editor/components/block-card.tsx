@@ -227,6 +227,11 @@ export const BlockCard = ({
       additionalProps.isFormbricksCloud = isFormbricksCloud;
     }
 
+    // Payment needs project prop for Stripe Connect organization lookup
+    if (element.type === TSurveyElementTypeEnum.Payment) {
+      additionalProps.project = project;
+    }
+
     // @ts-expect-error — commonProps + additionalProps cover all required fields at runtime; TS cannot narrow the form component union statically
     return <FormComponent {...commonProps} {...additionalProps} />;
   };

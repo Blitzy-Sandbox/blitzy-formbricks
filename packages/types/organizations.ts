@@ -51,6 +51,8 @@ export const ZOrganization = z.object({
   whitelabel: ZOrganizationWhitelabel.optional(),
   billing: ZOrganizationBilling,
   isAIEnabled: z.boolean().default(false),
+  stripeConnectAccountId: z.string().nullable().optional(),
+  stripeConnectPublishableKey: z.string().nullable().optional(),
 });
 
 export const ZOrganizationCreateInput = z.object({

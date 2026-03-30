@@ -27,6 +27,8 @@ export const select: Prisma.OrganizationSelect = {
   billing: true,
   isAIEnabled: true,
   whitelabel: true,
+  stripeConnectAccountId: true,
+  stripeConnectPublishableKey: true,
 };
 
 export const getOrganizationsTag = (organizationId: string) => `organizations-${organizationId}`;

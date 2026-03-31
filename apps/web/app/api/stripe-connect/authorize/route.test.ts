@@ -5,9 +5,11 @@
  *
  * Coverage:
  * 1. Success: Authenticated user with valid organizationId → 302 redirect to Stripe
- * 2. Missing session → 401 Unauthorized
- * 3. Missing organizationId → 400 Bad Request
- * 4. Missing STRIPE_CLIENT_ID → 500 Internal Server Error
+ * 2. Success with returnUrl: Passes returnUrl through to buildStripeConnectAuthorizeUrl
+ * 3. Missing session → 401 Unauthorized
+ * 4. Missing organizationId → 400 Bad Request
+ * 5. Missing STRIPE_CLIENT_ID → 500 Internal Server Error
+ * 6. Success without returnUrl: Uses undefined for returnUrl
  */
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { GET } from "./route";
@@ -61,14 +63,27 @@ describe("GET /api/stripe-connect/authorize", () => {
   test("should redirect to Stripe OAuth URL on success", async () => {
     mockGetServerSession.mockResolvedValue({ user: { id: "user-1" } });
     mockBuildStripeConnectAuthorizeUrl.mockReturnValue(
-      "https://connect.stripe.com/oauth/authorize?client_id=ca_test&state=org-1"
+      "https://connect.stripe.com/oauth/authorize?client_id=ca_test&state=encoded"
     );
 
     const response = await GET(makeRequest({ organizationId: "org-1" }));
 
     expect(response.status).toBe(307); // NextResponse.redirect uses 307
     expect(response.headers.get("location")).toContain("connect.stripe.com");
-    expect(mockBuildStripeConnectAuthorizeUrl).toHaveBeenCalledWith("org-1");
+    expect(mockBuildStripeConnectAuthorizeUrl).toHaveBeenCalledWith("org-1", undefined);
+  });
+
+  test("should pass returnUrl to buildStripeConnectAuthorizeUrl when provided", async () => {
+    mockGetServerSession.mockResolvedValue({ user: { id: "user-1" } });
+    mockBuildStripeConnectAuthorizeUrl.mockReturnValue(
+      "https://connect.stripe.com/oauth/authorize?client_id=ca_test&state=encoded"
+    );
+
+    const returnUrl = "http://localhost:3000/environments/env-1/surveys/survey-1/edit";
+    const response = await GET(makeRequest({ organizationId: "org-1", returnUrl }));
+
+    expect(response.status).toBe(307);
+    expect(mockBuildStripeConnectAuthorizeUrl).toHaveBeenCalledWith("org-1", returnUrl);
   });
 
   test("should return 401 when user is not authenticated", async () => {
@@ -100,5 +115,17 @@ describe("GET /api/stripe-connect/authorize", () => {
 
     expect(response.status).toBe(500);
     expect(body.error).toContain("STRIPE_CLIENT_ID");
+  });
+
+  test("should use undefined for returnUrl when not provided", async () => {
+    mockGetServerSession.mockResolvedValue({ user: { id: "user-1" } });
+    mockBuildStripeConnectAuthorizeUrl.mockReturnValue(
+      "https://connect.stripe.com/oauth/authorize?client_id=ca_test&state=encoded"
+    );
+
+    await GET(makeRequest({ organizationId: "org-1" }));
+
+    // returnUrl should be undefined when not provided in query params
+    expect(mockBuildStripeConnectAuthorizeUrl).toHaveBeenCalledWith("org-1", undefined);
   });
 });

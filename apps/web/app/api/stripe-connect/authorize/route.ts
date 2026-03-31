@@ -5,16 +5,17 @@ import { authOptions } from "@/modules/auth/lib/authOptions";
 import { buildStripeConnectAuthorizeUrl } from "@/modules/ee/stripe-connect/lib/stripe-connect";
 
 /**
- * GET /api/stripe-connect/authorize?organizationId=<id>
+ * GET /api/stripe-connect/authorize?organizationId=<id>&returnUrl=<url>
  *
  * Redirects the authenticated user to Stripe's OAuth consent page to connect
- * their Stripe account via Stripe Connect Standard. The `organizationId` is
- * passed as the OAuth `state` parameter for CSRF protection and to identify
- * which organization to update during the callback.
+ * their Stripe account via Stripe Connect Standard. The `organizationId` and
+ * `returnUrl` are encoded together in the OAuth `state` parameter so the
+ * callback route can redirect the user back to the originating page.
  *
  * Requirements:
  * - User must be authenticated (server session required)
  * - `organizationId` query parameter must be provided
+ * - `returnUrl` query parameter is optional (defaults to app root)
  * - `STRIPE_CLIENT_ID` environment variable must be configured
  *
  * Responses:
@@ -31,15 +32,18 @@ export const GET = async (request: Request): Promise<Response> => {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    // Extract organizationId from query parameters
+    // Extract organizationId and returnUrl from query parameters
     const url = new URL(request.url);
     const organizationId = url.searchParams.get("organizationId");
     if (!organizationId) {
       return NextResponse.json({ error: "organizationId query parameter is required" }, { status: 400 });
     }
 
-    // Build the Stripe OAuth authorization URL
-    const authorizeUrl = buildStripeConnectAuthorizeUrl(organizationId);
+    // The returnUrl is the page the user should return to after the OAuth flow
+    const returnUrl = url.searchParams.get("returnUrl") || undefined;
+
+    // Build the Stripe OAuth authorization URL with both organizationId and returnUrl in state
+    const authorizeUrl = buildStripeConnectAuthorizeUrl(organizationId, returnUrl);
     if (!authorizeUrl) {
       return NextResponse.json(
         { error: "Stripe Connect is not configured. STRIPE_CLIENT_ID is missing." },

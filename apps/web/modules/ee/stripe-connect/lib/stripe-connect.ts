@@ -127,12 +127,17 @@ export const disconnectStripeConnectAccount = async (
  * Builds the Stripe OAuth authorization URL that redirects the user to Stripe's
  * consent page for connecting their Stripe account via Stripe Connect Standard.
  *
+ * The `state` parameter carries both the `organizationId` (for CSRF protection and
+ * to identify which organization to update) and the `returnUrl` (the originating
+ * page that the user should be redirected back to after the OAuth flow completes).
+ * Both values are JSON-serialized and base64url-encoded for safe URL transport.
+ *
  * @param organizationId - The CUID of the organization initiating the connection.
- *                         Passed as the `state` parameter for CSRF protection and
- *                         to identify the organization during the callback.
+ * @param returnUrl - Optional URL of the page that initiated the flow. The user
+ *                    will be redirected back to this URL after the OAuth callback.
  * @returns The full Stripe OAuth authorization URL, or null if STRIPE_CLIENT_ID is not configured.
  */
-export const buildStripeConnectAuthorizeUrl = (organizationId: string): string | null => {
+export const buildStripeConnectAuthorizeUrl = (organizationId: string, returnUrl?: string): string | null => {
   const clientId = env.STRIPE_CLIENT_ID;
   if (!clientId) {
     logger.warn("STRIPE_CLIENT_ID is not configured — Stripe Connect OAuth is unavailable");
@@ -140,14 +145,48 @@ export const buildStripeConnectAuthorizeUrl = (organizationId: string): string |
   }
 
   const baseUrl = "https://connect.stripe.com/oauth/authorize";
+
+  // Encode organizationId and returnUrl together in the state parameter so that
+  // the callback route can redirect the user back to the originating page.
+  const statePayload = JSON.stringify({ organizationId, returnUrl: returnUrl || "" });
+  const encodedState = Buffer.from(statePayload).toString("base64url");
+
   const params = new URLSearchParams({
     response_type: "code",
     client_id: clientId,
     scope: "read_write",
-    state: organizationId,
+    state: encodedState,
   });
 
   return `${baseUrl}?${params.toString()}`;
+};
+
+/**
+ * Decodes the OAuth `state` parameter that was encoded by `buildStripeConnectAuthorizeUrl`.
+ * Returns the organizationId and returnUrl.
+ *
+ * @param state - The base64url-encoded state string from Stripe's callback.
+ * @returns An object with `organizationId` and `returnUrl` extracted from the state.
+ * @throws Error if the state cannot be decoded or is missing the organizationId.
+ */
+export const decodeStripeConnectState = (state: string): { organizationId: string; returnUrl: string } => {
+  try {
+    const decoded = Buffer.from(state, "base64url").toString("utf-8");
+    const parsed = JSON.parse(decoded) as { organizationId?: string; returnUrl?: string };
+
+    if (!parsed.organizationId) {
+      throw new Error("Missing organizationId in state payload");
+    }
+
+    return {
+      organizationId: parsed.organizationId,
+      returnUrl: parsed.returnUrl || "",
+    };
+  } catch {
+    // Fallback: treat the raw state as a plain organizationId for backward compatibility
+    // with any in-flight OAuth flows that used the old state format.
+    return { organizationId: state, returnUrl: "" };
+  }
 };
 
 /**

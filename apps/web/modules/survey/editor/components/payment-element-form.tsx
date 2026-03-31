@@ -92,9 +92,11 @@ export const PaymentElementForm = ({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [project.organizationId]);
 
-  // Handle initiating Stripe Connect
+  // Handle initiating Stripe Connect — passes the current page URL as returnUrl
+  // so that the callback redirects the user back to this page after the OAuth flow
   const handleConnectStripe = () => {
-    window.location.href = `/api/stripe-connect/authorize?organizationId=${project.organizationId}`;
+    const returnUrl = encodeURIComponent(window.location.href);
+    window.location.href = `/api/stripe-connect/authorize?organizationId=${project.organizationId}&returnUrl=${returnUrl}`;
   };
 
   // Handle disconnecting Stripe

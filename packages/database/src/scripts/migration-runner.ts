@@ -40,8 +40,15 @@ const runMigrations = async (migrations: MigrationScript[]): Promise<void> => {
   logger.info(`Starting migrations: ${migrations.length.toString()} to run`);
   const startTime = Date.now();
 
-  // empty the prisma migrations directory
-  await execAsync(`rm -rf ${PRISMA_MIGRATIONS_DIR}/*`);
+  // empty the prisma migrations directory using Node.js fs APIs for cross-platform compatibility
+  const migDirExists = await fs
+    .access(PRISMA_MIGRATIONS_DIR)
+    .then(() => true)
+    .catch(() => false);
+  if (migDirExists) {
+    await fs.rm(PRISMA_MIGRATIONS_DIR, { recursive: true, force: true });
+    await fs.mkdir(PRISMA_MIGRATIONS_DIR, { recursive: true });
+  }
 
   for (let index = 0; index < migrations.length; index++) {
     await runSingleMigration(migrations[index], index);

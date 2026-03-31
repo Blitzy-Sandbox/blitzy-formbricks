@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { ResourceNotFoundError } from "@formbricks/types/errors";
 import {
   buildStripeConnectAuthorizeUrl,
+  decodeStripeConnectState,
   disconnectStripeConnectAccount,
   exchangeStripeConnectCode,
   getStripeConnectAccount,
@@ -227,7 +228,7 @@ describe("Stripe Connect Service", () => {
   // buildStripeConnectAuthorizeUrl
   // ---------------------------------------------------------------------------
   describe("buildStripeConnectAuthorizeUrl", () => {
-    test("should build a valid Stripe OAuth authorization URL", () => {
+    test("should build a valid Stripe OAuth authorization URL with encoded state", () => {
       const url = buildStripeConnectAuthorizeUrl("org-123");
 
       expect(url).not.toBeNull();
@@ -237,7 +238,62 @@ describe("Stripe Connect Service", () => {
       expect(parsed.searchParams.get("response_type")).toBe("code");
       expect(parsed.searchParams.get("client_id")).toBe("ca_test_mock_client_id");
       expect(parsed.searchParams.get("scope")).toBe("read_write");
-      expect(parsed.searchParams.get("state")).toBe("org-123");
+
+      // The state should be a base64url-encoded JSON payload
+      const stateParam = parsed.searchParams.get("state")!;
+      const decoded = JSON.parse(Buffer.from(stateParam, "base64url").toString("utf-8"));
+      expect(decoded.organizationId).toBe("org-123");
+      expect(decoded.returnUrl).toBe("");
+    });
+
+    test("should include returnUrl in the encoded state when provided", () => {
+      const returnUrl = "/environments/env-1/surveys/survey-1/edit";
+      const url = buildStripeConnectAuthorizeUrl("org-123", returnUrl);
+
+      expect(url).not.toBeNull();
+      const parsed = new URL(url!);
+      const stateParam = parsed.searchParams.get("state")!;
+      const decoded = JSON.parse(Buffer.from(stateParam, "base64url").toString("utf-8"));
+      expect(decoded.organizationId).toBe("org-123");
+      expect(decoded.returnUrl).toBe(returnUrl);
+    });
+
+    test("should return null when STRIPE_CLIENT_ID is not configured", () => {
+      const originalClientId = mockEnv.STRIPE_CLIENT_ID;
+      mockEnv.STRIPE_CLIENT_ID = "";
+      const url = buildStripeConnectAuthorizeUrl("org-123");
+      expect(url).toBeNull();
+      mockEnv.STRIPE_CLIENT_ID = originalClientId;
+    });
+  });
+
+  // ---------------------------------------------------------------------------
+  // decodeStripeConnectState
+  // ---------------------------------------------------------------------------
+  describe("decodeStripeConnectState", () => {
+    test("should decode a valid base64url-encoded state", () => {
+      const state = Buffer.from(
+        JSON.stringify({ organizationId: "org-123", returnUrl: "/some/path" })
+      ).toString("base64url");
+
+      const decoded = decodeStripeConnectState(state);
+      expect(decoded.organizationId).toBe("org-123");
+      expect(decoded.returnUrl).toBe("/some/path");
+    });
+
+    test("should handle state without returnUrl", () => {
+      const state = Buffer.from(JSON.stringify({ organizationId: "org-456" })).toString("base64url");
+
+      const decoded = decodeStripeConnectState(state);
+      expect(decoded.organizationId).toBe("org-456");
+      expect(decoded.returnUrl).toBe("");
+    });
+
+    test("should fallback to raw state as organizationId for backward compatibility", () => {
+      // Old-format state: just a plain organizationId string (not base64-encoded JSON)
+      const decoded = decodeStripeConnectState("org-789");
+      expect(decoded.organizationId).toBe("org-789");
+      expect(decoded.returnUrl).toBe("");
     });
   });
 

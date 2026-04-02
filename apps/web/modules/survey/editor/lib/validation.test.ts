@@ -1029,6 +1029,96 @@ describe("validation.isSurveyValid", () => {
     expect(toast.error).not.toHaveBeenCalled();
   });
 
+  describe("Payment Element Stripe Validation", () => {
+    test("should return false and toast error when Payment element has no stripeIntegration.publicKey", () => {
+      const surveyWithPaymentNoStripe = {
+        ...baseSurvey,
+        blocks: [
+          {
+            id: "block1",
+            name: "Block 1",
+            elements: [
+              {
+                id: "q1",
+                type: TSurveyElementTypeEnum.Payment,
+                headline: { default: "Pay", en: "Pay" },
+                required: true,
+                currency: "usd",
+                amount: 1000,
+                buttonLabel: { default: "Pay now" },
+                stripeIntegration: {
+                  publicKey: "",
+                },
+              },
+            ],
+          },
+        ],
+      } as unknown as TSurvey;
+
+      expect(validation.isSurveyValid(surveyWithPaymentNoStripe, "en", mockT)).toBe(false);
+      expect(toast.error).toHaveBeenCalledWith("environments.surveys.edit.stripe_account_required", {
+        duration: 5000,
+      });
+    });
+
+    test("should return true when Payment element has a valid stripeIntegration.publicKey", () => {
+      const surveyWithPaymentAndStripe = {
+        ...baseSurvey,
+        blocks: [
+          {
+            id: "block1",
+            name: "Block 1",
+            elements: [
+              {
+                id: "q1",
+                type: TSurveyElementTypeEnum.Payment,
+                headline: { default: "Pay", en: "Pay" },
+                required: true,
+                currency: "usd",
+                amount: 1000,
+                buttonLabel: { default: "Pay now" },
+                stripeIntegration: {
+                  publicKey: "pk_test_abc123",
+                },
+              },
+            ],
+          },
+        ],
+      } as unknown as TSurvey;
+
+      expect(validation.isSurveyValid(surveyWithPaymentAndStripe, "en", mockT)).toBe(true);
+      expect(toast.error).not.toHaveBeenCalled();
+    });
+
+    test("should return false when Payment element has no stripeIntegration property", () => {
+      const surveyWithPaymentMissingStripe = {
+        ...baseSurvey,
+        blocks: [
+          {
+            id: "block1",
+            name: "Block 1",
+            elements: [
+              {
+                id: "q1",
+                type: TSurveyElementTypeEnum.Payment,
+                headline: { default: "Pay", en: "Pay" },
+                required: true,
+                currency: "usd",
+                amount: 1000,
+                buttonLabel: { default: "Pay now" },
+              },
+            ],
+          },
+        ],
+      } as unknown as TSurvey;
+
+      expect(validation.isSurveyValid(surveyWithPaymentMissingStripe, "en", mockT)).toBe(false);
+      expect(toast.error).toHaveBeenCalledWith("environments.surveys.edit.stripe_account_required", {
+        duration: 5000,
+      });
+    });
+  });
+
   describe("App Survey Segment Validation", () => {
     test("should return false and toast error for app survey with invalid segment filters", () => {
       const surveyWithInvalidSegment = {

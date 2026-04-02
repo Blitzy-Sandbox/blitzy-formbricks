@@ -1660,6 +1660,7 @@
         "starts_with": "Starts with",
         "state": "State",
         "straight": "Straight",
+        "stripe_account_required": "A Stripe account must be connected before this survey can be saved. Please click \"Connect Stripe\" in the Payment element settings to connect your account.",
         "stripe_configuration": "Stripe Configuration",
         "stripe_connected": "Stripe Connected",
         "stripe_disconnect_failed": "Failed to disconnect Stripe account",

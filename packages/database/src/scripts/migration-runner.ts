@@ -2,7 +2,7 @@ import { type Prisma, PrismaClient } from "@prisma/client";
 import { exec } from "node:child_process";
 import fs from "node:fs/promises";
 import path from "node:path";
-import { fileURLToPath } from "node:url";
+import { fileURLToPath, pathToFileURL } from "node:url";
 import { promisify } from "node:util";
 import { logger } from "@formbricks/logger";
 
@@ -253,7 +253,12 @@ const loadMigrations = async (): Promise<MigrationScript[]> => {
       // It's a data migration, dynamically import and extract the scripts
       // Use .js extension when running from built code, .ts when running from source
       const modulePath = path.join(migrationPath, dataMigrationFileName);
-      const mod = (await import(modulePath)) as Record<string, MigrationScript | undefined>;
+      // Convert the raw file-system path to a file:// URL so that the dynamic
+      // import works on all platforms. On Windows, Node.js ESM rejects bare
+      // absolute paths with drive letters (e.g. C:\...) — it requires a proper
+      // file:// URL.  On Linux/macOS pathToFileURL simply prefixes "file://".
+      const moduleUrl = pathToFileURL(modulePath).href;
+      const mod = (await import(moduleUrl)) as Record<string, MigrationScript | undefined>;
 
       // Check each export in the module for a DataMigrationScript (type: "data")
       for (const key of Object.keys(mod)) {

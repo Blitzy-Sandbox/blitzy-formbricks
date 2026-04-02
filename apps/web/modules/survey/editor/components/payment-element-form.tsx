@@ -92,11 +92,38 @@ export const PaymentElementForm = ({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [project.organizationId]);
 
+  // Clean up Stripe Connect OAuth query parameters from the URL after returning
+  // from the OAuth flow. This prevents the params from persisting in the address
+  // bar and interfering with subsequent navigation (Save, Back, etc.).
+  useEffect(() => {
+    const url = new URL(window.location.href);
+    const hasStripeParams =
+      url.searchParams.has("stripe_connect_success") || url.searchParams.has("stripe_connect_error");
+    if (hasStripeParams) {
+      url.searchParams.delete("stripe_connect_success");
+      url.searchParams.delete("stripe_connect_error");
+      // Use replaceState to update the URL without creating a new history entry
+      window.history.replaceState(window.history.state, "", url.toString());
+    }
+  }, []);
+
   // Handle initiating Stripe Connect — passes the current page URL as returnUrl
-  // so that the callback redirects the user back to this page after the OAuth flow
+  // so that the callback redirects the user back to this page after the OAuth flow.
+  // IMPORTANT: Uses window.location.replace() instead of assignment (window.location.href = ...)
+  // to REPLACE the current history entry rather than pushing a new one. This prevents
+  // the Back button from navigating to the /api/stripe-connect/authorize route after
+  // the OAuth flow completes, which would create an infinite redirect loop between
+  // the editor, Stripe, and back.
   const handleConnectStripe = () => {
-    const returnUrl = encodeURIComponent(window.location.href);
-    window.location.href = `/api/stripe-connect/authorize?organizationId=${project.organizationId}&returnUrl=${returnUrl}`;
+    // Strip any existing stripe_connect_* query parameters from the current URL
+    // before encoding it as the returnUrl, to keep URLs clean.
+    const currentUrl = new URL(window.location.href);
+    currentUrl.searchParams.delete("stripe_connect_success");
+    currentUrl.searchParams.delete("stripe_connect_error");
+    const returnUrl = encodeURIComponent(currentUrl.toString());
+    window.location.replace(
+      `/api/stripe-connect/authorize?organizationId=${project.organizationId}&returnUrl=${returnUrl}`
+    );
   };
 
   // Handle disconnecting Stripe

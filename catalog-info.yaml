@@ -10,6 +10,7 @@ metadata:
   labels:
     blitzy.com/language: typescript
   annotations:
+    backstage.io/techdocs-ref: dir:.
     github.com/project-slug: Blitzy-Sandbox/blitzy-formbricks
     backstage.io/source-location: url:https://github.com/Blitzy-Sandbox/blitzy-formbricks/tree/main/
   links:

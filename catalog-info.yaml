@@ -1,0 +1,35 @@
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: blitzy-formbricks
+  description: "AI-generated Typeform/Formbricks parity — survey builder, response collection, logic operators, and analytics across 3 merged sprints"
+  tags:
+    - typescript
+    - web-app
+    - complete
+  labels:
+    blitzy.com/status: complete
+    blitzy.com/language: typescript
+  annotations:
+    github.com/project-slug: Blitzy-Sandbox/blitzy-formbricks
+    backstage.io/source-location: url:https://github.com/Blitzy-Sandbox/blitzy-formbricks/tree/main/
+  links:
+    - url: https://github.com/Blitzy-Sandbox/blitzy-formbricks
+      title: GitHub Repository
+    - url: https://github.com/Blitzy-Sandbox/blitzy-formbricks/pull/1
+      title: "PR #1: Typeform Parity Gap Analysis"
+      icon: github
+    - url: https://github.com/Blitzy-Sandbox/blitzy-formbricks/pull/4
+      title: "PR #4: Sprint 1 — OpinionScale & Payment Elements"
+      icon: github
+    - url: https://github.com/Blitzy-Sandbox/blitzy-formbricks/pull/6
+      title: "PR #6: Sprint 2 — Logic Operator Parity"
+      icon: github
+    - url: https://github.com/Blitzy-Sandbox/blitzy-formbricks/tree/main/blitzy/documentation
+      title: Blitzy Documentation
+      icon: docs
+spec:
+  type: website
+  lifecycle: production
+  owner: blitzy-sandbox
+  system: blitzy-sandbox-projects

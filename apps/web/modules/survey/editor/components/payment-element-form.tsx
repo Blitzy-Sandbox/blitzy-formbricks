@@ -3,7 +3,7 @@
 import { useAutoAnimate } from "@formkit/auto-animate/react";
 import { Project } from "@prisma/client";
 import { CheckCircle2Icon, ExternalLinkIcon, LinkIcon, PlusIcon, UnplugIcon } from "lucide-react";
-import { type JSX, useCallback, useEffect, useState } from "react";
+import { type JSX, useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "react-hot-toast";
 import { useTranslation } from "react-i18next";
 import { TSurveyPaymentElement } from "@formbricks/types/surveys/elements";
@@ -53,6 +53,11 @@ export const PaymentElementForm = ({
   const [stripeConnectAccountId, setStripeConnectAccountId] = useState<string | null>(null);
   const [isDisconnecting, setIsDisconnecting] = useState(false);
 
+  // Ref to the OAuth popup window so we can monitor / close it
+  const popupRef = useRef<Window | null>(null);
+  // Ref to the interval that polls the popup's location for completion
+  const popupPollRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
   // Fetch Stripe Connect status for the organization
   const fetchStripeConnectStatus = useCallback(async () => {
     try {
@@ -92,38 +97,97 @@ export const PaymentElementForm = ({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [project.organizationId]);
 
-  // Clean up Stripe Connect OAuth query parameters from the URL after returning
-  // from the OAuth flow. This prevents the params from persisting in the address
-  // bar and interfering with subsequent navigation (Save, Back, etc.).
+  // Clean up the popup poll interval when the component unmounts to prevent
+  // memory leaks and stale references.
   useEffect(() => {
-    const url = new URL(window.location.href);
-    const hasStripeParams =
-      url.searchParams.has("stripe_connect_success") || url.searchParams.has("stripe_connect_error");
-    if (hasStripeParams) {
-      url.searchParams.delete("stripe_connect_success");
-      url.searchParams.delete("stripe_connect_error");
-      // Use replaceState to update the URL without creating a new history entry
-      window.history.replaceState(window.history.state, "", url.toString());
-    }
+    return () => {
+      if (popupPollRef.current) {
+        clearInterval(popupPollRef.current);
+        popupPollRef.current = null;
+      }
+    };
   }, []);
 
-  // Handle initiating Stripe Connect — passes the current page URL as returnUrl
-  // so that the callback redirects the user back to this page after the OAuth flow.
-  // IMPORTANT: Uses window.location.replace() instead of assignment (window.location.href = ...)
-  // to REPLACE the current history entry rather than pushing a new one. This prevents
-  // the Back button from navigating to the /api/stripe-connect/authorize route after
-  // the OAuth flow completes, which would create an infinite redirect loop between
-  // the editor, Stripe, and back.
+  /**
+   * Stops the popup polling interval, attempts to close the popup window, and
+   * refreshes the Stripe Connect status. Called when the popup either navigates
+   * back to the app origin (success/error) or is manually closed by the user.
+   */
+  const cleanupPopup = useCallback(() => {
+    if (popupPollRef.current) {
+      clearInterval(popupPollRef.current);
+      popupPollRef.current = null;
+    }
+    if (popupRef.current && !popupRef.current.closed) {
+      popupRef.current.close();
+    }
+    popupRef.current = null;
+    // Refresh the Stripe Connect status regardless of how the popup was closed.
+    // This handles both successful connections and cancelled/partial flows.
+    fetchStripeConnectStatus();
+  }, [fetchStripeConnectStatus]);
+
+  /**
+   * Opens the Stripe Connect OAuth flow in a centered popup window.
+   *
+   * The popup approach prevents Stripe's OAuth consent page from polluting the
+   * main window's browser history. This eliminates the infinite redirect loop
+   * that occurred when Save, Save-and-Close, or the Back button (which all use
+   * router.back()) navigated to Stripe's consent page in the history stack.
+   *
+   * A polling interval monitors the popup:
+   * - When the popup navigates back to the app origin (after Stripe redirects
+   *   to our callback route), we detect that via same-origin access to the popup
+   *   location, close the popup, and refresh the connect status.
+   * - If the user manually closes the popup, we detect popup.closed and refresh
+   *   the status to handle partial or cancelled flows gracefully.
+   */
   const handleConnectStripe = () => {
-    // Strip any existing stripe_connect_* query parameters from the current URL
-    // before encoding it as the returnUrl, to keep URLs clean.
-    const currentUrl = new URL(window.location.href);
-    currentUrl.searchParams.delete("stripe_connect_success");
-    currentUrl.searchParams.delete("stripe_connect_error");
-    const returnUrl = encodeURIComponent(currentUrl.toString());
-    window.location.replace(
-      `/api/stripe-connect/authorize?organizationId=${project.organizationId}&returnUrl=${returnUrl}`
-    );
+    // Build the authorize URL for the popup
+    const authorizeUrl = `/api/stripe-connect/authorize?organizationId=${project.organizationId}&returnUrl=${encodeURIComponent(window.location.origin + "/api/stripe-connect/callback")}`;
+
+    // Calculate centered popup dimensions
+    const popupWidth = 600;
+    const popupHeight = 700;
+    const left = Math.max(0, Math.round(window.screenX + (window.outerWidth - popupWidth) / 2));
+    const top = Math.max(0, Math.round(window.screenY + (window.outerHeight - popupHeight) / 2));
+    const features = `width=${popupWidth},height=${popupHeight},left=${left},top=${top},scrollbars=yes,resizable=yes,status=yes`;
+
+    // Open the popup
+    const popup = window.open(authorizeUrl, "stripe_connect_popup", features);
+    popupRef.current = popup;
+
+    // If popup was blocked by the browser, fall back to a same-window navigation
+    // using replace() to minimise history pollution.
+    if (!popup || popup.closed) {
+      popupRef.current = null;
+      const fallbackUrl = `/api/stripe-connect/authorize?organizationId=${project.organizationId}&returnUrl=${encodeURIComponent(window.location.href)}`;
+      window.location.replace(fallbackUrl);
+      return;
+    }
+
+    // Poll the popup every 500ms to detect completion or manual close
+    popupPollRef.current = setInterval(() => {
+      if (!popup || popup.closed) {
+        // User manually closed the popup — refresh status to pick up any
+        // partial changes and clean up the interval.
+        cleanupPopup();
+        return;
+      }
+
+      try {
+        // Accessing popup.location.origin succeeds only when the popup has
+        // navigated back to the same origin (after the Stripe callback redirect).
+        // While on Stripe's domain, this access throws a DOMException.
+        if (popup.location.origin === window.location.origin) {
+          // The popup has returned to our origin — OAuth flow is complete.
+          cleanupPopup();
+        }
+      } catch {
+        // Cross-origin access error — popup is still on Stripe's domain.
+        // This is expected; continue polling.
+      }
+    }, 500);
   };
 
   // Handle disconnecting Stripe

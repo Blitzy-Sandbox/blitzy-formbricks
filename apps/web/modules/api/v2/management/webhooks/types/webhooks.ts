@@ -25,6 +25,7 @@ export const ZWebhookInput = ZWebhook.pick({
   environmentId: true,
   triggers: true,
   surveyIds: true,
+  payloadFormat: true,
 });
 
 export type TWebhookInput = z.infer<typeof ZWebhookInput>;

@@ -6,9 +6,12 @@ import {
   CodeIcon,
   Link2Icon,
   MailIcon,
+  MessageCircle,
+  PanelLeft,
   QrCodeIcon,
   Settings,
   Share2Icon,
+  SidebarOpen,
   SquareStack,
   UserIcon,
 } from "lucide-react";
@@ -24,8 +27,11 @@ import { DynamicPopupTab } from "@/app/(app)/environments/[environmentId]/survey
 import { EmailTab } from "@/app/(app)/environments/[environmentId]/surveys/[surveyId]/(analysis)/summary/components/shareEmbedModal/email-tab";
 import { LinkSettingsTab } from "@/app/(app)/environments/[environmentId]/surveys/[surveyId]/(analysis)/summary/components/shareEmbedModal/link-settings-tab";
 import { PersonalLinksTab } from "@/app/(app)/environments/[environmentId]/surveys/[surveyId]/(analysis)/summary/components/shareEmbedModal/personal-links-tab";
+import { PopoverEmbedTab } from "@/app/(app)/environments/[environmentId]/surveys/[surveyId]/(analysis)/summary/components/shareEmbedModal/popover-embed-tab";
 import { PrettyUrlTab } from "@/app/(app)/environments/[environmentId]/surveys/[surveyId]/(analysis)/summary/components/shareEmbedModal/pretty-url-tab";
 import { QRCodeTab } from "@/app/(app)/environments/[environmentId]/surveys/[surveyId]/(analysis)/summary/components/shareEmbedModal/qr-code-tab";
+import { SideTabEmbedTab } from "@/app/(app)/environments/[environmentId]/surveys/[surveyId]/(analysis)/summary/components/shareEmbedModal/side-tab-embed-tab";
+import { SliderEmbedTab } from "@/app/(app)/environments/[environmentId]/surveys/[surveyId]/(analysis)/summary/components/shareEmbedModal/slider-embed-tab";
 import { SocialMediaTab } from "@/app/(app)/environments/[environmentId]/surveys/[surveyId]/(analysis)/summary/components/shareEmbedModal/social-media-tab";
 import { TabContainer } from "@/app/(app)/environments/[environmentId]/surveys/[surveyId]/(analysis)/summary/components/shareEmbedModal/tab-container";
 import { WebsiteEmbedTab } from "@/app/(app)/environments/[environmentId]/surveys/[surveyId]/(analysis)/summary/components/shareEmbedModal/website-embed-tab";
@@ -130,6 +136,39 @@ export const ShareSurveyModal = ({
         description: t("environments.surveys.share.embed_on_website.description"),
         componentType: WebsiteEmbedTab,
         componentProps: { surveyUrl },
+        disabled: survey.singleUse?.enabled,
+      },
+      {
+        id: ShareViaType.SLIDER,
+        type: LinkTabsType.SHARE_VIA,
+        label: t("environments.surveys.share.slider_embed.nav_title"),
+        icon: PanelLeft,
+        title: t("environments.surveys.share.slider_embed.nav_title"),
+        description: t("environments.surveys.share.slider_embed.description"),
+        componentType: SliderEmbedTab,
+        componentProps: { surveyUrl, environmentId },
+        disabled: survey.singleUse?.enabled,
+      },
+      {
+        id: ShareViaType.POPOVER,
+        type: LinkTabsType.SHARE_VIA,
+        label: t("environments.surveys.share.popover_embed.nav_title"),
+        icon: MessageCircle,
+        title: t("environments.surveys.share.popover_embed.nav_title"),
+        description: t("environments.surveys.share.popover_embed.description"),
+        componentType: PopoverEmbedTab,
+        componentProps: { surveyUrl, environmentId },
+        disabled: survey.singleUse?.enabled,
+      },
+      {
+        id: ShareViaType.SIDE_TAB,
+        type: LinkTabsType.SHARE_VIA,
+        label: t("environments.surveys.share.side_tab_embed.nav_title"),
+        icon: SidebarOpen,
+        title: t("environments.surveys.share.side_tab_embed.nav_title"),
+        description: t("environments.surveys.share.side_tab_embed.description"),
+        componentType: SideTabEmbedTab,
+        componentProps: { surveyUrl, environmentId },
         disabled: survey.singleUse?.enabled,
       },
       {

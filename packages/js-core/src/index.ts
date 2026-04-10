@@ -6,7 +6,14 @@ import * as Action from "@/lib/survey/action";
 import { checkPageUrl } from "@/lib/survey/no-code-action";
 import * as Attribute from "@/lib/user/attribute";
 import * as User from "@/lib/user/user";
-import { type TConfigInput, type TLegacyConfigInput } from "@/types/config";
+import {
+  type TConfigInput,
+  type TEmbedMode,
+  type TLegacyConfigInput,
+  type TPopoverConfig,
+  type TSideTabConfig,
+  type TSliderConfig,
+} from "@/types/config";
 import { type TTrackProperties } from "@/types/survey";
 
 const queue = CommandQueue.getInstance();
@@ -113,4 +120,5 @@ const formbricks = {
 
 type TFormbricks = typeof formbricks;
 export type { TFormbricks };
+export type { TEmbedMode, TSliderConfig, TPopoverConfig, TSideTabConfig };
 export default formbricks;

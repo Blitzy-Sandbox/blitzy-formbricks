@@ -3,7 +3,7 @@ import { cleanup } from "@testing-library/react";
 import { afterEach, describe, expect, test, vi } from "vitest";
 import { prisma } from "@formbricks/database";
 import { DatabaseError, ValidationError } from "@formbricks/types/errors";
-import { createWebhook } from "@/app/api/v1/webhooks/lib/webhook";
+import { createWebhook, getWebhooks } from "@/app/api/v1/webhooks/lib/webhook";
 import { TWebhookInput } from "@/app/api/v1/webhooks/types/webhooks";
 import { validateInputs } from "@/lib/utils/validate";
 
@@ -11,6 +11,7 @@ vi.mock("@formbricks/database", () => ({
   prisma: {
     webhook: {
       create: vi.fn(),
+      findMany: vi.fn(),
     },
   },
 }));
@@ -63,6 +64,7 @@ describe("createWebhook", () => {
         source: webhookInput.source,
         surveyIds: webhookInput.surveyIds,
         triggers: webhookInput.triggers,
+        payloadFormat: undefined,
         secret: "whsec_test_secret_1234567890",
         environment: {
           connect: {
@@ -157,5 +159,85 @@ describe("createWebhook", () => {
         },
       },
     });
+  });
+});
+
+describe("getWebhooks", () => {
+  afterEach(() => {
+    cleanup();
+  });
+
+  test("should return webhooks for given environment IDs", async () => {
+    const mockWebhooks = [
+      {
+        id: "wh-1",
+        environmentId: "env-1",
+        name: "Webhook 1",
+        url: "https://example.com/hook1",
+        source: "user" as WebhookSource,
+        triggers: ["responseCreated"],
+        surveyIds: ["s1"],
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        secret: "whsec_secret",
+        payloadFormat: "default",
+      },
+      {
+        id: "wh-2",
+        environmentId: "env-1",
+        name: "Webhook 2",
+        url: "https://example.com/hook2",
+        source: "user" as WebhookSource,
+        triggers: ["responseFinished"],
+        surveyIds: [],
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        secret: "whsec_secret2",
+        payloadFormat: "typeform",
+      },
+    ];
+
+    vi.mocked(prisma.webhook.findMany).mockResolvedValueOnce(mockWebhooks as any);
+
+    const result = await getWebhooks(["env-1"]);
+
+    expect(validateInputs).toHaveBeenCalled();
+    expect(prisma.webhook.findMany).toHaveBeenCalledWith({
+      where: { environmentId: { in: ["env-1"] } },
+      take: undefined,
+      skip: undefined,
+    });
+    expect(result).toEqual(mockWebhooks);
+  });
+
+  test("should paginate results when page parameter is provided", async () => {
+    vi.mocked(prisma.webhook.findMany).mockResolvedValueOnce([]);
+
+    const result = await getWebhooks(["env-1", "env-2"], 2);
+
+    expect(prisma.webhook.findMany).toHaveBeenCalledWith({
+      where: { environmentId: { in: ["env-1", "env-2"] } },
+      take: expect.any(Number),
+      skip: expect.any(Number),
+    });
+    expect(result).toEqual([]);
+  });
+
+  test("should throw DatabaseError on PrismaClientKnownRequestError", async () => {
+    vi.mocked(prisma.webhook.findMany).mockRejectedValueOnce(
+      new Prisma.PrismaClientKnownRequestError("Test error", {
+        code: "P2025",
+        clientVersion: "5.0.0",
+      })
+    );
+
+    await expect(getWebhooks(["env-1"])).rejects.toThrowError(DatabaseError);
+  });
+
+  test("should rethrow unknown errors", async () => {
+    const unknownError = new Error("Unexpected error");
+    vi.mocked(prisma.webhook.findMany).mockRejectedValueOnce(unknownError);
+
+    await expect(getWebhooks(["env-1"])).rejects.toThrowError("Unexpected error");
   });
 });

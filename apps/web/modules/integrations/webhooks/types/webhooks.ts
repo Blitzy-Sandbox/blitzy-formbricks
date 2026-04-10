@@ -5,12 +5,14 @@ export const ZWebhookInput = ZWebhook.partial({
   name: true,
   source: true,
   surveyIds: true,
+  payloadFormat: true,
 }).pick({
   name: true,
   source: true,
   surveyIds: true,
   triggers: true,
   url: true,
+  payloadFormat: true,
 });
 
 export type TWebhookInput = z.infer<typeof ZWebhookInput>;

@@ -8,6 +8,9 @@ export enum ShareViaType {
   DYNAMIC_POPUP = "dynamic-popup",
   SOCIAL_MEDIA = "social-media",
   QR_CODE = "qr-code",
+  SLIDER = "slider",
+  POPOVER = "popover",
+  SIDE_TAB = "side-tab",
 }
 
 export enum ShareSettingsType {

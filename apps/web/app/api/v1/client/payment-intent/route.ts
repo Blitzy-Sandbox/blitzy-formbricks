@@ -2,6 +2,7 @@ import { logger } from "@formbricks/logger";
 import { type TSurveyBlock } from "@formbricks/types/surveys/blocks";
 import { TSurveyElementTypeEnum } from "@formbricks/types/surveys/constants";
 import { responses } from "@/app/lib/api/response";
+import { getOrganizationByEnvironmentId } from "@/lib/organization/service";
 import { getSurvey } from "@/lib/survey/service";
 import { createPaymentIntent } from "@/modules/survey/payment/lib/stripe";
 
@@ -23,17 +24,20 @@ export const OPTIONS = async (): Promise<Response> => {
  * where respondents are anonymous. Security is enforced by validating that the
  * requested amount and currency match a Payment element configured in the survey.
  *
+ * The connected Stripe account ID is looked up server-side from the organization's
+ * stored Stripe Connect credentials. The client does NOT need to pass stripeAccountId.
+ * If the organization has not connected a Stripe account, the route returns a 400 error.
+ *
  * Request body:
  *   - surveyId: string (CUID2) — the survey containing the Payment element
  *   - amount: number — positive integer in smallest currency unit (cents/pence)
  *   - currency: "usd" | "eur" | "gbp"
- *   - stripeAccountId?: string — optional connected Stripe account ID
  *
  * Response (200):
  *   - { data: { clientSecret: string } }
  *
  * Error responses:
- *   - 400 Bad Request — missing or invalid parameters
+ *   - 400 Bad Request — missing/invalid parameters or no connected Stripe account
  *   - 404 Not Found — survey doesn't exist or no matching Payment element
  *   - 500 Internal Server Error — Stripe API failure
  */
@@ -42,7 +46,6 @@ export const POST = async (request: Request): Promise<Response> => {
     surveyId?: string;
     amount?: number;
     currency?: string;
-    stripeAccountId?: string;
   };
 
   try {
@@ -51,7 +54,7 @@ export const POST = async (request: Request): Promise<Response> => {
     return responses.badRequestResponse("Malformed JSON input");
   }
 
-  const { surveyId, amount, currency, stripeAccountId } = body;
+  const { surveyId, amount, currency } = body;
 
   // Validate required parameters
   if (!surveyId || typeof surveyId !== "string") {
@@ -86,6 +89,20 @@ export const POST = async (request: Request): Promise<Response> => {
       return responses.notFoundResponse(
         "Payment element",
         `No matching Payment element in survey ${surveyId}`
+      );
+    }
+
+    // Look up the organization's connected Stripe account server-side.
+    // The stripeAccountId MUST come from the database, never from the client request.
+    const organization = await getOrganizationByEnvironmentId(survey.environmentId);
+    if (!organization) {
+      return responses.internalServerErrorResponse("Unable to resolve organization for this survey.");
+    }
+
+    const stripeAccountId = organization.stripeConnectAccountId ?? undefined;
+    if (!stripeAccountId) {
+      return responses.badRequestResponse(
+        "No Stripe account is connected for this organization. Please connect a Stripe account in the survey editor."
       );
     }
 

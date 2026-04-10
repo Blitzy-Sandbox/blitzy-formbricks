@@ -22,6 +22,7 @@ import { resolveStorageUrlsInObject } from "@/modules/storage/utils";
 import { sendFollowUpsForResponse } from "@/modules/survey/follow-ups/lib/follow-ups";
 import { FollowUpSendError } from "@/modules/survey/follow-ups/types/follow-up";
 import { handleIntegrations } from "./lib/handleIntegrations";
+import { transformToTypeformPayload } from "./lib/payload-transformer";
 
 export const POST = async (request: Request) => {
   const requestHeaders = await headers();
@@ -99,7 +100,8 @@ export const POST = async (request: Request) => {
   const resolvedResponseData = resolveStorageUrlsInObject(response.data);
 
   const webhookPromises = webhooks.map((webhook) => {
-    const body = JSON.stringify({
+    // Build the default Formbricks payload as the safe baseline for every webhook
+    const defaultPayloadData = {
       webhookId: webhook.id,
       event,
       data: {
@@ -113,7 +115,24 @@ export const POST = async (request: Request) => {
           updatedAt: survey.updatedAt,
         },
       },
-    });
+    };
+
+    // Start with the default payload; override with Typeform-compatible format if configured
+    let payloadData: Record<string, unknown> = defaultPayloadData;
+
+    if (webhook.payloadFormat === "typeform") {
+      try {
+        payloadData = transformToTypeformPayload(response, survey, resolvedResponseData);
+      } catch (err) {
+        logger.error(
+          { err, webhookId: webhook.id },
+          "Typeform payload transformation failed, falling back to default format"
+        );
+        // payloadData remains as defaultPayloadData — one misconfigured webhook cannot crash the pipeline
+      }
+    }
+
+    const body = JSON.stringify(payloadData);
 
     // Generate Standard Webhooks headers
     const webhookMessageId = uuidv7();

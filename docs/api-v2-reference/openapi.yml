@@ -2259,8 +2259,10 @@ paths:
                             type: string
                           description: "The IDs of the surveys "
                         payloadFormat:
-                          type: string
-                          description: The format of the webhook payload. Use 'typeform' for Typeform-compatible payload structure.
+                          type:
+                            - string
+                            - "null"
+                          description: The format of the webhook payload. Use 'typeform' for Typeform-compatible payload structure, or 'default' for the standard Formbricks format.
                           enum:
                             - default
                             - typeform
@@ -2317,8 +2319,10 @@ paths:
                     type: string
                   description: "The IDs of the surveys "
                 payloadFormat:
-                  type: string
-                  description: The format of the webhook payload. Use 'typeform' for Typeform-compatible payload structure.
+                  type:
+                    - string
+                    - "null"
+                  description: The format of the webhook payload. Use 'typeform' for Typeform-compatible payload structure, or 'default' for the standard Formbricks format.
                   enum:
                     - default
                     - typeform
@@ -2378,8 +2382,10 @@ paths:
                       type: string
                     description: "The IDs of the surveys "
                   payloadFormat:
-                    type: string
-                    description: The format of the webhook payload. Use 'typeform' for Typeform-compatible payload structure.
+                    type:
+                      - string
+                      - "null"
+                    description: The format of the webhook payload. Use 'typeform' for Typeform-compatible payload structure, or 'default' for the standard Formbricks format.
                     enum:
                       - default
                       - typeform
@@ -2446,8 +2452,10 @@ paths:
                       type: string
                     description: "The IDs of the surveys "
                   payloadFormat:
-                    type: string
-                    description: The format of the webhook payload. Use 'typeform' for Typeform-compatible payload structure.
+                    type:
+                      - string
+                      - "null"
+                    description: The format of the webhook payload. Use 'typeform' for Typeform-compatible payload structure, or 'default' for the standard Formbricks format.
                     enum:
                       - default
                       - typeform
@@ -2502,8 +2510,10 @@ paths:
                     type: string
                   description: "The IDs of the surveys "
                 payloadFormat:
-                  type: string
-                  description: The format of the webhook payload. Use 'typeform' for Typeform-compatible payload structure.
+                  type:
+                    - string
+                    - "null"
+                  description: The format of the webhook payload. Use 'typeform' for Typeform-compatible payload structure, or 'default' for the standard Formbricks format.
                   enum:
                     - default
                     - typeform
@@ -2563,8 +2573,10 @@ paths:
                       type: string
                     description: "The IDs of the surveys "
                   payloadFormat:
-                    type: string
-                    description: The format of the webhook payload. Use 'typeform' for Typeform-compatible payload structure.
+                    type:
+                      - string
+                      - "null"
+                    description: The format of the webhook payload. Use 'typeform' for Typeform-compatible payload structure, or 'default' for the standard Formbricks format.
                     enum:
                       - default
                       - typeform
@@ -2629,6 +2641,15 @@ paths:
                     items:
                       type: string
                     description: "The IDs of the surveys "
+                  payloadFormat:
+                    type:
+                      - string
+                      - "null"
+                    description: The format of the webhook payload. Use 'typeform' for Typeform-compatible payload structure, or 'default' for the standard Formbricks format.
+                    enum:
+                      - default
+                      - typeform
+                    default: default
   /organizations/{organizationId}/teams:
     get:
       operationId: getTeams

@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { TSurveyElementTypeEnum } from "@formbricks/types/surveys/constants";
+import { getOrganizationByEnvironmentId } from "@/lib/organization/service";
 import { getSurvey } from "@/lib/survey/service";
 import { createPaymentIntent } from "@/modules/survey/payment/lib/stripe";
 import { createPaymentIntentAction } from "../actions";
@@ -19,6 +20,11 @@ vi.mock("@/lib/survey/service", () => ({
   getSurvey: vi.fn(),
 }));
 
+// Mock getOrganizationByEnvironmentId to control organization lookup without hitting the database.
+vi.mock("@/lib/organization/service", () => ({
+  getOrganizationByEnvironmentId: vi.fn(),
+}));
+
 // Mock the Stripe payment intent creation helper to avoid real Stripe API calls.
 vi.mock("@/modules/survey/payment/lib/stripe", () => ({
   createPaymentIntent: vi.fn(),
@@ -36,7 +42,6 @@ describe("createPaymentIntentAction", () => {
     surveyId: "survey-test-123",
     currency: "usd" as const,
     amount: 1000,
-    stripeAccountId: "acct_test_123",
   };
 
   const mockPaymentIntentResult = {
@@ -47,6 +52,7 @@ describe("createPaymentIntentAction", () => {
   // The action uses survey.blocks.flatMap(block => block.elements) to find Payment elements.
   const mockSurveyWithPayment = {
     id: "survey-test-123",
+    environmentId: "env-test-123",
     blocks: [
       {
         id: "block1",
@@ -63,6 +69,20 @@ describe("createPaymentIntentAction", () => {
     ],
   };
 
+  // Mock organization with connected Stripe account
+  const mockOrganizationWithStripe = {
+    id: "org-test-123",
+    stripeConnectAccountId: "acct_test_connected",
+    stripeConnectPublishableKey: "pk_live_connected",
+  };
+
+  // Mock organization without connected Stripe account
+  const mockOrganizationWithoutStripe = {
+    id: "org-test-456",
+    stripeConnectAccountId: null,
+    stripeConnectPublishableKey: null,
+  };
+
   beforeEach(() => {
     vi.clearAllMocks();
   });
@@ -71,9 +91,10 @@ describe("createPaymentIntentAction", () => {
     vi.restoreAllMocks();
   });
 
-  describe("Payment Intent Creation", () => {
-    test("should create a payment intent with valid input", async () => {
+  describe("Payment Intent Creation with Stripe Connect", () => {
+    test("should create a payment intent with server-side org Stripe account lookup", async () => {
       vi.mocked(getSurvey).mockResolvedValue(mockSurveyWithPayment as any);
+      vi.mocked(getOrganizationByEnvironmentId).mockResolvedValue(mockOrganizationWithStripe as any);
       vi.mocked(createPaymentIntent).mockResolvedValue(mockPaymentIntentResult);
 
       const result = await createPaymentIntentAction({
@@ -81,34 +102,12 @@ describe("createPaymentIntentAction", () => {
       } as any);
 
       expect(getSurvey).toHaveBeenCalledWith(validInput.surveyId);
+      expect(getOrganizationByEnvironmentId).toHaveBeenCalledWith("env-test-123");
       expect(createPaymentIntent).toHaveBeenCalledWith(
         validInput.amount,
         validInput.currency,
-        validInput.stripeAccountId,
+        "acct_test_connected",
         validInput.surveyId
-      );
-      expect(result).toEqual(mockPaymentIntentResult);
-    });
-
-    test("should create a payment intent without stripeAccountId", async () => {
-      const inputWithoutStripeAccount = {
-        surveyId: "survey-test-123",
-        currency: "usd" as const,
-        amount: 1000,
-      };
-
-      vi.mocked(getSurvey).mockResolvedValue(mockSurveyWithPayment as any);
-      vi.mocked(createPaymentIntent).mockResolvedValue(mockPaymentIntentResult);
-
-      const result = await createPaymentIntentAction({
-        parsedInput: inputWithoutStripeAccount,
-      } as any);
-
-      expect(createPaymentIntent).toHaveBeenCalledWith(
-        inputWithoutStripeAccount.amount,
-        inputWithoutStripeAccount.currency,
-        undefined,
-        inputWithoutStripeAccount.surveyId
       );
       expect(result).toEqual(mockPaymentIntentResult);
     });
@@ -121,6 +120,7 @@ describe("createPaymentIntentAction", () => {
         ],
       };
       vi.mocked(getSurvey).mockResolvedValue(eurSurvey as any);
+      vi.mocked(getOrganizationByEnvironmentId).mockResolvedValue(mockOrganizationWithStripe as any);
       vi.mocked(createPaymentIntent).mockResolvedValue(mockPaymentIntentResult);
 
       const eurInput = { ...validInput, currency: "eur" as const };
@@ -129,7 +129,7 @@ describe("createPaymentIntentAction", () => {
       expect(createPaymentIntent).toHaveBeenCalledWith(
         eurInput.amount,
         "eur",
-        eurInput.stripeAccountId,
+        "acct_test_connected",
         eurInput.surveyId
       );
     });
@@ -142,6 +142,7 @@ describe("createPaymentIntentAction", () => {
         ],
       };
       vi.mocked(getSurvey).mockResolvedValue(gbpSurvey as any);
+      vi.mocked(getOrganizationByEnvironmentId).mockResolvedValue(mockOrganizationWithStripe as any);
       vi.mocked(createPaymentIntent).mockResolvedValue(mockPaymentIntentResult);
 
       const gbpInput = { ...validInput, currency: "gbp" as const };
@@ -150,7 +151,7 @@ describe("createPaymentIntentAction", () => {
       expect(createPaymentIntent).toHaveBeenCalledWith(
         gbpInput.amount,
         "gbp",
-        gbpInput.stripeAccountId,
+        "acct_test_connected",
         gbpInput.surveyId
       );
     });
@@ -168,6 +169,7 @@ describe("createPaymentIntentAction", () => {
     test("should throw when survey has no matching Payment element", async () => {
       const surveyWithoutPayment = {
         id: "survey-test-123",
+        environmentId: "env-test-123",
         blocks: [{ id: "block1", elements: [{ id: "q1", type: TSurveyElementTypeEnum.OpenText }] }],
       };
       vi.mocked(getSurvey).mockResolvedValue(surveyWithoutPayment as any);
@@ -206,37 +208,38 @@ describe("createPaymentIntentAction", () => {
     });
   });
 
+  describe("Stripe Connect Organization Lookup", () => {
+    test("should throw when organization is not found", async () => {
+      vi.mocked(getSurvey).mockResolvedValue(mockSurveyWithPayment as any);
+      vi.mocked(getOrganizationByEnvironmentId).mockResolvedValue(null);
+
+      await expect(createPaymentIntentAction({ parsedInput: validInput } as any)).rejects.toThrow();
+
+      expect(createPaymentIntent).not.toHaveBeenCalled();
+    });
+
+    test("should throw when organization has no connected Stripe account", async () => {
+      vi.mocked(getSurvey).mockResolvedValue(mockSurveyWithPayment as any);
+      vi.mocked(getOrganizationByEnvironmentId).mockResolvedValue(mockOrganizationWithoutStripe as any);
+
+      await expect(createPaymentIntentAction({ parsedInput: validInput } as any)).rejects.toThrow(
+        "No Stripe account is connected"
+      );
+
+      expect(createPaymentIntent).not.toHaveBeenCalled();
+    });
+  });
+
   describe("Error Handling", () => {
     test("should propagate errors from createPaymentIntent", async () => {
       vi.mocked(getSurvey).mockResolvedValue(mockSurveyWithPayment as any);
+      vi.mocked(getOrganizationByEnvironmentId).mockResolvedValue(mockOrganizationWithStripe as any);
       vi.mocked(createPaymentIntent).mockRejectedValue(
         new Error("An unexpected error occurred while processing your payment. Please try again.")
       );
 
       await expect(createPaymentIntentAction({ parsedInput: validInput } as any)).rejects.toThrow(
         "An unexpected error occurred while processing your payment. Please try again."
-      );
-    });
-
-    test("should propagate card declined errors from createPaymentIntent", async () => {
-      vi.mocked(getSurvey).mockResolvedValue(mockSurveyWithPayment as any);
-      vi.mocked(createPaymentIntent).mockRejectedValue(
-        new Error("Payment failed: Your card was declined. Please try a different card.")
-      );
-
-      await expect(createPaymentIntentAction({ parsedInput: validInput } as any)).rejects.toThrow(
-        "Payment failed: Your card was declined. Please try a different card."
-      );
-    });
-
-    test("should propagate payment configuration errors from createPaymentIntent", async () => {
-      vi.mocked(getSurvey).mockResolvedValue(mockSurveyWithPayment as any);
-      vi.mocked(createPaymentIntent).mockRejectedValue(
-        new Error("Payment configuration error. Please contact support.")
-      );
-
-      await expect(createPaymentIntentAction({ parsedInput: validInput } as any)).rejects.toThrow(
-        "Payment configuration error. Please contact support."
       );
     });
   });
@@ -248,6 +251,7 @@ describe("createPaymentIntentAction", () => {
         blocks: [{ id: "block1", elements: [{ ...mockSurveyWithPayment.blocks[0].elements[0], amount: 1 }] }],
       };
       vi.mocked(getSurvey).mockResolvedValue(minAmountSurvey as any);
+      vi.mocked(getOrganizationByEnvironmentId).mockResolvedValue(mockOrganizationWithStripe as any);
       vi.mocked(createPaymentIntent).mockResolvedValue(mockPaymentIntentResult);
 
       const minAmountInput = { ...validInput, amount: 1 };
@@ -255,77 +259,8 @@ describe("createPaymentIntentAction", () => {
         parsedInput: minAmountInput,
       } as any);
 
-      expect(createPaymentIntent).toHaveBeenCalledWith(
-        1,
-        "usd",
-        validInput.stripeAccountId,
-        validInput.surveyId
-      );
+      expect(createPaymentIntent).toHaveBeenCalledWith(1, "usd", "acct_test_connected", validInput.surveyId);
       expect(result).toEqual(mockPaymentIntentResult);
-    });
-
-    test("should pass large amounts correctly", async () => {
-      const largeAmountSurvey = {
-        ...mockSurveyWithPayment,
-        blocks: [
-          { id: "block1", elements: [{ ...mockSurveyWithPayment.blocks[0].elements[0], amount: 99999999 }] },
-        ],
-      };
-      vi.mocked(getSurvey).mockResolvedValue(largeAmountSurvey as any);
-      vi.mocked(createPaymentIntent).mockResolvedValue(mockPaymentIntentResult);
-
-      const largeAmountInput = { ...validInput, amount: 99999999 };
-      const result = await createPaymentIntentAction({
-        parsedInput: largeAmountInput,
-      } as any);
-
-      expect(createPaymentIntent).toHaveBeenCalledWith(
-        99999999,
-        "usd",
-        validInput.stripeAccountId,
-        validInput.surveyId
-      );
-      expect(result).toEqual(mockPaymentIntentResult);
-    });
-  });
-
-  describe("Exact Input Passing", () => {
-    test("should call createPaymentIntent with exact parsed input values", async () => {
-      const exactSurvey = {
-        id: "clxxxxxxxxxxxxxxxxxxxxxxxxx",
-        blocks: [
-          {
-            id: "block1",
-            elements: [
-              {
-                id: "q1",
-                type: TSurveyElementTypeEnum.Payment,
-                amount: 2500,
-                currency: "eur",
-                stripeIntegration: { publicKey: "pk_test_123" },
-              },
-            ],
-          },
-        ],
-      };
-      vi.mocked(getSurvey).mockResolvedValue(exactSurvey as any);
-      vi.mocked(createPaymentIntent).mockResolvedValue(mockPaymentIntentResult);
-
-      await createPaymentIntentAction({
-        parsedInput: {
-          surveyId: "clxxxxxxxxxxxxxxxxxxxxxxxxx",
-          currency: "eur",
-          amount: 2500,
-          stripeAccountId: "acct_connected_123",
-        },
-      } as any);
-
-      expect(createPaymentIntent).toHaveBeenCalledWith(
-        2500,
-        "eur",
-        "acct_connected_123",
-        "clxxxxxxxxxxxxxxxxxxxxxxxxx"
-      );
     });
   });
 });

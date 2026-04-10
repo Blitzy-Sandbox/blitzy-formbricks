@@ -36,6 +36,7 @@ export const WebhookTable = ({
     createdAt: new Date(),
     updatedAt: new Date(),
     secret: null,
+    payloadFormat: null,
   });
 
   const handleOpenWebhookDetailModalClick = (e, webhook: Webhook) => {

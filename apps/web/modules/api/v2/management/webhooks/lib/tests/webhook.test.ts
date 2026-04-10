@@ -30,7 +30,7 @@ describe("getWebhooks", () => {
   test("returns ok response with webhooks and meta", async () => {
     vi.mocked(prisma.$transaction).mockResolvedValueOnce([fakeWebhooks, count]);
 
-    const result = await getWebhooks(environmentId, params as TGetWebhooksFilter);
+    const result = await getWebhooks([environmentId], params as TGetWebhooksFilter);
     expect(result.ok).toBe(true);
 
     if (result.ok) {
@@ -46,7 +46,7 @@ describe("getWebhooks", () => {
   test("returns error when prisma.$transaction throws", async () => {
     vi.mocked(prisma.$transaction).mockRejectedValueOnce(new Error("Test error"));
 
-    const result = await getWebhooks(environmentId, params as TGetWebhooksFilter);
+    const result = await getWebhooks([environmentId], params as TGetWebhooksFilter);
     expect(result.ok).toBe(false);
 
     if (!result.ok) {
@@ -75,6 +75,8 @@ describe("createWebhook", () => {
     surveyIds: inputWebhook.surveyIds,
     createdAt: new Date(),
     updatedAt: new Date(),
+    secret: null,
+    payloadFormat: null,
   };
 
   test("creates a webhook", async () => {

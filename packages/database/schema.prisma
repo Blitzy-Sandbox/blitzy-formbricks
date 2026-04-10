@@ -52,6 +52,7 @@ model Webhook {
   triggers      PipelineTriggers[]
   surveyIds     String[]
   secret        String?
+  payloadFormat String?            @default("default")
 
   @@index([environmentId])
 }
@@ -663,20 +664,22 @@ model Project {
 /// @property whitelabel - Whitelabel configuration for the organization
 /// @property isAIEnabled - Controls access to AI-powered features
 model Organization {
-  id          String       @id @default(cuid())
-  createdAt   DateTime     @default(now()) @map(name: "created_at")
-  updatedAt   DateTime     @updatedAt @map(name: "updated_at")
-  name        String
-  memberships Membership[]
-  projects    Project[]
+  id                          String       @id @default(cuid())
+  createdAt                   DateTime     @default(now()) @map(name: "created_at")
+  updatedAt                   DateTime     @updatedAt @map(name: "updated_at")
+  name                        String
+  memberships                 Membership[]
+  projects                    Project[]
   /// [OrganizationBilling]
-  billing     Json
+  billing                     Json
   /// [OrganizationWhitelabel]
-  whitelabel  Json         @default("{}")
-  invites     Invite[]
-  isAIEnabled Boolean      @default(false)
-  teams       Team[]
-  apiKeys     ApiKey[]
+  whitelabel                  Json         @default("{}")
+  invites                     Invite[]
+  isAIEnabled                 Boolean      @default(false)
+  teams                       Team[]
+  apiKeys                     ApiKey[]
+  stripeConnectAccountId      String?
+  stripeConnectPublishableKey String?
 }
 
 enum OrganizationRole {

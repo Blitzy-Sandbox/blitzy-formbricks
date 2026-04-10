@@ -42,6 +42,10 @@ export const ZWebhook = z.object({
   secret: z.string().nullable().openapi({
     description: "The shared secret used to generate HMAC signatures for webhook requests",
   }),
+  payloadFormat: z.enum(["default", "typeform"]).default("default").nullable().openapi({
+    description:
+      "The payload format for webhook delivery. 'default' sends standard Formbricks format, 'typeform' sends Typeform-compatible format with typed answers array.",
+  }) as z.ZodType<Webhook["payloadFormat"]>,
 }) satisfies z.ZodType<Webhook>;
 
 ZWebhook.openapi({

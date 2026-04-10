@@ -41,6 +41,8 @@ describe("getFirstOrganization", () => {
         },
       },
       isAIEnabled: false,
+      stripeConnectAccountId: null,
+      stripeConnectPublishableKey: null,
     };
     vi.mocked(prisma.organization.findFirst).mockResolvedValue(org);
     const result = await getFirstOrganization();

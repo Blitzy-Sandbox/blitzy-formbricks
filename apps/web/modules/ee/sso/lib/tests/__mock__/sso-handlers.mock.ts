@@ -56,6 +56,8 @@ export const mockOrganization: Organization = {
     limits: { monthly: { responses: null, miu: null }, projects: null },
     periodStart: new Date(),
   },
+  stripeConnectAccountId: null,
+  stripeConnectPublishableKey: null,
   createdAt: new Date(),
   updatedAt: new Date(),
 };

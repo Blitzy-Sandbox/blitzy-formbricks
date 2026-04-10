@@ -85,6 +85,7 @@ export const env = createEnv({
     SMTP_REJECT_UNAUTHORIZED_TLS: z.enum(["1", "0"]).optional(),
     STRIPE_SECRET_KEY: z.string().optional(),
     STRIPE_WEBHOOK_SECRET: z.string().optional(),
+    STRIPE_CLIENT_ID: z.string().optional(),
     PUBLIC_URL: z
       .string()
       .url()
@@ -202,6 +203,7 @@ export const env = createEnv({
     SMTP_AUTHENTICATED: process.env.SMTP_AUTHENTICATED,
     STRIPE_SECRET_KEY: process.env.STRIPE_SECRET_KEY,
     STRIPE_WEBHOOK_SECRET: process.env.STRIPE_WEBHOOK_SECRET,
+    STRIPE_CLIENT_ID: process.env.STRIPE_CLIENT_ID,
     PUBLIC_URL: process.env.PUBLIC_URL,
     TURNSTILE_SECRET_KEY: process.env.TURNSTILE_SECRET_KEY,
     TURNSTILE_SITE_KEY: process.env.TURNSTILE_SITE_KEY,

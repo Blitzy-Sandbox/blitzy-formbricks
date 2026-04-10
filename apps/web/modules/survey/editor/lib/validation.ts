@@ -4,6 +4,7 @@ import { toast } from "react-hot-toast";
 import { ZEndingCardUrl } from "@formbricks/types/common";
 import { TI18nString } from "@formbricks/types/i18n";
 import { ZSegmentFilters } from "@formbricks/types/segment";
+import { TSurveyElementTypeEnum } from "@formbricks/types/surveys/constants";
 import {
   TInputFieldConfig,
   TSurveyAddressElement,
@@ -14,6 +15,7 @@ import {
   TSurveyMatrixElement,
   TSurveyMultipleChoiceElement,
   TSurveyOpenTextElement,
+  TSurveyPaymentElement,
   TSurveyPictureSelectionElement,
 } from "@formbricks/types/surveys/elements";
 import {
@@ -256,6 +258,23 @@ export const isSurveyValid = (
         parsedFilters.error.issues.find((issue) => issue.code === "custom")?.message ||
         t("environments.surveys.edit.invalid_targeting");
       toast.error(errMsg);
+      return false;
+    }
+  }
+
+  // Payment element validation — verify Stripe is connected before saving/publishing.
+  // A Payment element requires a valid stripeIntegration.publicKey which is populated
+  // automatically when the user connects a Stripe account via Stripe Connect OAuth.
+  // If the key is empty or missing, the user must connect a Stripe account first.
+  if (survey.blocks) {
+    const allElements = survey.blocks.flatMap((block) => block.elements);
+    const paymentElementWithoutStripe = allElements.find(
+      (el): el is TSurveyPaymentElement =>
+        el.type === TSurveyElementTypeEnum.Payment &&
+        (!("stripeIntegration" in el) || !(el as TSurveyPaymentElement).stripeIntegration?.publicKey)
+    );
+    if (paymentElementWithoutStripe) {
+      toast.error(t("environments.surveys.edit.stripe_account_required"), { duration: 5000 });
       return false;
     }
   }

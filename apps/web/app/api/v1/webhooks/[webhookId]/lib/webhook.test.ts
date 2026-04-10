@@ -41,6 +41,8 @@ describe("deleteWebhook", () => {
       environmentId: "test-environment-id",
       triggers: [],
       surveyIds: [],
+      secret: null,
+      payloadFormat: null,
     };
 
     vi.mocked(prisma.webhook.delete).mockResolvedValueOnce(mockedWebhook);
@@ -66,6 +68,8 @@ describe("deleteWebhook", () => {
       environmentId: "test-environment-id",
       triggers: [],
       surveyIds: [],
+      secret: null,
+      payloadFormat: null,
     };
 
     vi.mocked(prisma.webhook.delete).mockResolvedValueOnce(mockedWebhook);
@@ -137,6 +141,8 @@ describe("getWebhook", () => {
       environmentId: "test-environment-id",
       triggers: [],
       surveyIds: [],
+      secret: null,
+      payloadFormat: null,
     };
 
     vi.mocked(prisma.webhook.findUnique).mockResolvedValueOnce(mockedWebhook);
@@ -203,6 +209,8 @@ describe("getWebhook", () => {
       environmentId: "test-environment-id",
       triggers: [],
       surveyIds: [],
+      secret: null,
+      payloadFormat: null,
     };
 
     vi.mocked(prisma.webhook.findUnique).mockResolvedValueOnce(mockedWebhook);

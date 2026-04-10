@@ -53,6 +53,7 @@ export const AddWebhookModal = ({ environmentId, surveys, open, setOpen }: AddWe
   const [selectedAllSurveys, setSelectedAllSurveys] = useState(false);
   const [creatingWebhook, setCreatingWebhook] = useState(false);
   const [createdWebhook, setCreatedWebhook] = useState<Webhook | null>(null);
+  const [selectedPayloadFormat, setSelectedPayloadFormat] = useState<"default" | "typeform">("default");
 
   const handleTestEndpoint = async (sendSuccessToast: boolean) => {
     try {
@@ -136,6 +137,7 @@ export const AddWebhookModal = ({ environmentId, surveys, open, setOpen }: AddWe
           source: "user",
           triggers: selectedTriggers,
           surveyIds: selectedSurveys,
+          payloadFormat: selectedPayloadFormat,
         };
 
         const createWebhookActionResult = await createWebhookAction({
@@ -167,6 +169,7 @@ export const AddWebhookModal = ({ environmentId, surveys, open, setOpen }: AddWe
     setSelectedTriggers([]);
     setSelectedAllSurveys(false);
     setCreatedWebhook(null);
+    setSelectedPayloadFormat("default");
   };
 
   // Show success dialog with secret after webhook creation
@@ -241,6 +244,38 @@ export const AddWebhookModal = ({ environmentId, surveys, open, setOpen }: AddWe
                 onCheckboxChange={handleCheckboxChange}
                 allowChanges={true}
               />
+            </div>
+
+            <div>
+              <Label htmlFor="payloadFormat">{t("environments.integrations.webhooks.payload_format")}</Label>
+              <div className="mt-1 space-y-2">
+                <label className="flex items-center space-x-2">
+                  <input
+                    type="radio"
+                    name="payloadFormat"
+                    value="default"
+                    checked={selectedPayloadFormat === "default"}
+                    onChange={() => setSelectedPayloadFormat("default")}
+                    className="text-brand-dark h-4 w-4 border-slate-300 focus:ring-0 focus:ring-offset-0"
+                  />
+                  <span className="text-sm text-slate-700">
+                    {t("environments.integrations.webhooks.payload_format_default")}
+                  </span>
+                </label>
+                <label className="flex items-center space-x-2">
+                  <input
+                    type="radio"
+                    name="payloadFormat"
+                    value="typeform"
+                    checked={selectedPayloadFormat === "typeform"}
+                    onChange={() => setSelectedPayloadFormat("typeform")}
+                    className="text-brand-dark h-4 w-4 border-slate-300 focus:ring-0 focus:ring-offset-0"
+                  />
+                  <span className="text-sm text-slate-700">
+                    {t("environments.integrations.webhooks.payload_format_typeform")}
+                  </span>
+                </label>
+              </div>
             </div>
 
             <div>

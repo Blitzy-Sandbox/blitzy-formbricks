@@ -50,6 +50,7 @@ vi.mock("@/lib/actionClass/service", () => ({
 }));
 
 beforeEach(() => {
+  vi.resetAllMocks();
   prisma.survey.count.mockResolvedValue(1);
 });
 

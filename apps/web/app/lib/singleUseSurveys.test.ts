@@ -34,13 +34,12 @@ describe("generateSurveySingleUseId", () => {
   const mockEncryptedCuid = "encrypted-cuid-123";
 
   beforeEach(() => {
+    // Reset module cache and mocks before each test
+    vi.resetModules();
+    vi.resetAllMocks();
     // Setup mocks
     vi.mocked(cuid2.createId).mockReturnValue(mockCuid);
     vi.mocked(crypto.symmetricEncrypt).mockReturnValue(mockEncryptedCuid);
-  });
-
-  afterEach(() => {
-    vi.resetAllMocks();
   });
 
   test("returns unencrypted cuid when isEncrypted is false", () => {

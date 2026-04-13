@@ -18,6 +18,7 @@ vi.mock("@formbricks/logger", () => ({
 
 describe("verifyRecaptchaToken", () => {
   beforeEach(() => {
+    vi.resetModules();
     vi.resetAllMocks();
     global.fetch = vi.fn();
   });

@@ -159,6 +159,7 @@ const mockQuotas = [
 
 describe("getSurveySummaryMeta", () => {
   beforeEach(() => {
+    vi.resetAllMocks();
     vi.mocked(convertFloatTo2Decimal).mockImplementation((num) =>
       num !== undefined && num !== null ? parseFloat(num.toFixed(2)) : 0
     );
@@ -225,6 +226,7 @@ describe("getSurveySummaryDropOff", () => {
   };
 
   beforeEach(() => {
+    vi.resetAllMocks();
     vi.mocked(getLocalizedValue).mockImplementation((val, _) => val?.default || "");
     vi.mocked(convertFloatTo2Decimal).mockImplementation((num) =>
       num !== undefined && num !== null ? parseFloat(num.toFixed(2)) : 0
@@ -463,6 +465,7 @@ describe("getQuestionSummary", () => {
   const mockDropOff: TSurveySummary["dropOff"] = []; // Simplified for this test
 
   beforeEach(() => {
+    vi.resetAllMocks();
     vi.mocked(getLocalizedValue).mockImplementation((val, _) => val?.default || "");
     vi.mocked(convertFloatTo2Decimal).mockImplementation((num) =>
       num !== undefined && num !== null ? parseFloat(num.toFixed(2)) : 0
@@ -1758,6 +1761,14 @@ describe("Address and ContactInfo question types", () => {
 });
 
 describe("Matrix question type tests", () => {
+  beforeEach(() => {
+    vi.resetAllMocks();
+    vi.mocked(getLocalizedValue).mockImplementation((val, _) => val?.default || "");
+    vi.mocked(convertFloatTo2Decimal).mockImplementation((num) =>
+      num !== undefined && num !== null ? parseFloat(num.toFixed(2)) : 0
+    );
+  });
+
   test("getQuestionSummary correctly processes Matrix question with valid responses", async () => {
     const question = {
       id: "matrix-q1",

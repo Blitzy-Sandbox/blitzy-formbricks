@@ -1,6 +1,6 @@
 import { Organization } from "@prisma/client";
 import { cleanup } from "@testing-library/react";
-import { afterEach, describe, expect, test, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, test, vi } from "vitest";
 import { OperationNotAllowedError, ResourceNotFoundError } from "@formbricks/types/errors";
 import { getIsSpamProtectionEnabled } from "@/modules/ee/license-check/lib/utils";
 import { getOrganizationBilling } from "@/modules/survey/lib/survey";
@@ -90,9 +90,13 @@ describe("getExternalUrlsPermission - Formbricks Cloud", () => {
 });
 
 describe("getExternalUrlsPermission - Self-hosted", () => {
+  beforeEach(() => {
+    vi.resetModules();
+    vi.resetAllMocks();
+  });
+
   afterEach(() => {
     cleanup();
-    vi.resetModules();
   });
 
   test("should return true for free plan in self-hosted", async () => {

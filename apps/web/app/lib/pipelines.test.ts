@@ -23,14 +23,15 @@ const mockFetch = vi.fn();
 global.fetch = mockFetch;
 
 describe("pipelines", () => {
-  // Reset mocks before each test
+  // Reset mocks and module cache before each test
   beforeEach(() => {
-    vi.clearAllMocks();
+    vi.resetModules();
+    vi.resetAllMocks();
   });
 
   // Clean up after each test
   afterEach(() => {
-    vi.clearAllMocks();
+    vi.resetAllMocks();
   });
 
   test("sendToPipeline should call fetch with correct parameters", async () => {

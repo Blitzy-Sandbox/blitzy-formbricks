@@ -55,7 +55,7 @@ const mockInvite: Invite = {
 
 describe("refreshInviteExpiration", () => {
   beforeEach(() => {
-    vi.clearAllMocks();
+    vi.resetAllMocks();
   });
 
   test("updates expiresAt to approximately 7 days from now", async () => {
@@ -122,7 +122,7 @@ describe("refreshInviteExpiration", () => {
 
 describe("resendInvite", () => {
   beforeEach(() => {
-    vi.clearAllMocks();
+    vi.resetAllMocks();
   });
 
   test("returns email and name after updating expiration", async () => {
@@ -182,7 +182,7 @@ describe("resendInvite", () => {
 
 describe("getInvitesByOrganizationId", () => {
   beforeEach(() => {
-    vi.clearAllMocks();
+    vi.resetAllMocks();
   });
   test("returns invites", async () => {
     vi.mocked(prisma.invite.findMany).mockResolvedValue([mockInvite]);
@@ -206,7 +206,7 @@ describe("getInvitesByOrganizationId", () => {
 
 describe("inviteUser", () => {
   beforeEach(() => {
-    vi.clearAllMocks();
+    vi.resetAllMocks();
   });
   const invitee: TInvitee = { name: "Test", email: "test@example.com", role: "member", teamIds: [] };
   test("creates invite if valid", async () => {
@@ -276,7 +276,7 @@ describe("inviteUser", () => {
 
 describe("deleteInvite", () => {
   beforeEach(() => {
-    vi.clearAllMocks();
+    vi.resetAllMocks();
   });
   test("returns true if deleted", async () => {
     vi.mocked(prisma.invite.delete).mockResolvedValue({ id: "invite-1", organizationId: "org-1" } as any);
@@ -302,7 +302,7 @@ describe("deleteInvite", () => {
 
 describe("getInvite", () => {
   beforeEach(() => {
-    vi.clearAllMocks();
+    vi.resetAllMocks();
   });
   test("returns invite with creator if found", async () => {
     vi.mocked(prisma.invite.findUnique).mockResolvedValue({

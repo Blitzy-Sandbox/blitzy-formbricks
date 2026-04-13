@@ -16,7 +16,8 @@ global.fetch = vi.fn();
 
 describe("createBrevoCustomer", () => {
   beforeEach(() => {
-    vi.clearAllMocks();
+    vi.resetModules();
+    vi.resetAllMocks();
   });
 
   test("should return early if BREVO_API_KEY is not defined", async () => {
@@ -61,7 +62,8 @@ describe("createBrevoCustomer", () => {
 
 describe("updateBrevoCustomer", () => {
   beforeEach(() => {
-    vi.clearAllMocks();
+    vi.resetModules();
+    vi.resetAllMocks();
   });
 
   test("should return early if BREVO_API_KEY is not defined", async () => {
@@ -128,7 +130,8 @@ describe("updateBrevoCustomer", () => {
 
 describe("deleteBrevoCustomerByEmail", () => {
   beforeEach(() => {
-    vi.clearAllMocks();
+    vi.resetModules();
+    vi.resetAllMocks();
   });
 
   test("should return early if BREVO_API_KEY is not defined", async () => {

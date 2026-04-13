@@ -43,9 +43,10 @@ vi.mock("@formbricks/types/surveys/validation", () => ({
 }));
 
 describe("Metadata Utils", () => {
-  // Reset all mocks before each test
+  // Reset module cache and all mocks before each test
   beforeEach(() => {
-    vi.clearAllMocks();
+    vi.resetModules();
+    vi.resetAllMocks();
   });
 
   describe("getNameForURL", () => {

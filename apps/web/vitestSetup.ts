@@ -1,7 +1,7 @@
 // mock these globally used functions
 import "@testing-library/jest-dom/vitest";
 import ResizeObserver from "resize-observer-polyfill";
-import { afterEach, beforeEach, expect, test, vi } from "vitest";
+import { beforeEach, expect, test, vi } from "vitest";
 import { ValidationError } from "@formbricks/types/errors";
 
 // mock next-auth EARLY to prevent SessionProvider errors
@@ -172,10 +172,6 @@ vi.mock("next/headers", () => ({
 beforeEach(() => {
   vi.resetModules();
   vi.resetAllMocks();
-});
-
-afterEach(() => {
-  vi.clearAllMocks();
 });
 
 export const testInputValidation = async (service: Function, ...args: any[]): Promise<void> => {

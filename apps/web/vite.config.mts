@@ -13,6 +13,7 @@ export default defineConfig({
     env: {
       DATABASE_URL: "postgresql://test:test@localhost:5432/testdb",
       ENCRYPTION_KEY: "test-encryption-key-for-vitest-only",
+      WEBAPP_URL: "http://localhost:3000",
       NODE_ENV: "test",
     },
     coverage: {

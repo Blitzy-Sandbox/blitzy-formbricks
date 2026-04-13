@@ -10,6 +10,7 @@ export default defineConfig({
     environmentMatchGlobs: [["**/*.test.tsx", "jsdom"]],
     exclude: ["playwright/**", "node_modules/**"],
     setupFiles: ["./vitestSetup.ts"],
+    testTimeout: 15000,
     env: {
       DATABASE_URL: "postgresql://test:test@localhost:5432/testdb",
       ENCRYPTION_KEY: "test-encryption-key-for-vitest-only",

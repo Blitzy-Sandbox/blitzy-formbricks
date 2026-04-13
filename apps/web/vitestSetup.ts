@@ -170,8 +170,7 @@ vi.mock("next/headers", () => ({
 }));
 
 beforeEach(() => {
-  vi.resetModules();
-  vi.resetAllMocks();
+  vi.clearAllMocks();
 });
 
 export const testInputValidation = async (service: Function, ...args: any[]): Promise<void> => {

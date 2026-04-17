@@ -27,7 +27,7 @@ vi.mock("@/lib/utils/validate", () => ({
 describe("deleteWebhook", () => {
   afterEach(() => {
     cleanup();
-    vi.clearAllMocks();
+    vi.resetAllMocks();
   });
 
   test("should delete the webhook and return the deleted webhook object when provided with a valid webhook ID", async () => {
@@ -127,7 +127,7 @@ describe("deleteWebhook", () => {
 describe("getWebhook", () => {
   afterEach(() => {
     cleanup();
-    vi.clearAllMocks();
+    vi.resetAllMocks();
   });
 
   test("should return webhook when it exists", async () => {

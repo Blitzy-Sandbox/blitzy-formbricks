@@ -19,7 +19,7 @@ vi.mock("@formbricks/database", () => ({
 
 describe("contact.ts", () => {
   beforeEach(() => {
-    vi.clearAllMocks();
+    vi.resetAllMocks();
   });
 
   describe("createContact", () => {

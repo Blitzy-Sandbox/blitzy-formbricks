@@ -79,7 +79,7 @@ const mockTeamDetails = {
 
 describe("getTeamsByOrganizationId", () => {
   beforeEach(() => {
-    vi.clearAllMocks();
+    vi.resetAllMocks();
   });
   test("returns mapped teams", async () => {
     vi.mocked(prisma.team.findMany).mockResolvedValueOnce(mockTeams);
@@ -99,7 +99,7 @@ describe("getTeamsByOrganizationId", () => {
 
 describe("getUserTeams", () => {
   beforeEach(() => {
-    vi.clearAllMocks();
+    vi.resetAllMocks();
   });
   test("returns mapped user teams", async () => {
     vi.mocked(prisma.team.findMany).mockResolvedValueOnce(mockUserTeams);
@@ -117,7 +117,7 @@ describe("getUserTeams", () => {
 
 describe("getOtherTeams", () => {
   beforeEach(() => {
-    vi.clearAllMocks();
+    vi.resetAllMocks();
   });
   test("returns mapped other teams", async () => {
     vi.mocked(prisma.team.findMany).mockResolvedValueOnce(mockOtherTeams);
@@ -134,7 +134,7 @@ describe("getOtherTeams", () => {
 
 describe("getTeams", () => {
   beforeEach(() => {
-    vi.clearAllMocks();
+    vi.resetAllMocks();
   });
   test("returns userTeams and otherTeams", async () => {
     vi.mocked(prisma.membership.findUnique).mockResolvedValueOnce(mockMembership);
@@ -154,7 +154,7 @@ describe("getTeams", () => {
 
 describe("createTeam", () => {
   beforeEach(() => {
-    vi.clearAllMocks();
+    vi.resetAllMocks();
   });
   test("creates and returns team id", async () => {
     vi.mocked(prisma.team.findFirst).mockResolvedValueOnce(null);
@@ -192,7 +192,7 @@ describe("createTeam", () => {
 
 describe("getTeamDetails", () => {
   beforeEach(() => {
-    vi.clearAllMocks();
+    vi.resetAllMocks();
   });
   test("returns mapped team details", async () => {
     vi.mocked(prisma.team.findUnique).mockResolvedValueOnce(mockTeamDetails);
@@ -223,7 +223,7 @@ describe("getTeamDetails", () => {
 
 describe("deleteTeam", () => {
   beforeEach(() => {
-    vi.clearAllMocks();
+    vi.resetAllMocks();
   });
   test("deletes team and revalidates caches", async () => {
     const mockTeam = {
@@ -253,7 +253,7 @@ describe("updateTeamDetails", () => {
     projects: [{ projectId: "p1", permission: "manage" }],
   };
   beforeEach(() => {
-    vi.clearAllMocks();
+    vi.resetAllMocks();
   });
   test("updates team details and revalidates caches", async () => {
     vi.mocked(prisma.team.findUnique).mockResolvedValueOnce({

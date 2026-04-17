@@ -79,7 +79,8 @@ vi.mock("@formbricks/cache", () => ({
 
 describe("Auth Utils", () => {
   beforeEach(() => {
-    vi.clearAllMocks();
+    vi.resetModules();
+    vi.resetAllMocks();
   });
 
   afterEach(() => {
@@ -331,7 +332,7 @@ describe("Auth Utils", () => {
 
       beforeEach(() => {
         // Clear mocks first
-        vi.clearAllMocks();
+        vi.resetAllMocks();
 
         // Create comprehensive Redis mock
         mockMulti = {
@@ -846,7 +847,7 @@ describe("Auth Utils", () => {
     });
 
     test("should not capture successful authentication to Sentry", () => {
-      vi.clearAllMocks();
+      vi.resetAllMocks();
 
       logAuthEvent("passwordVerified", "success", "user_123", "user@example.com", {
         provider: "credentials",

@@ -68,7 +68,7 @@ const mockSurvey = {
 
 describe("createDisplay", () => {
   beforeEach(() => {
-    vi.clearAllMocks();
+    vi.resetAllMocks();
     vi.mocked(prisma.survey.findUnique).mockResolvedValue(mockSurvey);
   });
 

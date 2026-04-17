@@ -1,6 +1,6 @@
 // vitest.config.ts
 import react from "@vitejs/plugin-react";
-import { PluginOption, loadEnv } from "vite";
+import { PluginOption } from "vite";
 import tsconfigPaths from "vite-tsconfig-paths";
 import { defineConfig } from "vitest/config";
 
@@ -10,7 +10,13 @@ export default defineConfig({
     environmentMatchGlobs: [["**/*.test.tsx", "jsdom"]],
     exclude: ["playwright/**", "node_modules/**"],
     setupFiles: ["./vitestSetup.ts"],
-    env: loadEnv("", process.cwd(), ""),
+    testTimeout: 15000,
+    env: {
+      DATABASE_URL: "postgresql://test:test@localhost:5432/testdb",
+      ENCRYPTION_KEY: "test-encryption-key-for-vitest-only",
+      WEBAPP_URL: "http://localhost:3000",
+      NODE_ENV: "test",
+    },
     coverage: {
       provider: "v8", // Use V8 as the coverage provider
       reporter: ["text", "html", "lcov"], // Generate text summary and HTML reports

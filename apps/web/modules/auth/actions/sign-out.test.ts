@@ -27,7 +27,7 @@ describe("logSignOutAction", () => {
   };
 
   beforeEach(() => {
-    vi.clearAllMocks();
+    vi.resetAllMocks();
   });
 
   test("calls logSignOut with correct parameters", async () => {

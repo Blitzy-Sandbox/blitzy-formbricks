@@ -98,7 +98,7 @@ const mockTransformedContact = {
 
 describe("Contacts Lib", () => {
   beforeEach(() => {
-    vi.clearAllMocks();
+    vi.resetAllMocks();
   });
 
   describe("buildContactWhereClause", () => {

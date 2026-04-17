@@ -96,6 +96,7 @@ describe("License Core Logic", () => {
 
   beforeEach(() => {
     originalProcessEnv = { ...process.env };
+    vi.resetModules();
     vi.resetAllMocks();
     mockCache.get.mockReset();
     mockCache.set.mockReset();

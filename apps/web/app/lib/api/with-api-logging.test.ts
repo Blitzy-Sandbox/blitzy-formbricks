@@ -121,7 +121,7 @@ describe("withV1ApiWrapper", () => {
       REDIS_URL: "redis://localhost:6379",
     }));
 
-    vi.clearAllMocks();
+    vi.resetAllMocks();
 
     // Reset mock Sentry scope calls
     mockSentryScope.setTag.mockClear();

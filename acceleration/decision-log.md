@@ -111,24 +111,26 @@ When neither candidate exists, the detector records `method = none` and emits th
 
 ### 3.3 Application to the Formbricks Repository
 
-Running the detector against the Formbricks history at HEAD `bb1acd083` (the reference HEAD documented in the AAP) yields:
+Running the detector against the Formbricks history at HEAD `bb1acd083` (the reference HEAD documented in the AAP) and reading the resulting `data/inflection.json` yields:
 
-- **Candidate A (earliest AI trailer)** — the first commit authored directly by `agent@blitzy.com` lands at `f8398e665` dated **2026-02-25T00:47:18Z** with subject `Add navigation entries for Typeform parity documentation pages`. The detector treats a direct authorship by an AI tool email as equivalent to a Co-authored-by trailer for the purposes of dating the introduction, because both encode the same fact (an AI tool committed code on this date).
-- **Candidate B (velocity inflection)** — the rolling 14-day velocity series exhibits its sharpest sustained delta in the window starting **2026-03-02** (the Monday immediately following the trailer date), with the elevated velocity persisting across all subsequent windows through HEAD.
-- **Gap** — `|date(A) − date(B)| = 5 days`, well within the 14-day convergence threshold.
-- **Method recorded** — `convergent_evidence`.
-- **Canonical inflection date** — **2026-02-25** (the earlier of the two candidates).
+- **Candidate A (earliest AI co-author trailer)** — the first commit whose trailer block matches any of the canonical AI-tool patterns is `7b3f841c5e00427abecd65d65b8c578cb0ff56f4` dated **2026-01-29T05:53:59Z**, authored by Matti Nannt (`mail@matthiasnannt.com`), with subject `fix(security): upgrade qs to fix DoS vulnerability (#7178)` and the body trailer `Co-authored-by: Claude Opus 4.5 <noreply@anthropic.com>`. Three additional `Claude Opus 4.5` co-authored commits by the same author land on 2026-01-29, 2026-02-04, and 2026-02-05; all four predate the first commit authored directly by `agent@blitzy.com` (`f8398e665` on 2026-02-25) by roughly four weeks. The detector dates Candidate A at the earliest of all these signals, which is 2026-01-29.
+- **Candidate B (sustained velocity inflection)** — the rolling 14-day velocity series does not exhibit a forward delta that simultaneously (i) exceeds 2 σ relative to the prior 8-window baseline and (ii) persists across the next 3 consecutive windows. Candidate B is therefore **null**. The full velocity series (103 windows from 2022-06-06 through 2026-05-04, max window count 342) is emitted in `inflection.json` for reviewer inspection.
+- **Method recorded** — `single_signal`. Only Candidate A is available; Candidate B did not pass the sustained-elevation criterion. Per §3.2 fallback rule, the detector uses Candidate A as the canonical date.
+- **Canonical inflection date** — **2026-01-29** (the Candidate A date).
+- **Why the prediction diverged from the data** — an earlier narrative for this section (preserved in the repository's git history of `decision-log.md`) anticipated Candidate A at 2026-02-25 (first direct `agent@blitzy.com` commit) and Candidate B at 2026-03-02 (a velocity Monday around that date), with convergent-evidence selection. The empirical run resolved Candidate A four weeks earlier because of the four `Claude Opus 4.5` co-authored commits between 2026-01-29 and 2026-02-05; the velocity criterion (`≥ 2 σ for ≥ 3 windows`) was not met, so the convergent-evidence branch did not fire and the detector recorded `single_signal`. The detector implementation matches the §3.1–§3.2 algorithm exactly; the narrative-prediction divergence is recorded here so reviewers can verify that the empirical output (`inflection.json`) is the source of truth.
 
 ### 3.4 Phase Bounds Derived from the Inflection Date
 
-Given the canonical inflection date `2026-02-25` and the Monday-aligned 2-week windowing rule (`D-008`):
+Given the canonical inflection date `2026-01-29` and the Monday-aligned 2-week windowing rule (`D-008`):
 
-- **Inflection Monday** = the Monday of the week containing 2026-02-25, namely 2026-02-23.
-- **Baseline windows** = every 2-week window ending on or before 2026-02-23.
-- **Ramp-Up windows** = windows 1 through 6 starting at 2026-02-23 (D-009 bounds Ramp-Up at exactly 6 windows = 84 days).
-- **Steady-State windows** = window 7 and later, ending at the most recent window strictly preceding the report's extraction timestamp.
+- **Inflection Monday (`anchor_monday`)** = the Monday of the week containing 2026-01-29 (a Thursday), namely **2026-01-26**.
+- **Baseline windows** = every 2-week window ending on or before 2026-01-26.
+- **Ramp-Up windows** = windows 1 through 6 starting at 2026-01-26 and ending at **2026-04-20** (D-009 bounds Ramp-Up at exactly 6 windows = 84 days).
+- **Steady-State windows** = window 7 (starting 2026-04-20) and later, ending at the most recent window strictly preceding the report's extraction timestamp.
 
-If at runtime the latest available commit date is fewer than 84 days past the inflection date, the renderer falls back to a Baseline-vs-Post-Introduction reporting schema instead of the three-phase view, and the Methodology section explicitly states the fallback reason. This branch is dictated by AAP §0.8.4 (Temporal Phases).
+These phase bounds are emitted directly in `data/metrics.json` under the `inflection` block (fields `inflection_date_iso`, `anchor_monday`, `rampup_end`, `fallback_to_post_introduction`) so reviewers and the renderer share the same source of truth.
+
+If at runtime the latest available commit date is fewer than 84 days past the inflection date, the renderer falls back to a Baseline-vs-Post-Introduction reporting schema instead of the three-phase view, and the Methodology section explicitly states the fallback reason. This branch is dictated by AAP §0.8.4 (Temporal Phases). For Formbricks at HEAD `bb1acd083` the latest commit (2026-05-15) is 25 days past the 2026-04-20 Ramp-Up end, so the three-phase view is retained (`fallback_to_post_introduction: false`).
 
 ---
 

@@ -23,7 +23,13 @@ followed by heuristic keyword matching, with an ``unknown`` fallback.
 1. **Linked-issue labels** — scan the PR title + body for
    ``Fixes #N`` / ``Closes #N`` / ``Resolves #N`` references; look
    up each referenced issue in ``issues.jsonl``; map the resolved
-   issue's labels through :data:`ISSUE_LABEL_TO_WORK_TYPE`.
+   issue's labels through :data:`ISSUE_LABEL_TO_WORK_TYPE`. The
+   body source is ``pr["body"]`` (API-derived, populated by
+   ``extract_github.py``) when available, falling back to
+   ``pr["merge_body"]`` (git-derived, populated by
+   ``extract_git.py``) so the path remains functional in the
+   AAP §0.8.2 graceful-degradation codepath where no
+   ``GITHUB_TOKEN`` is supplied.
 
 2. **PR-title conventional-commit prefix** — match the leading
    ``type:`` / ``type(scope):`` token against
@@ -37,7 +43,10 @@ followed by heuristic keyword matching, with an ``unknown`` fallback.
 
 3. **Keyword match** — case-insensitive word-boundary regex
    matching against the concatenated PR title + body using
-   :data:`KEYWORD_TO_WORK_TYPE`. Patterns are intentionally
+   :data:`KEYWORD_TO_WORK_TYPE`. The body source uses the same
+   ``pr["body"]`` → ``pr["merge_body"]`` preference order as
+   priority-1 so this path also stays functional in the AAP §0.8.2
+   graceful-degradation codepath. Patterns are intentionally
    conservative (e.g. ``\\bfix(?:ing|ed|es)?\\b`` rather than the
    bare token ``fix``) to avoid matching arbitrary code-fragment
    substrings or commit-message stems that happened to land in a
@@ -500,8 +509,20 @@ def classify_by_linked_issues(
     Parameters
     ----------
     pr : dict[str, Any]
-        A PR record from ``prs.jsonl``. Must contain at least
-        ``title`` and ``body`` keys (either may be ``None``).
+        A PR record from ``prs.jsonl``. Must contain at least the
+        ``title`` field; the description body is read from ``body``
+        when present, with ``merge_body`` (the body of the
+        squash-merge commit message produced by ``extract_git.py``)
+        used as a fallback. Either source may be ``None``. The
+        ``body`` field takes precedence because, when populated by
+        ``extract_github.py``, it carries the API-fetched PR
+        description, which is the highest-fidelity signal. The
+        ``merge_body`` fallback preserves priority-1 classification
+        in the graceful-degradation codepath (AAP §0.8.2) where no
+        ``GITHUB_TOKEN`` is supplied and ``extract_github.py`` is
+        skipped, so only the git-derived squash-merge body is
+        available — that body still carries the ``Fixes #N`` /
+        ``Closes #N`` references that priority-1 keys on.
     issues_by_number : dict[int, dict[str, Any]]
         Lookup table from :func:`index_issues_by_number`.
 
@@ -514,7 +535,18 @@ def classify_by_linked_issues(
         resolved labels matched a mapping entry.
     """
 
-    text = " ".join([pr.get("title") or "", pr.get("body") or ""])
+    # AAP §0.8.2 graceful-degradation: prefer the API-derived ``body``
+    # when available (highest fidelity, populated by extract_github.py),
+    # but fall back to the git-derived ``merge_body`` so the priority-1
+    # path remains functional when ``GITHUB_TOKEN`` is unavailable and
+    # only ``extract_git.py`` has run. The ``or`` short-circuits as
+    # soon as a non-empty source is found, preserving API primacy.
+    text = " ".join(
+        [
+            pr.get("title") or "",
+            pr.get("body") or pr.get("merge_body") or "",
+        ]
+    )
     issue_numbers = extract_linked_issue_numbers(text)
     if not issue_numbers:
         return None, None
@@ -584,8 +616,15 @@ def classify_by_keyword(pr: dict[str, Any]) -> tuple[str | None, str | None]:
     Parameters
     ----------
     pr : dict[str, Any]
-        A PR record from ``prs.jsonl``. Both ``title`` and ``body``
-        may be ``None`` or missing.
+        A PR record from ``prs.jsonl``. Both the ``title`` and the
+        body source (``body``, falling back to ``merge_body``) may be
+        ``None`` or missing. The ``body`` field is preferred when
+        populated by ``extract_github.py`` (API-derived PR
+        description); ``merge_body`` (the squash-merge commit
+        message produced by ``extract_git.py``) is the
+        graceful-degradation fallback per AAP §0.8.2 so this
+        keyword-matching path stays functional when no
+        ``GITHUB_TOKEN`` is supplied.
 
     Returns
     -------
@@ -594,7 +633,15 @@ def classify_by_keyword(pr: dict[str, Any]) -> tuple[str | None, str | None]:
         ``(None, None)`` when no keyword matched.
     """
 
-    text = " ".join([pr.get("title") or "", pr.get("body") or ""])
+    # Same body source-preference order as :func:`classify_by_linked_issues`:
+    # API-derived ``body`` first (highest fidelity), git-derived
+    # ``merge_body`` as the graceful-degradation fallback (AAP §0.8.2).
+    text = " ".join(
+        [
+            pr.get("title") or "",
+            pr.get("body") or pr.get("merge_body") or "",
+        ]
+    )
     text_lower = text.lower()
     for work_type, patterns in KEYWORD_TO_WORK_TYPE:
         for pattern in patterns:

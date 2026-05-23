@@ -9,14 +9,14 @@
  * The rendered deck is fully self-contained except for the three CDN-pinned
  * libraries (reveal.js 5.1.0, Mermaid 11.4.0, Lucide 0.460.0).
  *
- * Typography loading: this stylesheet imports the three required Google Fonts
- * (Inter, Space Grotesk, Fira Code) at the top of the file using
- * `@import url(... display=swap)` per AAP Rule 5. The parent HTML may
- * additionally include `<link rel="stylesheet" href="...">` tags for the same
- * fonts as a preload optimization; the duplicate request is de-duplicated by
- * the browser cache. This file's font imports remain the canonical source so
- * that the inlined theme remains self-loading when used standalone (for
- * example, when verifying the CSS in isolation).
+ * Font loading: this stylesheet contains NO `@import` directives so that the
+ * inlined theme remains self-contained per the QA checkpoint requirement. The
+ * parent HTML is responsible for loading the three required Google Fonts via
+ * `<link rel="stylesheet">` tags in its `<head>` block; see decision-log.md
+ * entry D-015. Required font families and weights are:
+ *   - Inter 400/500/600/700      (body, table headers, emphasis)
+ *   - Space Grotesk 500/600/700  (display headings, section titles)
+ *   - Fira Code 400/500          (monospace eyebrow, inline code)
  *
  * Visual contract:
  *   - Blitzy brand palette: primary #5B39F3, dark #2D1C77, teal #94FAD5, navy #1A105F
@@ -28,30 +28,6 @@
  * Compatibility: Chrome 120+, Firefox 122+, Safari 17+ (modern CSS only)
  * ============================================================================
  */
-
-/* ----------------------------------------------------------------------------
- * Phase 0: Google Fonts imports (AAP §0.7.1 Rule 5)
- *
- * The three required typefaces are loaded directly from Google Fonts with
- * `display=swap` so that the browser renders fallback glyphs immediately and
- * swaps to the target webfont when each file finishes loading. This avoids a
- * flash of invisible text on first render and is the canonical pattern for
- * webfont delivery in single-file decks.
- *
- * Weight selection rationale:
- *   - Inter 400/500/600/700 — body text and supporting UI; 400 default with
- *     500 for medium emphasis, 600 for table headers, 700 for strong text.
- *   - Space Grotesk 500/600/700 — display headings; 500 for subtle emphasis,
- *     600 for section titles, 700 for slide-level h1/h2 headlines.
- *   - Fira Code 400/500 — monospace eyebrow lines and inline code; 400 is the
- *     default body weight, 500 used to set the eyebrow apart from body copy.
- *
- * `@import` must appear before any other rules per the CSS Cascade Module.
- * ----------------------------------------------------------------------------
- */
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
-@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&display=swap');
-@import url('https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500&display=swap');
 
 /* ----------------------------------------------------------------------------
  * Phase 1: Brand identity — CSS custom properties
@@ -74,7 +50,6 @@
   --neutral-200:   #E4E4E7;
   --neutral-300:   #D4D4D8;
   --neutral-500:   #71717A;
-  --neutral-700:   #3F3F46;
   --neutral-900:   #18181B;
   --white:         #FFFFFF;
 
@@ -86,9 +61,8 @@
   --confidence-low-bg:    #FCA5A5;
   --confidence-low-fg:    var(--neutral-900);
 
-  /* Gradient utilities */
+  /* Gradient utilities (only the two gradients actively referenced by slide variants are declared) */
   --gradient-primary: linear-gradient(135deg, var(--brand-primary), var(--brand-dark));
-  --gradient-accent:  linear-gradient(135deg, var(--brand-teal), var(--brand-primary));
   --gradient-navy:    linear-gradient(135deg, var(--brand-navy), var(--brand-dark));
 
   /* Typography stacks */
@@ -151,10 +125,7 @@
 }
 
 /* ----------------------------------------------------------------------------
- * Phase 3: Eyebrow label (Fira Code micro-label above headings)
- *
- * Used on title slides and content slides to label the section number /
- * category in a compact monospaced rendering.
+ * Phase 3: Eyebrow label — Fira Code micro-label above headings (section number / category).
  * ----------------------------------------------------------------------------
  */
 .reveal .eyebrow {
@@ -175,11 +146,7 @@
 }
 
 /* ----------------------------------------------------------------------------
- * Phase 4: Title slide
- *
- * Full-bleed gradient with left-aligned title and a meta footer of run
- * metadata (commit, date, repo). The first and last slides of the deck use
- * this variant.
+ * Phase 4: Title slide — full-bleed gradient, left-aligned title, meta footer.
  * ----------------------------------------------------------------------------
  */
 .reveal section.title-slide {
@@ -206,11 +173,7 @@
 }
 
 /* ----------------------------------------------------------------------------
- * Phase 5: Section divider
- *
- * Used between major topic groups (Inflection, Flow Metrics, DORA, Governance,
- * Per-Engineer, Risks, Onboarding). Centered icon + oversized heading on a
- * solid navy background.
+ * Phase 5: Section divider — solid navy background, centered icon + oversized heading.
  * ----------------------------------------------------------------------------
  */
 .reveal section.section-divider {
@@ -471,14 +434,8 @@
 }
 
 /* ----------------------------------------------------------------------------
- * Phase 11: Lucide icon defaults
- *
- * Lucide icons start in source as <i data-lucide="name"></i>. After the deck
- * calls lucide.createIcons() (post-`ready` and on each `slidechanged`), the
- * <i> is REPLACED with an inline <svg data-lucide="name">. The selectors
- * below therefore match BOTH the source <i> (briefly during initial paint)
- * AND the rendered <svg> (the final, persistent element). Using only
- * `i[data-lucide]` would leave the SVG unstyled at its 24px Lucide default.
+ * Phase 11: Lucide icon defaults — selectors match BOTH <i data-lucide="..."> (source)
+ * AND <svg data-lucide="..."> (after lucide.createIcons() replaces the <i>).
  * ----------------------------------------------------------------------------
  */
 .reveal i[data-lucide],

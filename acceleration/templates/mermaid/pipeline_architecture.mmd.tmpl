@@ -1,0 +1,209 @@
+%% =============================================================================
+%% pipeline_architecture.mmd.tmpl
+%% Mermaid 11.4.0 flowchart LR template — Analysis Pipeline Architecture
+%% =============================================================================
+%%
+%% AUTHORITY
+%%   AAP §0.3.1.1 — Analysis Pipeline Architecture Diagram. This template is
+%%                  the canonical implementation of that diagram and MUST
+%%                  mirror it node-for-node and edge-for-edge. Any deviation
+%%                  requires an entry in acceleration/decision-log.md.
+%%   AAP §0.4.1   — File inventory enumerates this template path.
+%%   AAP §0.4.2   — Content type: template; pure Mermaid text with placeholder
+%%                  tokens replaced at runtime by the renderer.
+%%   AAP §0.5.1   — File is in-scope as a runtime template under acceleration/.
+%%   AAP §0.7.1 Rule 4 — Visual Architecture Documentation: every diagram
+%%                  MUST have a descriptive title and an explanatory legend.
+%%                  The legend block below satisfies this requirement.
+%%   AAP §0.7.2.2 Rule 4 — Internal Consistency: metrics.json (the SoT
+%%                  cylinder node) is the single source of truth from which
+%%                  every renderer reads; no renderer recomputes metric
+%%                  values. The diagram visually encodes this property.
+%%   decision-log.md D-005 — inline Mermaid is preferred over matplotlib or
+%%                  inline SVG because it is text-based, diff-friendly,
+%%                  stdlib-only, and removes any compile-time dependency
+%%                  on matplotlib or a headless browser.
+%%
+%% RENDERER
+%%   acceleration/scripts/render_report.py performs simple string
+%%   substitution of {{...}} placeholders (each one enumerated in the
+%%   TOKENS section below) with values pulled from:
+%%     - acceleration/data/run_manifest.json (key: total_commits_on_main)
+%%     - acceleration/data/inflection.json   (keys: inflection_date, method)
+%%   The renderer wraps the substituted text in Markdown fenced code-block
+%%   markers (the triple-backtick mermaid opener and the triple-backtick
+%%   closer) when embedding it into Markdown. THIS TEMPLATE MUST NOT contain
+%%   those fence markers; the renderer adds them. Embedding triple-backtick
+%%   characters anywhere in this file — including comments — would close
+%%   the fenced block prematurely and break the diagram.
+%%
+%% CONSUMERS
+%%   Two Markdown files embed this template after substitution:
+%%     1. acceleration/acceleration-report.md — Methodology / Analysis
+%%        Pipeline Architecture section (Diagram 1 of the report).
+%%     2. acceleration/decision-log.md       — Section 4.1, Visual
+%%        Architecture (Diagram 1 of the two required Mermaid diagrams).
+%%   A simplified, executive-readable variant of the same architecture lives
+%%   on slide 08 of the deck (templates/deck/slide_08_architecture.html.tmpl);
+%%   the deck slide is hand-authored at a coarser granularity for the
+%%   1920x1080 viewport and is NOT rendered from this template.
+%%
+%% TOKENS (UPPER_SNAKE_CASE; renderer substitutes each occurrence below)
+%%   {{COMMIT_COUNT}}      — Total commit count on main at HEAD with optional
+%%                           thousands separator. Read from
+%%                           run_manifest.json (captured by
+%%                           `git rev-list --count HEAD`). Example value:
+%%                           "5,178". Substituted at the Git node label
+%%                           inside the DataSources subgraph.
+%%   {{INFLECTION_DATE}}   — Detected inflection date as YYYY-MM-DD. Read
+%%                           from inflection.json (key: inflection_date).
+%%                           Example value: "2026-02-25". Substituted at
+%%                           the Detect node label inside the Extraction
+%%                           subgraph.
+%%   {{INFLECTION_METHOD}} — Detection method recorded by
+%%                           detect_inflection.py. Read from inflection.json
+%%                           (key: method). One of: convergent_evidence,
+%%                           single_signal, insufficient_signal. Example
+%%                           value: "convergent_evidence". Substituted at
+%%                           the Detect node label inside the Extraction
+%%                           subgraph.
+%%   Fallback contract — if a runtime value is unavailable (for example,
+%%   inflection detection returned no candidate), the renderer MUST
+%%   substitute a neutral placeholder ("unknown" or "n/a") rather than
+%%   leaving the {{...}} literal. acceleration/scripts/verify_report.py
+%%   fails the run if any unsubstituted {{...}} token remains in the
+%%   rendered Markdown.
+%%
+%% LEGEND
+%%   Data flows LEFT-TO-RIGHT from read-only data sources (the DataSources
+%%   subgraph) through extraction, normalization, classification &
+%%   computation, and finally rendering and deliverables.
+%%
+%%   The metrics.json node (cylinder shape SoT) is the SINGLE SOURCE OF TRUTH
+%%   that satisfies Rule 4 (Internal Consistency): every renderer reads
+%%   from this file and none recompute metric values. The Compute -->
+%%   Dashboard edge is the one place where the Computation layer writes
+%%   directly to the Output layer; the dashboard is generated alongside
+%%   metrics.json and shares its data shape.
+%%
+%%   All inbound edges from the DataSources subgraph are READ-ONLY — no
+%%   arrow points back into a data source. The pipeline performs no writes
+%%   outside the acceleration/ directory (AAP §0.7.2.1 Boundaries &
+%%   Preservation, "Read-only operations only").
+%%
+%% INVENTORY (24 nodes, 25 edges)
+%%   Subgraphs:
+%%     1. DataSources  — 4 nodes: Git, GHAPI, GHActions, GHIssues
+%%     2. Extraction   — 5 nodes: Detect, ExtractGit, ExtractGH,
+%%                       ExtractCI, ExtractIssues
+%%     3. Normalized   — 6 nodes: Inflection, Commits, PRs, Releases,
+%%                       Tests, Issues
+%%     4. Computation  — 2 nodes: Classify, Compute
+%%     5. Rendering    — 3 nodes: RenderRep, RenderDeck, Verify
+%%     6. Output       — 3 nodes: Report, Deck, Dashboard
+%%   Free-standing:
+%%     - SoT (cylinder) — metrics.json single source of truth
+%%   Edges (grouped, totals shown):
+%%     DataSources -> Extraction         (5)
+%%     Extraction  -> Normalized         (6)
+%%     Normalized  -> Computation        (6)  Inflection/Commits/PRs/
+%%                                            Releases/Tests/Issues into
+%%                                            Classify or Compute
+%%     Computation -> Computation        (1)  Classify -> Compute
+%%     Computation -> SoT                (1)
+%%     SoT         -> Rendering          (3)
+%%     Rendering   -> Output             (2)  RenderRep, RenderDeck
+%%     Computation -> Output             (1)  Compute -> Dashboard
+%%
+%% MERMAID 11.4.0 SYNTAX NOTES
+%%   - flowchart LR declares left-to-right direction.
+%%   - subgraph ID["Display Label"] supports quoted display labels
+%%     containing spaces and parentheses (required here for "Data Sources
+%%     (Read-Only)" and "Normalized Records (acceleration/data/)").
+%%   - Node syntax ID["Label"] supports <br/> for line breaks inside the
+%%     quoted label (used on Git and Detect nodes).
+%%   - Cylinder / database shape is ID[("Label")] — used for the SoT node
+%%     so the diagram visually conveys that metrics.json is a data store.
+%%   - Edge syntax A --> B is the standard arrow; no edge labels are used,
+%%     matching AAP §0.3.1.1 verbatim.
+%% =============================================================================
+flowchart LR
+    subgraph DataSources["Data Sources (Read-Only)"]
+        Git["Local Git History<br/>{{COMMIT_COUNT}} commits"]
+        GHAPI["GitHub REST/GraphQL API"]
+        GHActions["GitHub Actions Artifacts"]
+        GHIssues["GitHub Issues"]
+    end
+
+    subgraph Extraction["Extraction Layer"]
+        Detect["detect_inflection.py<br/>{{INFLECTION_DATE}} · {{INFLECTION_METHOD}}"]
+        ExtractGit["extract_git.py"]
+        ExtractGH["extract_github.py"]
+        ExtractCI["extract_ci_tests.py"]
+        ExtractIssues["extract_issues.py"]
+    end
+
+    subgraph Normalized["Normalized Records (acceleration/data/)"]
+        Inflection["inflection.json"]
+        Commits["commits.jsonl"]
+        PRs["prs.jsonl"]
+        Releases["releases.jsonl"]
+        Tests["test_results.jsonl"]
+        Issues["issues.jsonl"]
+    end
+
+    subgraph Computation["Classification & Computation"]
+        Classify["classify_prs.py"]
+        Compute["compute_metrics.py"]
+    end
+
+    SoT[("metrics.json<br/>Single Source of Truth")]
+
+    subgraph Rendering["Rendering Layer"]
+        RenderRep["render_report.py"]
+        RenderDeck["render_deck.py"]
+        Verify["verify_report.py"]
+    end
+
+    subgraph Output["Deliverables"]
+        Report["acceleration-report.md"]
+        Deck["executive-presentation.html"]
+        Dashboard["observability/dashboard.html"]
+    end
+
+    %% DataSources -> Extraction (5 edges)
+    Git --> ExtractGit
+    Git --> Detect
+    GHAPI --> ExtractGH
+    GHActions --> ExtractCI
+    GHIssues --> ExtractIssues
+
+    %% Extraction -> Normalized (6 edges)
+    Detect --> Inflection
+    ExtractGit --> Commits
+    ExtractGH --> PRs
+    ExtractGH --> Releases
+    ExtractCI --> Tests
+    ExtractIssues --> Issues
+
+    %% Normalized -> Computation (6 edges) + Classify -> Compute (1 edge)
+    Commits --> Classify
+    PRs --> Classify
+    Classify --> Compute
+    Releases --> Compute
+    Tests --> Compute
+    Issues --> Compute
+    Inflection --> Compute
+
+    %% Computation -> SoT (1 edge)
+    Compute --> SoT
+
+    %% SoT -> Rendering (3 edges)
+    SoT --> RenderRep
+    SoT --> RenderDeck
+    SoT --> Verify
+
+    %% Rendering -> Output (2 edges) + Computation -> Output (1 edge)
+    RenderRep --> Report
+    RenderDeck --> Deck
+    Compute --> Dashboard

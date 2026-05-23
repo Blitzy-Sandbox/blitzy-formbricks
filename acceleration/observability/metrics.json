@@ -15,6 +15,11 @@
   "metrics": [
     {
       "boundary_conditions": "Bot-authored PRs are excluded unless head_ref starts with 'blitzy-'.",
+      "confidence_rubric": {
+        "high": "Derived from direct counts in an issue tracker or equivalent authoritative ledger.",
+        "low": "Inferred from indirect proxies (force-push detection, label heuristics, keyword matching with > 20% unknown bucket).",
+        "medium": "Approximated from git commit patterns (PR-merge commits, conventional-commit prefixes, commit-on-branch timestamps)."
+      },
       "confidence_when_fallback_used": "medium",
       "confidence_when_primary_used": "high",
       "definition": "Number of in-progress items per phase window. In-progress = branch has at least one commit AND PR is open (not merged, not closed-without-merge), OR PR is in draft state. Exclude PRs from bot accounts other than Blitzy (branches prefixed with blitzy-).",
@@ -34,6 +39,11 @@
     },
     {
       "boundary_conditions": "Counts MERGED items only; does not credit work-in-progress.",
+      "confidence_rubric": {
+        "high": "Derived from direct counts in an issue tracker or equivalent authoritative ledger.",
+        "low": "Inferred from indirect proxies (force-push detection, label heuristics, keyword matching with > 20% unknown bucket).",
+        "medium": "Approximated from git commit patterns (PR-merge commits, conventional-commit prefixes, commit-on-branch timestamps)."
+      },
       "confidence_when_fallback_used": "high",
       "confidence_when_primary_used": "medium",
       "definition": "Items completed per phase window. Counted as PR-merge commits to main (identifiable by '(#NNNN)' suffix in the commit subject).",
@@ -53,6 +63,11 @@
     },
     {
       "boundary_conditions": "Requires at least 3 windows in a phase to be meaningful; fewer windows produce 'Insufficient signal'.",
+      "confidence_rubric": {
+        "high": "Derived from direct counts in an issue tracker or equivalent authoritative ledger.",
+        "low": "Inferred from indirect proxies (force-push detection, label heuristics, keyword matching with > 20% unknown bucket).",
+        "medium": "Approximated from git commit patterns (PR-merge commits, conventional-commit prefixes, commit-on-branch timestamps)."
+      },
       "confidence_when_fallback_used": "medium",
       "confidence_when_primary_used": "medium",
       "definition": "Coefficient of variation (stdev/mean) of Flow Velocity across windows in the phase. Lower = more predictable.",
@@ -72,6 +87,11 @@
     },
     {
       "boundary_conditions": "Ready-for-review is the earliest of: (a) PR leaving draft, (b) first review requested, (c) first commit by another author, (d) PR opened.",
+      "confidence_rubric": {
+        "high": "Derived from direct counts in an issue tracker or equivalent authoritative ledger.",
+        "low": "Inferred from indirect proxies (force-push detection, label heuristics, keyword matching with > 20% unknown bucket).",
+        "medium": "Approximated from git commit patterns (PR-merge commits, conventional-commit prefixes, commit-on-branch timestamps)."
+      },
       "confidence_when_fallback_used": "medium",
       "confidence_when_primary_used": "high",
       "definition": "Active working time per item from the engineering actor's perspective. Working phases: initial span = first author commit on branch -> ready-for-review event; refine spans = first commit after a review -> last commit before next review or merge. Sum inclusive durations.",
@@ -91,6 +111,11 @@
     },
     {
       "boundary_conditions": "Inherits min(confidence(Flow Active), confidence(Flow Time)).",
+      "confidence_rubric": {
+        "high": "Derived from direct counts in an issue tracker or equivalent authoritative ledger.",
+        "low": "Inferred from indirect proxies (force-push detection, label heuristics, keyword matching with > 20% unknown bucket).",
+        "medium": "Approximated from git commit patterns (PR-merge commits, conventional-commit prefixes, commit-on-branch timestamps)."
+      },
       "confidence_when_fallback_used": "medium",
       "confidence_when_primary_used": "medium",
       "definition": "Flow Active / Flow Time per PR; median across PRs per phase. Review time counts as wait from the actor's perspective.",
@@ -110,6 +135,11 @@
     },
     {
       "boundary_conditions": "If unknown rate > 20% in either phase, confidence is downgraded to Low for that phase.",
+      "confidence_rubric": {
+        "high": "Derived from direct counts in an issue tracker or equivalent authoritative ledger.",
+        "low": "Inferred from indirect proxies (force-push detection, label heuristics, keyword matching with > 20% unknown bucket).",
+        "medium": "Approximated from git commit patterns (PR-merge commits, conventional-commit prefixes, commit-on-branch timestamps)."
+      },
       "confidence_when_fallback_used": "medium",
       "confidence_when_primary_used": "high",
       "definition": "Work-type mix: feature / defect / risk-compliance / tech-debt / unknown. Classification priority: (1) labels on linked issues; (2) PR-title conventional-commit prefix; (3) keyword match; (4) unknown.",
@@ -129,6 +159,11 @@
     },
     {
       "boundary_conditions": "Excludes PRs with rewritten history (first-commit timestamp unrecoverable).",
+      "confidence_rubric": {
+        "high": "Derived from direct counts in an issue tracker or equivalent authoritative ledger.",
+        "low": "Inferred from indirect proxies (force-push detection, label heuristics, keyword matching with > 20% unknown bucket).",
+        "medium": "Approximated from git commit patterns (PR-merge commits, conventional-commit prefixes, commit-on-branch timestamps)."
+      },
       "confidence_when_fallback_used": "medium",
       "confidence_when_primary_used": "medium",
       "definition": "Median wall-clock from first commit on a PR branch to merge commit on main. Exclude PRs whose first-commit timestamp is unavailable due to history rewrites; report the exclusion rate.",
@@ -148,6 +183,11 @@
     },
     {
       "boundary_conditions": "Reverts whose original cannot be identified are excluded as unattributable; reverts whose original is not reachable from any release are excluded as unreleased; reverts of reverts are excluded.",
+      "confidence_rubric": {
+        "high": "Derived from direct counts in an issue tracker or equivalent authoritative ledger.",
+        "low": "Inferred from indirect proxies (force-push detection, label heuristics, keyword matching with > 20% unknown bucket).",
+        "medium": "Approximated from git commit patterns (PR-merge commits, conventional-commit prefixes, commit-on-branch timestamps)."
+      },
       "confidence_when_fallback_used": "medium",
       "confidence_when_primary_used": "high",
       "definition": "Production incidents or change failures attributed to releases in the phase. For each revert: (a) identify the original commit being reverted via the 'Reverts commit SHA' reference in the revert message, or by tree-match against a prior commit's parent if no explicit reference is present; (b) identify the most recent release tag T such that T is an ancestor of the original commit (git merge-base --is-ancestor T <original>); (c) attribute the revert to release T.",
@@ -167,6 +207,11 @@
     },
     {
       "boundary_conditions": "Prereleases excluded from primary count; reported separately.",
+      "confidence_rubric": {
+        "high": "Derived from direct counts in an issue tracker or equivalent authoritative ledger.",
+        "low": "Inferred from indirect proxies (force-push detection, label heuristics, keyword matching with > 20% unknown bucket).",
+        "medium": "Approximated from git commit patterns (PR-merge commits, conventional-commit prefixes, commit-on-branch timestamps)."
+      },
       "confidence_when_fallback_used": "high",
       "confidence_when_primary_used": "high",
       "definition": "Releases per phase. Source precedence: (1) GitHub Releases / GitLab Releases API, (2) annotated git tags matching semver pattern v?\\d+\\.\\d+\\.\\d+, (3) deployment events from CI/CD if accessible. Prerelease tags (matching -alpha, -beta, -rc, -dev suffixes) are excluded from the primary count and reported separately.",
@@ -186,6 +231,11 @@
     },
     {
       "boundary_conditions": "This repository's labeler.yml does not define exception/waiver/override labels; force-push detection from a clone is not reliable.",
+      "confidence_rubric": {
+        "high": "Derived from direct counts in an issue tracker or equivalent authoritative ledger.",
+        "low": "Inferred from indirect proxies (force-push detection, label heuristics, keyword matching with > 20% unknown bucket).",
+        "medium": "Approximated from git commit patterns (PR-merge commits, conventional-commit prefixes, commit-on-branch timestamps)."
+      },
       "confidence_when_fallback_used": "low",
       "confidence_when_primary_used": "high",
       "definition": "Branch protection bypasses, force-pushes to protected branches, and PRs labeled with waiver/exception/override.",
@@ -205,6 +255,11 @@
     },
     {
       "boundary_conditions": "GitHub Actions artifact retention is typically 90 days; older history unavailable.",
+      "confidence_rubric": {
+        "high": "Derived from direct counts in an issue tracker or equivalent authoritative ledger.",
+        "low": "Inferred from indirect proxies (force-push detection, label heuristics, keyword matching with > 20% unknown bucket).",
+        "medium": "Approximated from git commit patterns (PR-merge commits, conventional-commit prefixes, commit-on-branch timestamps)."
+      },
       "confidence_when_fallback_used": "low",
       "confidence_when_primary_used": "medium",
       "definition": "Per-test passing->failing transitions on main and newly-marked skipped/disabled/xfail tests. Flaky tests counted only if failing in >=3 consecutive runs.",
@@ -224,6 +279,11 @@
     },
     {
       "boundary_conditions": "Formbricks has no SLA source as of this AAP; metric returns Insufficient signal until one is discovered at runtime.",
+      "confidence_rubric": {
+        "high": "Derived from direct counts in an issue tracker or equivalent authoritative ledger.",
+        "low": "Inferred from indirect proxies (force-push detection, label heuristics, keyword matching with > 20% unknown bucket).",
+        "medium": "Approximated from git commit patterns (PR-merge commits, conventional-commit prefixes, commit-on-branch timestamps)."
+      },
       "confidence_when_fallback_used": "medium",
       "confidence_when_primary_used": "high",
       "definition": "Bug-labeled issues whose time-to-resolution exceeds the policy SLA. Requires an SLA source: (1) issue tracker SLA field, (2) policy doc in the repository.",

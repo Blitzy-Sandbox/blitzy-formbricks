@@ -975,9 +975,29 @@ xychart-beta
 
   <!-- =====================================================================
        Reveal.js + Mermaid + Lucide — CDN-pinned per Rule 5
+       ---------------------------------------------------------------------
+       Mermaid 11.4.0 is loaded via its ES Module entrypoint
+       (`mermaid.esm.min.mjs`) — the canonical distribution for the v11+ line
+       per the Mermaid release notes. The ESM module is imported in a
+       `<script type="module">` block below, then exposed as `window.mermaid`
+       so that the inline non-module initialization script that follows can
+       call `mermaid.initialize()`, `mermaid.run()`, etc. via the same
+       global API surface used in the v10 UMD bundle.
        ===================================================================== -->
   <script src="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/dist/reveal.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/mermaid@11.4.0/dist/mermaid.min.js"></script>
+  <script type="module">
+    // Import Mermaid as an ES module (the canonical v11+ distribution per
+    // AAP Rule 5). The default export is the Mermaid namespace; binding it
+    // to `window.mermaid` preserves the global API surface relied upon by
+    // the inline initialization script that follows.
+    import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11.4.0/dist/mermaid.esm.min.mjs';
+    window.mermaid = mermaid;
+    // Notify any code that may need to wait for the ESM module to finish
+    // loading. The inline initialization script below defers Mermaid
+    // configuration until this event fires (or until DOMContentLoaded with
+    // window.mermaid already populated, whichever happens first).
+    window.dispatchEvent(new Event('mermaid-ready'));
+  </script>
   <script src="https://cdn.jsdelivr.net/npm/lucide@0.460.0/dist/umd/lucide.min.js"></script>
   <script>
     // -------------------------------------------------------------------
@@ -996,55 +1016,78 @@ xychart-beta
 
     // -------------------------------------------------------------------
     // Mermaid initialization — Blitzy palette + manual run() control
-    // -------------------------------------------------------------------
-    mermaid.initialize({
-      startOnLoad: false,
-      theme: 'base',
-      securityLevel: 'loose',
-      fontFamily: 'Inter, system-ui, sans-serif',
-      themeVariables: {
-        primaryColor:        '#5B39F3',
-        primaryTextColor:    '#FFFFFF',
-        primaryBorderColor:  '#2D1C77',
-        lineColor:           '#1A105F',
-        secondaryColor:      '#94FAD5',
-        secondaryTextColor:  '#1A105F',
-        secondaryBorderColor:'#1A105F',
-        tertiaryColor:       '#FAFAFA',
-        tertiaryTextColor:   '#1A105F',
-        tertiaryBorderColor: '#E4E4E7',
-        background:          '#FFFFFF',
-        mainBkg:             '#5B39F3',
-        nodeTextColor:       '#FFFFFF',
-        edgeLabelBackground: '#FAFAFA',
-        clusterBkg:          '#F4F4F5',
-        clusterBorder:       '#2D1C77',
-        labelTextColor:      '#1A105F',
-        actorBkg:            '#5B39F3',
-        actorTextColor:      '#FFFFFF',
-        actorLineColor:      '#1A105F',
-        sectionBkgColor:     '#94FAD5',
-        altSectionBkgColor:  '#FAFAFA',
-        gridColor:           '#E4E4E7',
-        taskBkgColor:        '#5B39F3',
-        taskTextColor:       '#FFFFFF',
-        taskTextOutsideColor:'#1A105F'
-      },
-      flowchart:  { useMaxWidth: true, htmlLabels: true, curve: 'basis' },
-      sequence:   { useMaxWidth: true, showSequenceNumbers: false },
-      gantt:      { useMaxWidth: true, fontSize: 11 },
-      xyChart:    {
-        width: 900,
-        height: 360,
-        titleFontSize: 18,
-        titleFill: '#1A105F',
-        backgroundColor: '#FFFFFF',
-        plotColorPalette: '#5B39F3,#94FAD5,#2D1C77,#1A105F',
-        chartOrientation: 'vertical',
-        xAxis: { titleColor: '#1A105F', labelColor: '#1A105F', tickColor: '#E4E4E7', axisLineColor: '#1A105F' },
-        yAxis: { titleColor: '#1A105F', labelColor: '#1A105F', tickColor: '#E4E4E7', axisLineColor: '#1A105F' }
+    // ---------------------------------------------------------------------
+    // Mermaid is loaded via the v11+ ES Module distribution above. ES module
+    // scripts execute AFTER the initial HTML parsing finishes, so
+    // `window.mermaid` may not be defined when this synchronous inline
+    // script runs. The helper below schedules the call against either an
+    // already-loaded module (fast path) or the `mermaid-ready` event that
+    // the ESM block dispatches once the import settles (slow path).
+    // ---------------------------------------------------------------------
+    function configureMermaid() {
+      window.mermaid.initialize({
+        startOnLoad: false,
+        theme: 'base',
+        securityLevel: 'loose',
+        fontFamily: 'Inter, system-ui, sans-serif',
+        themeVariables: {
+          primaryColor:        '#5B39F3',
+          primaryTextColor:    '#FFFFFF',
+          primaryBorderColor:  '#2D1C77',
+          lineColor:           '#1A105F',
+          secondaryColor:      '#94FAD5',
+          secondaryTextColor:  '#1A105F',
+          secondaryBorderColor:'#1A105F',
+          tertiaryColor:       '#FAFAFA',
+          tertiaryTextColor:   '#1A105F',
+          tertiaryBorderColor: '#E4E4E7',
+          background:          '#FFFFFF',
+          mainBkg:             '#5B39F3',
+          nodeTextColor:       '#FFFFFF',
+          edgeLabelBackground: '#FAFAFA',
+          clusterBkg:          '#F4F4F5',
+          clusterBorder:       '#2D1C77',
+          labelTextColor:      '#1A105F',
+          actorBkg:            '#5B39F3',
+          actorTextColor:      '#FFFFFF',
+          actorLineColor:      '#1A105F',
+          sectionBkgColor:     '#94FAD5',
+          altSectionBkgColor:  '#FAFAFA',
+          gridColor:           '#E4E4E7',
+          taskBkgColor:        '#5B39F3',
+          taskTextColor:       '#FFFFFF',
+          taskTextOutsideColor:'#1A105F'
+        },
+        flowchart:  { useMaxWidth: true, htmlLabels: true, curve: 'basis' },
+        sequence:   { useMaxWidth: true, showSequenceNumbers: false },
+        gantt:      { useMaxWidth: true, fontSize: 11 },
+        xyChart:    {
+          width: 900,
+          height: 360,
+          titleFontSize: 18,
+          titleFill: '#1A105F',
+          backgroundColor: '#FFFFFF',
+          plotColorPalette: '#5B39F3,#94FAD5,#2D1C77,#1A105F',
+          chartOrientation: 'vertical',
+          xAxis: { titleColor: '#1A105F', labelColor: '#1A105F', tickColor: '#E4E4E7', axisLineColor: '#1A105F' },
+          yAxis: { titleColor: '#1A105F', labelColor: '#1A105F', tickColor: '#E4E4E7', axisLineColor: '#1A105F' }
+        }
+      });
+    }
+
+    function whenMermaidReady(callback) {
+      // Resolve immediately when the ESM module has already populated
+      // window.mermaid; otherwise wait for the `mermaid-ready` event that
+      // the import script dispatches once the module finishes loading.
+      // The { once: true } option ensures the listener auto-detaches.
+      if (window.mermaid) {
+        callback();
+      } else {
+        window.addEventListener('mermaid-ready', callback, { once: true });
       }
-    });
+    }
+
+    whenMermaidReady(configureMermaid);
 
     // -------------------------------------------------------------------
     // Mermaid source preservation — Reveal.js holds inactive slides in
@@ -1106,29 +1149,33 @@ xychart-beta
     // web-fonts (Inter, Space Grotesk, Fira Code) to finish loading so
     // Mermaid measures node label widths against the final glyph metrics,
     // not the system fallback. Falls back to immediate render if the
-    // document.fonts API is unavailable.
+    // document.fonts API is unavailable. Each `mermaid.run()` call is
+    // additionally guarded by `whenMermaidReady` so it does not throw if
+    // the ESM module import has not settled by the time Reveal fires.
     // -------------------------------------------------------------------
     Reveal.on('ready', () => {
       preserveMermaidSources();
 
       const runMermaidInitial = () => {
-        try {
-          mermaid.run();
-        } catch (err) {
-          console.error('[acceleration-deck] Mermaid initial run failed:', err);
-        }
-        // Schedule a re-render pass for the current slide once the DOM
-        // has settled (Reveal.js applies its transform to the active
-        // slide on the next tick).
-        requestAnimationFrame(() => {
-          const reset = resetUnhealthyMermaidDiagrams();
-          if (reset > 0) {
-            try {
-              mermaid.run({ querySelector: '.present .mermaid' });
-            } catch (err) {
-              console.error('[acceleration-deck] Mermaid ready re-render failed:', err);
-            }
+        whenMermaidReady(() => {
+          try {
+            window.mermaid.run();
+          } catch (err) {
+            console.error('[acceleration-deck] Mermaid initial run failed:', err);
           }
+          // Schedule a re-render pass for the current slide once the DOM
+          // has settled (Reveal.js applies its transform to the active
+          // slide on the next tick).
+          requestAnimationFrame(() => {
+            const reset = resetUnhealthyMermaidDiagrams();
+            if (reset > 0) {
+              try {
+                window.mermaid.run({ querySelector: '.present .mermaid' });
+              } catch (err) {
+                console.error('[acceleration-deck] Mermaid ready re-render failed:', err);
+              }
+            }
+          });
         });
       };
 
@@ -1153,14 +1200,19 @@ xychart-beta
     // host slide was off-screen are detected by the healthy-render check,
     // their source is restored, and mermaid.run() with the
     // .present .mermaid selector re-renders them at the correct size.
+    // The mermaid.run() call is guarded by `whenMermaidReady` to handle
+    // the rare race where a `slidechanged` event fires before the ESM
+    // module import completes.
     // -------------------------------------------------------------------
     Reveal.on('slidechanged', () => {
       resetUnhealthyMermaidDiagrams();
-      try {
-        mermaid.run({ querySelector: '.present .mermaid' });
-      } catch (err) {
-        console.error('[acceleration-deck] Mermaid slidechanged run failed:', err);
-      }
+      whenMermaidReady(() => {
+        try {
+          window.mermaid.run({ querySelector: '.present .mermaid' });
+        } catch (err) {
+          console.error('[acceleration-deck] Mermaid slidechanged run failed:', err);
+        }
+      });
       try {
         if (window.lucide && typeof window.lucide.createIcons === 'function') {
           window.lucide.createIcons();

@@ -182,15 +182,41 @@ introduce a runtime dependency on the Formbricks application or its
 ### 3.1 `logger.py` — Structured JSON Logger
 
 Python stdlib `logging` configured with a custom `JsonFormatter`. Each log
-record becomes one JSON object per line, written to `sys.stderr`. The fields
-of every record are `ts` (ISO 8601 UTC with microseconds and a trailing `Z`),
-`level`, `logger`, `msg`, `run_id`, and an optional `extra` map for
-structured key-value context.
+record becomes one JSON object per line, written to `sys.stdout`. Each
+record carries BOTH the canonical aggregator-friendly field names AND the
+compact pipeline-internal aliases — both sets of names point at the same
+byte-for-byte values, so any consumer can key on either set without a
+remapping rule.
 
-The `run_id` is a run-scoped correlation ID generated once per pipeline
-invocation (UUID4) and injected into every record via a `logging.Filter`. The
-ID is read from `ACCEL_RUN_ID` when present and generated lazily otherwise.
-The log level is read from `ACCEL_LOG_LEVEL` (default `INFO`).
+Canonical names (consumed by Datadog / Loki / OpenSearch / Splunk default
+source-type parsers):
+
+- `timestamp` — ISO 8601 UTC with microseconds and a trailing `Z`.
+- `level` — `DEBUG` / `INFO` / `WARNING` / `ERROR` / `CRITICAL`.
+- `name` — logger name (the caller's `__name__`).
+- `message` — the rendered log message body.
+- `correlation_id` — run-scoped correlation ID.
+
+Compact aliases (consumed by `observability/dashboard.html` and existing
+pipeline scripts):
+
+- `ts` — alias of `timestamp`.
+- `logger` — alias of `name`.
+- `msg` — alias of `message`.
+- `run_id` — alias of `correlation_id`.
+
+Both alias sets agree on every record. The optional `extra` map carries any
+structured key-value context the caller passed via `extra=` on a logging
+call. Exception traces appear under `exc_info` when the caller invoked
+`logger.exception(...)` or supplied `exc_info=`. The trade-off (slightly
+larger per-line byte cost for parser-defaults compatibility) is recorded in
+[`../decision-log.md`](../decision-log.md) row `D-014`.
+
+The `run_id` / `correlation_id` is a run-scoped correlation ID generated
+once per pipeline invocation (UUID4) and injected into every record via a
+`logging.Filter`. The ID is read from `ACCEL_RUN_ID` when present and
+generated lazily otherwise. The log level is read from `ACCEL_LOG_LEVEL`
+(default `INFO`).
 
 Public API:
 
@@ -283,10 +309,11 @@ inside the read-only boundary that the AAP requires outside `acceleration/`.
 
 **Trade-off accepted**: log streams from the pipeline are not unified with
 the application's traces in SigNoz. The JSON format emitted by `logger.py`
-is collector-agnostic (one JSON object per line on `stderr`, with a `run_id`
-correlation field), so any downstream collector — Loki, OpenSearch, Datadog,
-SigNoz — can ingest it without reformatting if that integration is added
-later.
+is collector-agnostic (one JSON object per line on `stdout`, with both a
+canonical `correlation_id` field and its compact `run_id` alias, plus a
+canonical `timestamp` and its compact `ts` alias), so any downstream
+collector — Loki, OpenSearch, Datadog, SigNoz — can ingest it without
+reformatting if that integration is added later.
 
 **Cross-reference**: [`acceleration/decision-log.md`](../decision-log.md)
 row **D-003** ("Self-contained logger instead of importing Formbricks
@@ -390,9 +417,13 @@ python3 -c "from acceleration.observability.logger import get_logger; \
   log.info('hello', extra={'k': 'v'})"
 ```
 
-Expected: a single JSON object on `stderr` containing `"run_id": "abc-123"`,
-`"level": "INFO"`, `"msg": "hello"`, and the `extra` map. The `ts` field is
-present and ends in `Z`.
+Expected: a single JSON object on `stdout` containing both
+`"correlation_id": "abc-123"` and `"run_id": "abc-123"` (compact alias),
+both `"name": "smoke"` and `"logger": "smoke"` (compact alias),
+both `"message": "hello"` and `"msg": "hello"` (compact alias),
+both `"timestamp": "..."` and `"ts": "..."` (compact alias),
+`"level": "INFO"`, and the `extra` map. The `timestamp` and `ts` values are
+identical ISO 8601 UTC strings ending in `Z`.
 
 ### 8.2 Health Check
 

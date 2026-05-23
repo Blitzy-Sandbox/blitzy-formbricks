@@ -6,20 +6,39 @@ Structured JSON logger for the Development Acceleration Analysis pipeline.
 
 Mandated by AAP Rule 1 (Observability) and decision-log row D-003. Imported by
 every script in ``acceleration/scripts/`` to produce one JSON object per log
-line, tagged with a run-scoped correlation ID (``run_id``).
+line, tagged with a run-scoped correlation ID.
 
-Output format (one JSON object per line, UTF-8, written to ``sys.stderr``):
+Output format (one JSON object per line, UTF-8, written to ``sys.stdout``):
 
 .. code-block:: json
 
     {
-      "ts": "2026-05-15T12:34:56.789012Z",
+      "timestamp": "2026-05-15T12:34:56.789012Z",
       "level": "INFO",
+      "name": "acceleration.scripts.extract_git",
+      "message": "Extracted 5178 commits",
+      "correlation_id": "8c7b9f5e-2a4d-4f6a-8b9e-1c2d3e4f5a6b",
+      "ts": "2026-05-15T12:34:56.789012Z",
       "logger": "acceleration.scripts.extract_git",
       "msg": "Extracted 5178 commits",
       "run_id": "8c7b9f5e-2a4d-4f6a-8b9e-1c2d3e4f5a6b",
       "extra": {"commits": 5178, "duration_ms": 1234}
     }
+
+Field-name contract
+-------------------
+
+Each record carries BOTH the canonical aggregator-friendly field names
+(``timestamp`` / ``name`` / ``message`` / ``correlation_id``) AND the compact
+pipeline-internal aliases (``ts`` / ``logger`` / ``msg`` / ``run_id``). This
+satisfies (a) downstream log aggregators (Datadog, Loki, OpenSearch, Splunk)
+whose default source-type parsers key on the canonical names without requiring
+a remapping rule, and (b) the existing internal consumers
+(:file:`observability/dashboard.html`, :file:`observability/README.md`) which
+were originally documented against the compact names. Both alias sets carry
+the same value byte-for-byte. The trade-off — slightly larger per-line byte
+cost in exchange for parser-defaults compatibility — is recorded in
+:file:`decision-log.md` row ``D-014``.
 
 Module guarantees
 -----------------
@@ -35,9 +54,14 @@ Module guarantees
    the analysis pipeline and MUST NOT import from any other ``acceleration.*``
    module. Every other Python script under ``acceleration/`` depends on it.
 
-4. **Logs to stderr only.** Stdout is reserved for downstream-consumed tool
-   output (for example, ``metrics.json`` re-emitted on stdout by a script that
-   would otherwise be parsed by a calling shell).
+4. **Logs to stdout.** Each log record is written to ``sys.stdout`` so that
+   any modern log shipper attached to the process picks the lines up via the
+   conventional stdout channel. Scripts that need to emit machine-readable
+   output for capture by a caller (for example, a JSON document piped into
+   another tool) MUST write to an explicit file path rather than relying on
+   stdout being log-free. The orchestrator captures stdout into the run
+   manifest separately, so log lines coexist cleanly with any auxiliary
+   stdout writes a script may produce.
 
 Environment variables
 ---------------------
@@ -219,9 +243,15 @@ def get_default_run_id() -> str:
 class JsonFormatter(logging.Formatter):
     """Render each :class:`logging.LogRecord` as a single JSON object.
 
-    Output fields (in stable, predictable order):
+    Output fields (in stable, predictable order). Each record carries BOTH
+    a canonical aggregator-friendly name AND a compact pipeline-internal
+    alias for the timestamp, logger name, message body, and correlation ID.
+    Both values are byte-for-byte identical per record.
 
-    ``ts``
+    Canonical names (parser-default-friendly for Datadog / Loki / OpenSearch /
+    Splunk):
+
+    ``timestamp``
         ISO 8601 UTC timestamp with microsecond precision and a trailing
         ``Z`` suffix.
 
@@ -229,16 +259,26 @@ class JsonFormatter(logging.Formatter):
         Logging level name (``DEBUG``, ``INFO``, ``WARNING``, ``ERROR``,
         ``CRITICAL``).
 
-    ``logger``
+    ``name``
         The logger name, typically the caller's ``__name__``.
 
-    ``msg``
+    ``message``
         The rendered log message produced by ``record.getMessage()``.
 
-    ``run_id``
+    ``correlation_id``
         Run-scoped correlation ID injected by :class:`CorrelationFilter`.
         ``None`` if no filter has run, which should not happen when the
         logger was obtained via :func:`get_logger`.
+
+    Compact aliases (pipeline-internal, consumed by
+    :file:`observability/dashboard.html`):
+
+    ``ts`` (alias of ``timestamp``)
+    ``logger`` (alias of ``name``)
+    ``msg`` (alias of ``message``)
+    ``run_id`` (alias of ``correlation_id``)
+
+    Other fields:
 
     ``extra`` (optional)
         Any keyword arguments the caller passed via the ``extra=`` parameter
@@ -284,12 +324,32 @@ class JsonFormatter(logging.Formatter):
         except Exception as exc:  # pragma: no cover - defensive
             message = f"<unrenderable message: {exc}>"
 
+        # Compute the canonical values once and emit them under BOTH the
+        # aggregator-friendly canonical name AND the compact pipeline-internal
+        # alias. The byte cost of duplication is accepted in exchange for
+        # parser-defaults compatibility with Datadog / Loki / OpenSearch /
+        # Splunk on one side and continued backward compatibility with the
+        # internal dashboard / README consumers on the other. See
+        # decision-log row D-014 for the trade-off discussion.
+        ts_value = self._format_timestamp(record.created)
+        name_value = record.name
+        message_value = message
+        correlation_id_value = getattr(record, "run_id", None)
+
         payload: dict[str, Any] = {
-            "ts": self._format_timestamp(record.created),
+            # Canonical aggregator-friendly names (Datadog / Loki / OpenSearch
+            # / Splunk default source-type parsers key on these).
+            "timestamp": ts_value,
             "level": record.levelname,
-            "logger": record.name,
-            "msg": message,
-            "run_id": getattr(record, "run_id", None),
+            "name": name_value,
+            "message": message_value,
+            "correlation_id": correlation_id_value,
+            # Compact pipeline-internal aliases (consumed by
+            # observability/dashboard.html and observability/README.md).
+            "ts": ts_value,
+            "logger": name_value,
+            "msg": message_value,
+            "run_id": correlation_id_value,
         }
 
         # Collect every non-reserved attribute on the record into a single
@@ -340,11 +400,17 @@ class JsonFormatter(logging.Formatter):
             return json.dumps(payload, default=str, ensure_ascii=False)
         except (TypeError, ValueError) as exc:
             safe_payload: dict[str, Any] = {
-                "ts": payload["ts"],
+                # Canonical names
+                "timestamp": ts_value,
                 "level": payload["level"],
-                "logger": payload["logger"],
-                "msg": payload["msg"],
-                "run_id": payload["run_id"],
+                "name": name_value,
+                "message": message_value,
+                "correlation_id": correlation_id_value,
+                # Compact aliases
+                "ts": ts_value,
+                "logger": name_value,
+                "msg": message_value,
+                "run_id": correlation_id_value,
                 "format_error": str(exc),
             }
             return json.dumps(safe_payload, default=str, ensure_ascii=False)
@@ -459,8 +525,15 @@ def _configure_root_logger() -> None:
     """Configure the root logger exactly once for the process.
 
     Replaces any prior handlers on the root logger with a single
-    :class:`logging.StreamHandler` routed to :data:`sys.stderr` using
+    :class:`logging.StreamHandler` routed to :data:`sys.stdout` using
     :class:`JsonFormatter`. The level is taken from ``ACCEL_LOG_LEVEL``.
+
+    Stdout was chosen so that any log shipper attached to the process
+    picks the lines up via the conventional stdout channel. Scripts that
+    need to emit non-log machine-readable output for capture by a caller
+    MUST write to an explicit file path rather than relying on stdout
+    being log-free; the orchestrator's run-manifest capture handles
+    log/output interleaving deterministically.
 
     Idempotent: subsequent calls are no-ops thanks to the module-level
     ``_configured`` guard.
@@ -473,13 +546,12 @@ def _configure_root_logger() -> None:
     root = logging.getLogger()
 
     # Remove any prior handlers (for example, anything attached by a calling
-    # script through ``logging.basicConfig``). This keeps stdout free of
-    # logging output and prevents duplicate emissions through both the
-    # default handler and ours.
+    # script through ``logging.basicConfig``). This prevents duplicate
+    # emissions through both the default handler and ours.
     for handler in list(root.handlers):
         root.removeHandler(handler)
 
-    handler = logging.StreamHandler(stream=sys.stderr)
+    handler = logging.StreamHandler(stream=sys.stdout)
     handler.setFormatter(JsonFormatter())
     root.addHandler(handler)
     root.setLevel(_resolve_log_level())
@@ -490,15 +562,16 @@ def _configure_root_logger() -> None:
 def get_logger(name: str, run_id: str | None = None) -> logging.Logger:
     """Return a configured logger that emits one JSON object per line.
 
-    On first call this configures the root logger (a single stderr
+    On first call this configures the root logger (a single stdout
     :class:`StreamHandler` using :class:`JsonFormatter`). Subsequent calls
     re-use the root configuration.
 
     A :class:`CorrelationFilter` is attached to the named logger so that
-    every record it produces carries a ``run_id`` field. If the named logger
-    already has a :class:`CorrelationFilter` attached, the prior filter is
-    removed first so that the ``run_id`` resolution is deterministic across
-    repeated calls.
+    every record it produces carries a ``run_id`` field (which is duplicated
+    in the emitted JSON under the canonical alias ``correlation_id``). If
+    the named logger already has a :class:`CorrelationFilter` attached, the
+    prior filter is removed first so that the ``run_id`` resolution is
+    deterministic across repeated calls.
 
     Parameters
     ----------
@@ -512,14 +585,18 @@ def get_logger(name: str, run_id: str | None = None) -> logging.Logger:
     Returns
     -------
     logging.Logger
-        A logger that emits one JSON object per line to ``sys.stderr``.
+        A logger that emits one JSON object per line to ``sys.stdout``. Each
+        record carries both the canonical aggregator-friendly field names
+        (``timestamp`` / ``name`` / ``message`` / ``correlation_id``) and the
+        compact pipeline-internal aliases (``ts`` / ``logger`` / ``msg`` /
+        ``run_id``).
 
     Examples
     --------
     >>> log = get_logger("acceleration.scripts.extract_git", run_id="abc")
     >>> log.info("Extracted %d commits", 5178, extra={"branch": "main"})
-    # writes one JSON line to stderr with run_id="abc" and
-    # extra={"branch": "main"}
+    # writes one JSON line to stdout with both run_id="abc" and
+    # correlation_id="abc", and extra={"branch": "main"}
     """
 
     _configure_root_logger()
@@ -562,7 +639,7 @@ def _smoke_test(argv: list[str] | None = None) -> int:
     """
 
     parser = argparse.ArgumentParser(
-        description="Logger smoke test - emits sample JSON log lines to stderr.",
+        description="Logger smoke test - emits sample JSON log lines to stdout.",
     )
     parser.add_argument(
         "--run-id",

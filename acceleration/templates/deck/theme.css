@@ -7,8 +7,16 @@
  * This stylesheet is INLINED verbatim into the <style> block of
  * acceleration/executive-presentation.html by acceleration/scripts/render_deck.py.
  * The rendered deck is fully self-contained except for the three CDN-pinned
- * libraries (reveal.js 5.1.0, Mermaid 11.4.0, Lucide 0.460.0) and Google Fonts
- * (Inter, Space Grotesk, Fira Code) which are loaded by the parent HTML.
+ * libraries (reveal.js 5.1.0, Mermaid 11.4.0, Lucide 0.460.0).
+ *
+ * Typography loading: this stylesheet imports the three required Google Fonts
+ * (Inter, Space Grotesk, Fira Code) at the top of the file using
+ * `@import url(... display=swap)` per AAP Rule 5. The parent HTML may
+ * additionally include `<link rel="stylesheet" href="...">` tags for the same
+ * fonts as a preload optimization; the duplicate request is de-duplicated by
+ * the browser cache. This file's font imports remain the canonical source so
+ * that the inlined theme remains self-loading when used standalone (for
+ * example, when verifying the CSS in isolation).
  *
  * Visual contract:
  *   - Blitzy brand palette: primary #5B39F3, dark #2D1C77, teal #94FAD5, navy #1A105F
@@ -20,6 +28,30 @@
  * Compatibility: Chrome 120+, Firefox 122+, Safari 17+ (modern CSS only)
  * ============================================================================
  */
+
+/* ----------------------------------------------------------------------------
+ * Phase 0: Google Fonts imports (AAP §0.7.1 Rule 5)
+ *
+ * The three required typefaces are loaded directly from Google Fonts with
+ * `display=swap` so that the browser renders fallback glyphs immediately and
+ * swaps to the target webfont when each file finishes loading. This avoids a
+ * flash of invisible text on first render and is the canonical pattern for
+ * webfont delivery in single-file decks.
+ *
+ * Weight selection rationale:
+ *   - Inter 400/500/600/700 — body text and supporting UI; 400 default with
+ *     500 for medium emphasis, 600 for table headers, 700 for strong text.
+ *   - Space Grotesk 500/600/700 — display headings; 500 for subtle emphasis,
+ *     600 for section titles, 700 for slide-level h1/h2 headlines.
+ *   - Fira Code 400/500 — monospace eyebrow lines and inline code; 400 is the
+ *     default body weight, 500 used to set the eyebrow apart from body copy.
+ *
+ * `@import` must appear before any other rules per the CSS Cascade Module.
+ * ----------------------------------------------------------------------------
+ */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500&display=swap');
 
 /* ----------------------------------------------------------------------------
  * Phase 1: Brand identity — CSS custom properties

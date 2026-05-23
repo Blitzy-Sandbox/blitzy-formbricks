@@ -27,7 +27,14 @@
 # The default extractors use stdlib urllib via curl subprocess for HTTP. If
 # requests is installed, extract_github.py and extract_ci_tests.py will use it
 # directly, reducing fork/exec overhead. Functionality is identical.
-# requests==2.32.3
+#
+# Minimum version pinned to 2.32.4 to avoid CVE-2024-47081 (Requests releases
+# prior to 2.32.4 may leak .netrc credentials for maliciously crafted URLs).
+# The lower bound is enforced; the upper bound is left open so that consumers
+# automatically pick up subsequent security patches within the same major
+# series. Re-pin to a fixed version only if a downstream reproducibility
+# concern requires it.
+# requests>=2.32.4,<3
 
 # -----------------------------------------------------------------------------
 # Notes

@@ -1,0 +1,62 @@
+<!--
+  Slide 11 — Governance Metrics (10, 12)
+  Type: content-slide
+  Required tokens (substituted by render_deck.py from metrics.json):
+    {{M10_MULT}}, {{M10_CONF}}, {{M10_CONF_LABEL}}, {{M10_CAVEAT}}  Approved Exceptions
+    {{M12_MULT}}, {{M12_CONF}}, {{M12_CONF_LABEL}}, {{M12_CAVEAT}}  Defects Out of SLA
+  Required non-text visual: <table> + Lucide icons
+
+  Authority: AAP §0.4.1 (file inventory enumerates this filename), §0.2.3
+  (no admin token → Metric 10 Low confidence; no SLA source → Metric 12
+  Insufficient signal), §0.7.1 Rule 5 (content-slide constraints — max
+  4 bullets, ≤40 body words, ≥1 non-text visual, zero emoji), §0.7.2.1
+  ("MUST NOT fabricate, estimate, or extrapolate. Report 'Insufficient
+  signal — [reason]' when data is lacking."), §0.7.2.2 Rule 3
+  (Confidence Transparency — Low metrics MUST carry a caveat).
+
+  Rendering notes:
+    - This template is consumed by render_deck.py, which substitutes the
+      eight tokens above from metrics.json and writes the result into
+      acceleration/executive-presentation.html.
+    - The MULT cell holds either a numeric multiplier (e.g., "1.0x")
+      OR the literal phrase "Insufficient signal — <reason>". The phrasing
+      "Insufficient signal" is canonical per AAP §0.7.2.1 and MUST NOT be
+      replaced by editorial framing such as "unavailable" or "missing".
+    - The CONF token expands to the CSS class suffix
+      ("high" | "medium" | "low"), so the rendered span becomes
+      <span class="confidence-low">Low</span>. The badge styles are
+      defined in acceleration/templates/deck/theme.css
+      (.confidence-high / .confidence-medium / .confidence-low).
+    - Lucide icons: shield-alert (governance/exception warning, Metric 10)
+      and clock-alert (SLA/time warning, Metric 12). Both icon names are
+      available in Lucide 0.460.0, the version pinned by AAP §0.6.1.
+    - The renderer is the single source of truth for these values; the
+      same numbers MUST appear in acceleration-report.md, the Traceability
+      Matrix, and the Acceleration Curve table, satisfying Rule 4
+      (Internal Consistency).
+-->
+<section class="content-slide">
+  <span class="eyebrow">Governance</span>
+  <h3>Exceptions &amp; SLA (10, 12)</h3>
+  <table class="metric-table">
+    <thead>
+      <tr><th></th><th>Metric</th><th>Result</th><th>Confidence</th><th>Caveat</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><i data-lucide="shield-alert"></i></td>
+        <td>10 · Approved Exceptions</td>
+        <td>{{M10_MULT}}</td>
+        <td><span class="confidence-{{M10_CONF}}">{{M10_CONF_LABEL}}</span></td>
+        <td>{{M10_CAVEAT}}</td>
+      </tr>
+      <tr>
+        <td><i data-lucide="clock-alert"></i></td>
+        <td>12 · Defects Out of SLA</td>
+        <td>{{M12_MULT}}</td>
+        <td><span class="confidence-{{M12_CONF}}">{{M12_CONF_LABEL}}</span></td>
+        <td>{{M12_CAVEAT}}</td>
+      </tr>
+    </tbody>
+  </table>
+</section>

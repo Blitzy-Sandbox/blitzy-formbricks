@@ -1,0 +1,112 @@
+<!--
+  Slide 04 — Inflection Date & Methodology
+  Type: content-slide
+  Required tokens (substituted by render_deck.py from
+  acceleration/data/inflection.json and acceleration/data/metrics.json):
+    {{INFLECTION_DATE}}    Detected inflection date (ISO), e.g., "2026-02-25".
+                           Sourced from inflection.json:"date".
+    {{INFLECTION_METHOD}}  Detection method label, e.g., "convergent_evidence".
+                           Sourced from inflection.json:"method". One of
+                           "convergent_evidence" | "single_signal" |
+                           "earliest_ai_trailer" — see AAP §0.3.1.2 decision flow.
+    {{BASELINE_START}}     First commit date in the repository (ISO).
+                           Sourced from metrics.json:"environment.first_commit_date".
+                           Used as the Gantt start of the Baseline section.
+    {{BASELINE_END}}       Day before inflection (ISO).
+                           Sourced from inflection.json:"baseline_end".
+                           Used as the Gantt end of the Baseline section.
+    {{RAMPUP_END}}         End of Ramp-Up phase (ISO) = inflection + 84 days.
+                           Sourced from inflection.json:"rampup_end".
+                           Per AAP §0.8.4 — "Ramp-Up is exactly six windows
+                           (84 days, the largest multiple of 14 ≤ 90)".
+    {{STEADY_END}}         Latest commit date in the analysis window (ISO).
+                           Sourced from metrics.json:"environment.last_commit_date".
+                           Used as the Gantt end of the Steady State section.
+  Required non-text visual: Mermaid Gantt diagram in <pre class="mermaid">…</pre>
+  (satisfies Rule 5 content-slide visual requirement). Additional visual: a
+  Lucide "git-branch" icon next to the detected-date line.
+
+  Authority:
+    - AAP §0.4.1 (file inventory enumerates slide_04_inflection.html.tmpl).
+    - AAP §0.3.1.2 (Inflection Detection Decision Flow — this slide is the
+      executive-readable summary of that algorithm; the report's Methodology
+      section carries the full prose, satisfying Rule 4 — Internal Consistency).
+    - AAP §0.7.1 Rule 4 (Visual Architecture Documentation — Mermaid is the
+      sole diagramming language; every diagram MUST have a descriptive title;
+      satisfied by the gantt `title` line).
+    - AAP §0.7.1 Rule 5 (Executive Presentation — content-slide constraints:
+      max 4 bullets, ≤40 body words, ≥1 non-text visual, zero emoji, no
+      fenced code blocks — the only <pre> tag here is class="mermaid").
+    - AAP §0.8.4 (Temporal Phases — Baseline / Ramp-Up (first 84 days) /
+      Steady State (window seven onward)). The three gantt sections mirror
+      these three phases by name and ordering.
+    - theme.css §Phase 10 (Mermaid container styling — padding, border,
+      min-height for the rendering window).
+    - theme.css §Phase 11 (Lucide icon defaults — color: var(--brand-primary),
+      width/height: 32px on top-level usage).
+
+  Rendering notes:
+    - This template is consumed by render_deck.py, which substitutes the six
+      tokens above from inflection.json + metrics.json and writes the result
+      into acceleration/executive-presentation.html.
+    - Mermaid runtime: the deck initializes Mermaid 11.4.0 with
+      startOnLoad:false, theme:'base', and gantt:{useMaxWidth:true,fontSize:11};
+      mermaid.run() is invoked on Reveal "ready" and "slidechanged" events,
+      so the <pre class="mermaid"> block is transformed to inline <svg> at
+      slide-enter time. The Blitzy palette is applied via the themeVariables
+      passed by the parent HTML.
+    - Lucide runtime: lucide.createIcons() is called on the same events,
+      replacing the <i data-lucide="git-branch"> tag with the corresponding
+      <svg data-lucide="git-branch"> element; theme.css §Phase 11 selectors
+      target both forms.
+    - Mermaid gantt task syntax: "<task description> :[status,] <task_id>,
+      <start>, <end>". Status values used here are "done" (Baseline — past)
+      and "active" (Ramp-Up — current). The Steady-State row uses the
+      three-field form (task_id, start position, end) with "after ramp" as
+      the start position, meaning "starts immediately after the task with
+      id `ramp`". This three-field form is valid Mermaid 11.4.0 syntax.
+    - Token-substituted dates conform to ISO YYYY-MM-DD, which matches the
+      Gantt `dateFormat YYYY-MM-DD` directive.
+    - Indentation inside <pre class="mermaid"> is preserved; the gantt
+      directive must remain at column 0 of its own line within the <pre>.
+
+  Tone discipline (AAP §0.7.2.2 Rule 2 — Factual-Neutral): the section
+  labels are technical terms ("Pre-AI Tool", "First 84 days", "90+ days")
+  with zero subjective qualifiers (no "impressive", "significant",
+  "excellent", "remarkable", "unfortunately"). "Detected:" and
+  "Method:" are neutral status descriptors. The method label
+  "convergent_evidence" is the technical name of the algorithm branch
+  per AAP §0.3.1.2, not editorial framing.
+
+  Body word count outside <pre> (after token substitution):
+    Eyebrow "Methodology" (1) + Heading "Inflection Date & Temporal
+    Phases" (5) + Paragraph "Detected: <date> · Method: <method>" (4)
+    ≈ 10 words, well under the Rule 5 cap of 40.
+
+  Verification (verify_report.py asserts):
+    - Exactly one top-level <section> with class="content-slide".
+    - Zero emoji codepoints.
+    - The only <pre> tag is class="mermaid" (no fenced code blocks).
+    - At least one non-text visual (Mermaid block + Lucide icon).
+    - All six tokens {{INFLECTION_DATE}}, {{INFLECTION_METHOD}},
+      {{BASELINE_START}}, {{BASELINE_END}}, {{RAMPUP_END}},
+      {{STEADY_END}} appear unsubstituted in the template source and are
+      substituted to non-empty strings in the rendered HTML.
+-->
+<section class="content-slide">
+  <span class="eyebrow">Methodology</span>
+  <h3>Inflection Date &amp; Temporal Phases</h3>
+  <p><i data-lucide="git-branch"></i> Detected: <strong>{{INFLECTION_DATE}}</strong> · Method: {{INFLECTION_METHOD}}</p>
+  <pre class="mermaid">
+gantt
+    title Temporal Phases (Monday-aligned 2-week windows)
+    dateFormat YYYY-MM-DD
+    axisFormat %Y-%m
+    section Baseline
+    Pre-AI Tool        :done, base, {{BASELINE_START}}, {{BASELINE_END}}
+    section Ramp-Up
+    First 84 days      :active, ramp, {{INFLECTION_DATE}}, {{RAMPUP_END}}
+    section Steady State
+    90+ days           :steady, after ramp, {{STEADY_END}}
+  </pre>
+</section>

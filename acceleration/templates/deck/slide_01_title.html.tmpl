@@ -1,0 +1,135 @@
+<!--
+  Slide 01 — Title
+  Type: title-slide
+  Required tokens (substituted by render_deck.py from
+  acceleration/data/metrics.json and acceleration/data/inflection.json):
+    {{DATE_RANGE_HUMAN}}      Repository date range covered by the analysis,
+                              rendered as "YYYY-MM-DD → YYYY-MM-DD" (ISO
+                              dates separated by U+2192 RIGHTWARDS ARROW
+                              with single spaces). Sourced from
+                              metrics.json:"environment.first_commit_date"
+                              and metrics.json:"environment.last_commit_date".
+                              Example: "2022-06-06 → 2026-05-15".
+    {{INFLECTION_DATE}}       Detected inflection date (ISO YYYY-MM-DD).
+                              Sourced from inflection.json:"date". See
+                              AAP §0.3.1.2 (Inflection Detection Decision
+                              Flow) for the two-candidate algorithm
+                              (earliest AI co-author trailer + sharpest
+                              sustained velocity inflection). Example:
+                              "2026-02-25".
+    {{GENERATED_TIMESTAMP}}   Report generation timestamp in UTC, rendered
+                              as "YYYY-MM-DD HH:MM UTC". Sourced from
+                              metrics.json:"environment.extraction_timestamp"
+                              (also written to run_manifest.json). Example:
+                              "2026-05-22 14:00 UTC".
+  Required non-text visual: Lucide icon "rocket" (the primary title-slide
+  visual, per the file-creation spec). Two additional Lucide icons
+  ("calendar", "git-branch") accompany the metadata lines for visual
+  consistency with the icon-prefixed paragraph style used elsewhere in
+  the deck (e.g., slide_04_inflection.html.tmpl).
+
+  Authority:
+    - AAP §0.4.1 (file inventory enumerates slide_01_title.html.tmpl as
+      the first slide template; "Per-slide HTML templates for the
+      reveal.js deck (Title, Section Divider, Content, Closing variants)").
+    - AAP §0.4.2 ("Per-slide HTML templates for the reveal.js deck
+      (Title, Section Divider, Content, Closing variants)" — this file
+      is the Title variant).
+    - AAP §0.7.1 Rule 5 — Executive Presentation. Title-slide constraints:
+      single self-contained reveal.js HTML file; ≥1 non-text visual per
+      slide; zero emoji (Lucide SVG icons only); no fenced code blocks;
+      Blitzy brand palette via CSS custom properties in theme.css;
+      reveal.js 5.1.0 / Mermaid 11.4.0 / Lucide 0.460.0 CDN-pinned;
+      Inter / Space Grotesk / Fira Code typography.
+    - AAP §0.7.2.2 Rule 2 — Factual-Neutral Tone (no "impressive",
+      "significant", "excellent", "remarkable", "unfortunately",
+      "dramatic", "surprising", "notable" in the body). The title-slide
+      copy below uses only descriptive technical labels.
+    - AAP §0.7.2.2 Rule 6 — Environment First (the title slide surfaces
+      the repository date range and inflection date up-front; the
+      report's Environment Verification section carries the full
+      environment fingerprint).
+    - File-creation spec (Phase 2, Recommended structure): title-slide
+      contains eyebrow, h1, h2, and a .title-meta block with three
+      icon-prefixed metadata lines.
+    - theme.css §Phase 4 (.title-slide gradient background; .title-meta
+      mono font, brand-teal color, 2em top margin; .title-meta p has
+      0.5em top/bottom margins).
+    - theme.css §Phase 3 (.eyebrow Fira Code micro-label; on
+      .title-slide / .section-divider / .closing-slide the eyebrow color
+      is brand-teal for contrast on the dark background).
+    - theme.css §Phase 11 (.reveal section.title-slide i[data-lucide]
+      and svg[data-lucide] selectors: brand-teal color, 24×24px,
+      0.4em right margin — works for both the un-replaced <i> tag and
+      the post-lucide.createIcons() <svg> output).
+
+  Rendering notes:
+    - This template is consumed by render_deck.py, which globs
+      acceleration/templates/deck/slide_*.html.tmpl in numerical
+      order, substitutes the three tokens above from
+      metrics.json + inflection.json, and writes the result into the
+      <div class="slides"> block of acceleration/executive-presentation.html.
+    - The renderer concatenates the file contents verbatim, including
+      this leading HTML comment (comments are HTML-valid and inert at
+      render time). Retaining the comment in the rendered output
+      preserves provenance for downstream maintainers without affecting
+      the visual deck.
+    - Lucide runtime: the parent HTML shell initializes Lucide 0.460.0
+      and calls lucide.createIcons() on Reveal "ready" and "slidechanged"
+      events, replacing each <i data-lucide="name"> tag with its
+      corresponding <svg data-lucide="name"> element. theme.css §Phase
+      11 selectors target both forms.
+    - The slide RELIES on CSS classes from theme.css: .title-slide,
+      .eyebrow, .title-meta. No inline style="…" attributes are used
+      in this template — styling concerns stay in theme.css per the
+      file-creation spec (Phase 5).
+    - Tokens are LITERAL strings using the {{TOKEN_NAME}} syntax. They
+      are NOT wrapped in any other markers (no <% %>, no ${ }, no
+      jinja2 {% %}) — the renderer performs simple string replacement.
+
+  Tone discipline (AAP §0.7.2.2 Rule 2 — Factual-Neutral):
+    - Eyebrow "Acceleration Analysis · Formbricks" is a structural
+      label identifying the deck scope; "Acceleration" is the metric
+      family name from the user prompt, not editorial framing.
+    - Heading "Development Acceleration" mirrors the report title;
+      it is the literal name of the analysis subject.
+    - Subheading "Baseline vs Post-Introduction" names the two
+      comparison periods defined in AAP §0.8.4 (Temporal Phases); it
+      is a methodology label, not a value judgment.
+    - Metadata labels "Period:", "Inflection:", "Generated:" are
+      neutral status descriptors. No "faster", "better", "improved",
+      or other comparative qualifiers appear.
+
+  Body word count (excluding tokens):
+    Eyebrow "Acceleration Analysis · Formbricks" (4)
+    + Heading "Development Acceleration" (2)
+    + Subheading "Baseline vs Post-Introduction" (3)
+    + Metadata labels "Period:" (1) + "Inflection:" (1) + "Generated:" (1)
+    ≈ 12 words. Title slides are exempt from the content-slide 40-word
+    body cap, but this slide stays well under it regardless.
+
+  Verification (verify_report.py asserts):
+    - Exactly one top-level <section> with class="title-slide".
+    - At least one <i data-lucide="…"> icon (non-text visual gate —
+      this template has three: calendar, git-branch, rocket).
+    - Zero emoji codepoints in the U+1F300–U+1F9FF, U+2600–U+27BF,
+      and U+1FA70–U+1FAFF ranges. The middle dot U+00B7 in the
+      eyebrow and the U+2192 RIGHTWARDS ARROW in the
+      {{DATE_RANGE_HUMAN}} substitution are math/punctuation
+      codepoints outside all three emoji ranges.
+    - No <pre><code> fenced code blocks, no <script> tags, no <link>
+      tags, no <style> tags, no external href/src references.
+    - All three tokens ({{DATE_RANGE_HUMAN}}, {{INFLECTION_DATE}},
+      {{GENERATED_TIMESTAMP}}) appear unsubstituted in the template
+      source and substitute to non-empty strings in the rendered HTML.
+-->
+<section class="title-slide">
+  <span class="eyebrow">Acceleration Analysis · Formbricks</span>
+  <h1>Development Acceleration</h1>
+  <h2>Baseline vs Post-Introduction</h2>
+  <div class="title-meta">
+    <p><i data-lucide="calendar"></i> Period: {{DATE_RANGE_HUMAN}}</p>
+    <p><i data-lucide="git-branch"></i> Inflection: {{INFLECTION_DATE}}</p>
+    <p><i data-lucide="rocket"></i> Generated: {{GENERATED_TIMESTAMP}}</p>
+  </div>
+</section>

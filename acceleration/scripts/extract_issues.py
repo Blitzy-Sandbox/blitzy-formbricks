@@ -204,6 +204,38 @@ PAGE_SIZE = 100
 # tens.
 MAX_REQUESTS_PER_RUN = 1500
 
+# ---------------------------------------------------------------------------
+# Retry policy for transient HTTP failures
+# ---------------------------------------------------------------------------
+# A bounded exponential-backoff retry mirrors the policy in
+# :mod:`acceleration.scripts.extract_github` and
+# :mod:`acceleration.scripts.extract_ci_tests`. Transient GitHub API
+# failures must not silently downgrade Metrics 8 (Problem Records) and
+# 12 (Defects Out of SLA) — both depend on issue inventories from this
+# extractor. The retry counters are recorded in the access manifest so
+# downstream consumers can audit whether transient failures biased
+# Metric 8 / Metric 12.
+#
+# Retry semantics:
+#   * 5xx in :data:`HTTP_RETRYABLE_STATUS` (500, 502, 503, 504) are
+#     retried.
+#   * :class:`urllib.error.URLError` and :class:`TimeoutError` and
+#     other transient :class:`OSError` instances (e.g.
+#     :class:`ConnectionResetError`, :class:`BrokenPipeError`) are
+#     retried.
+#   * 4xx are NOT retried (deterministic — typically missing scopes,
+#     missing labels, missing repo). 429 is NOT retried at this layer
+#     because the upstream rate-limit handler
+#     (:meth:`GithubClient.respect_rate_limit`) is the correct
+#     response.
+#
+# The retry schedule is ``backoff_base * 2**(n-1)`` seconds for the
+# n-th retry, so a default ``HTTP_MAX_RETRIES=3`` + ``base=2.0`` yields
+# sleeps of 2s, 4s, 8s (≈14s max additional wait per call).
+HTTP_MAX_RETRIES: int = 3
+HTTP_RETRY_BACKOFF_BASE: float = 2.0
+HTTP_RETRYABLE_STATUS: frozenset[int] = frozenset({500, 502, 503, 504})
+
 # SLA-source candidates: filesystem paths under ``--repo-root`` that may
 # contain an SLA policy. The list is ordered by descending specificity so
 # that a dedicated ``SLA.md`` is preferred over a tangentially-related
@@ -296,12 +328,34 @@ class GithubClient:
         HTTP status code returned by the most recent :meth:`get_json`
         call. Initialised to ``0``. Used by :func:`main` to record
         endpoint accessibility into the structured log stream.
+    retry_attempts : int
+        Total number of retry **attempts** made across the run.
+        Incremented once per retry (a call that retries twice before
+        success contributes 2). Recorded in the access manifest so
+        operators can audit whether transient failures biased
+        Metric 8 / Metric 12.
+    retry_recoveries : int
+        Number of individual GET calls that experienced at least one
+        retry and ultimately succeeded (status in 2xx, or a 4xx that
+        the caller handles deterministically).
+    retry_failures : int
+        Number of individual GET calls that exhausted the retry budget
+        on retryable conditions (5xx, URLError, timeout). A non-zero
+        value indicates the data ingest is missing records that
+        otherwise would have been collected.
     """
 
     token: str | None
     request_count: int = 0
     api_base: str = GITHUB_API_BASE
     last_status: int = 0
+    # Retry / reliability counters per the review feedback. Recorded
+    # in ``issues_access.json`` so operators can audit whether
+    # transient failures degraded Metric 8 (Problem Records) and
+    # Metric 12 (Defects Out of SLA).
+    retry_attempts: int = 0
+    retry_recoveries: int = 0
+    retry_failures: int = 0
 
     def headers(self) -> dict[str, str]:
         """Compose the request headers for a GitHub REST API call.
@@ -332,8 +386,21 @@ class GithubClient:
         self,
         url: str,
         params: dict[str, Any] | None = None,
+        *,
+        max_retries: int | None = None,
+        retry_backoff_base: float | None = None,
     ) -> tuple[int, Any, dict[str, str]]:
-        """Issue a single HTTP **GET** to the supplied URL.
+        """Issue a single HTTP **GET** to the supplied URL with bounded retries.
+
+        Retry policy mirrors
+        :meth:`acceleration.scripts.extract_github.GithubClient.get`
+        and
+        :meth:`acceleration.scripts.extract_ci_tests.GithubClient.get`:
+        retry on 5xx (500, 502, 503, 504),
+        :class:`urllib.error.URLError`, :class:`TimeoutError`, and
+        other transient :class:`OSError` instances. 4xx are NOT
+        retried (deterministic); 429 is NOT retried at this layer
+        (the upstream rate-limit handler is the correct response).
 
         Parameters
         ----------
@@ -347,6 +414,14 @@ class GithubClient:
             ``url``. Pass-through-pagination callers should already
             have parameters baked into the URL and supply ``None``
             here.
+        max_retries : int or None
+            Maximum number of retry attempts (in addition to the
+            initial attempt). Defaults to :data:`HTTP_MAX_RETRIES`.
+            Pass ``0`` to disable retries.
+        retry_backoff_base : float or None
+            Backoff base in seconds. Defaults to
+            :data:`HTTP_RETRY_BACKOFF_BASE`. The nth retry sleeps for
+            ``retry_backoff_base * 2**(n-1)`` seconds.
 
         Returns
         -------
@@ -355,6 +430,9 @@ class GithubClient:
             the parsed JSON value when the response decodes
             successfully and the raw string otherwise. ``headers`` is
             a dict with lower-cased keys for case-insensitive lookup.
+            On a network-level failure ``(0, error_string, {})`` is
+            returned; the caller treats status ``0`` as "endpoint not
+            reachable".
 
         Raises
         ------
@@ -372,39 +450,98 @@ class GithubClient:
         self.request_count += 1
         if params:
             url = f"{url}?{urllib.parse.urlencode(params)}"
-        req = urllib.request.Request(url, headers=self.headers(), method="GET")
-        try:
-            with urllib.request.urlopen(req, timeout=30) as resp:
-                self.last_status = resp.status
-                body = resp.read().decode("utf-8", errors="replace")
-                hdrs = {k.lower(): v for k, v in resp.headers.items()}
-                try:
-                    return resp.status, json.loads(body), hdrs
-                except json.JSONDecodeError:
-                    # The body is not JSON (e.g., a 304 with empty body
-                    # or an HTML error page from a reverse proxy). Pass
-                    # the raw string through; the caller's status-code
-                    # check will short-circuit the iteration.
-                    return resp.status, body, hdrs
-        except urllib.error.HTTPError as exc:
-            # 4xx / 5xx HTTPError carries a response body and headers;
-            # we surface them so the caller can record the error code
-            # in the run log. This is the normal path for 403/404 on
-            # endpoints requiring elevated scopes or on missing repos.
-            self.last_status = exc.code
-            body = exc.read().decode("utf-8", errors="replace") if exc.fp else ""
-            hdrs = {k.lower(): v for k, v in (exc.headers or {}).items()}
+
+        retries = (
+            HTTP_MAX_RETRIES if max_retries is None else max(0, max_retries)
+        )
+        backoff_base = (
+            HTTP_RETRY_BACKOFF_BASE
+            if retry_backoff_base is None
+            else max(0.0, retry_backoff_base)
+        )
+        retried_at_least_once = False
+
+        for attempt in range(retries + 1):
+            req = urllib.request.Request(
+                url, headers=self.headers(), method="GET"
+            )
             try:
-                return exc.code, json.loads(body), hdrs
-            except (json.JSONDecodeError, ValueError):
-                return exc.code, body, hdrs
-        except urllib.error.URLError as exc:
-            # URLError covers network-level failures (DNS, connection
-            # refused, timeout). The caller treats ``status == 0`` as
-            # "endpoint not reachable" and records the endpoint as
-            # inaccessible in the structured log.
-            self.last_status = 0
-            return 0, str(exc), {}
+                with urllib.request.urlopen(req, timeout=30) as resp:
+                    self.last_status = resp.status
+                    body = resp.read().decode("utf-8", errors="replace")
+                    hdrs = {k.lower(): v for k, v in resp.headers.items()}
+                    if retried_at_least_once:
+                        self.retry_recoveries += 1
+                    try:
+                        return resp.status, json.loads(body), hdrs
+                    except json.JSONDecodeError:
+                        # The body is not JSON (e.g., a 304 with empty
+                        # body or an HTML error page from a reverse
+                        # proxy). Pass the raw string through; the
+                        # caller's status-code check will short-circuit
+                        # the iteration.
+                        return resp.status, body, hdrs
+            except urllib.error.HTTPError as exc:
+                # 4xx / 5xx HTTPError carries a response body and
+                # headers; we surface them so the caller can record the
+                # error code in the run log. 4xx is the normal path for
+                # 403/404 on endpoints requiring elevated scopes or on
+                # missing repos. 5xx in the retryable set is retried.
+                self.last_status = exc.code
+                body = (
+                    exc.read().decode("utf-8", errors="replace")
+                    if exc.fp
+                    else ""
+                )
+                hdrs = {
+                    k.lower(): v for k, v in (exc.headers or {}).items()
+                }
+                if exc.code in HTTP_RETRYABLE_STATUS and attempt < retries:
+                    self.retry_attempts += 1
+                    retried_at_least_once = True
+                    time.sleep(backoff_base * (2 ** attempt))
+                    continue
+                if retried_at_least_once:
+                    if exc.code in HTTP_RETRYABLE_STATUS:
+                        self.retry_failures += 1
+                    else:
+                        # Hit a deterministic 4xx after a transient 5xx
+                        # recovered; count the deterministic resolution
+                        # as a recovery (the retry served its purpose).
+                        self.retry_recoveries += 1
+                try:
+                    return exc.code, json.loads(body), hdrs
+                except (json.JSONDecodeError, ValueError):
+                    return exc.code, body, hdrs
+            except urllib.error.URLError as exc:
+                # URLError covers network-level failures (DNS,
+                # connection refused, timeout). The caller treats
+                # ``status == 0`` as "endpoint not reachable".
+                self.last_status = 0
+                if attempt < retries:
+                    self.retry_attempts += 1
+                    retried_at_least_once = True
+                    time.sleep(backoff_base * (2 ** attempt))
+                    continue
+                if retried_at_least_once:
+                    self.retry_failures += 1
+                return 0, str(exc), {}
+            except (TimeoutError, OSError) as exc:
+                # Bare TimeoutError or OSError (e.g.
+                # ConnectionResetError, BrokenPipeError) — treat as
+                # transient transport failure.
+                self.last_status = 0
+                if attempt < retries:
+                    self.retry_attempts += 1
+                    retried_at_least_once = True
+                    time.sleep(backoff_base * (2 ** attempt))
+                    continue
+                if retried_at_least_once:
+                    self.retry_failures += 1
+                return 0, str(exc), {}
+        # Defensive fallback: only reachable if ``retries`` were
+        # negative, which the clamp prevents.
+        return 0, "retry loop fell through", {}
 
     def respect_rate_limit(self, hdrs: dict[str, str]) -> None:
         """Sleep, if necessary, to respect the primary GitHub rate limit.
@@ -958,6 +1095,13 @@ def main(argv: list[str] | None = None) -> int:
     args.output_dir.mkdir(parents=True, exist_ok=True)
     issues_path: Path = args.output_dir / "issues.jsonl"
     sla_path: Path = args.output_dir / "sla_source.json"
+    # ``issues_access.json`` is parallel to ``github_access.json`` and
+    # ``test_results_access.json`` emitted by the sibling extractors.
+    # It records endpoint accessibility, per-label record counts, and
+    # retry-policy telemetry so operators can audit whether transient
+    # failures biased Metric 8 (Problem Records) or Metric 12 (Defects
+    # Out of SLA).
+    access_path: Path = args.output_dir / "issues_access.json"
 
     # -- SLA-source probe (filesystem-only, runs first) --------------------
     resolved_repo_root = args.repo_root.resolve()
@@ -980,27 +1124,70 @@ def main(argv: list[str] | None = None) -> int:
             "'Insufficient signal — no SLA source' per AAP §0.3.4."
         )
 
+    # ``retry_policy`` is recorded in every access manifest so a
+    # downstream consumer can reproduce the exact retry schedule the
+    # extractor used without reading source. The static shape is
+    # identical across all three network extractors.
+    retry_policy = {
+        "max_retries": HTTP_MAX_RETRIES,
+        "backoff_base_seconds": HTTP_RETRY_BACKOFF_BASE,
+        "retryable_status_codes": sorted(HTTP_RETRYABLE_STATUS),
+    }
+    labels_arg = tuple(
+        part.strip() for part in args.labels.split(",") if part.strip()
+    )
+
     # -- Issues extraction (network) ---------------------------------------
     if args.skip_network:
         log.info("--skip-network supplied; writing empty issues.jsonl")
         issues_path.write_text("", encoding="utf-8")
+        access_path.write_text(
+            json.dumps(
+                {
+                    "accessed_at": time.strftime(
+                        "%Y-%m-%dT%H:%M:%SZ", time.gmtime()
+                    ),
+                    "owner": args.owner,
+                    "repo": args.repo,
+                    "skip_network": True,
+                    "available": False,
+                    "labels": list(labels_arg),
+                    "issues_written": 0,
+                    "api_requests": 0,
+                    "last_status": 0,
+                    "retry_attempts": 0,
+                    "retry_recoveries": 0,
+                    "retry_failures": 0,
+                    "retry_policy": retry_policy,
+                    "reason": "Network access disabled via --skip-network.",
+                    "needed": (
+                        "Re-run without --skip-network and provide "
+                        "GITHUB_TOKEN with repo scope to populate "
+                        "issues.jsonl."
+                    ),
+                },
+                indent=2,
+                default=str,
+            ),
+            encoding="utf-8",
+        )
         return 0
 
     token = os.environ.get("GITHUB_TOKEN")
-    labels = tuple(part.strip() for part in args.labels.split(",") if part.strip())
     client = GithubClient(token=token, api_base=args.api_base)
     log.info(
         "Fetching issues for %s/%s with labels=%s  token=%s",
         args.owner,
         args.repo,
-        labels,
+        labels_arg,
         "present" if token else "absent",
     )
 
     count = 0
+    extraction_error: dict[str, Any] | None = None
     with issues_path.open("w", encoding="utf-8") as out_fp:
         try:
-            for raw in iter_issues(client, args.owner, args.repo, labels):
+            for raw in iter_issues(client, args.owner, args.repo, labels_arg):
                 rec = normalize_issue(raw)
                 # ``ensure_ascii=False`` preserves non-ASCII labels and
                 # titles (Formbricks history contains German /
@@ -1013,6 +1200,11 @@ def main(argv: list[str] | None = None) -> int:
             # Raised by :meth:`GithubClient.get_json` when the
             # request budget is exhausted. Whatever was written
             # before is preserved.
+            extraction_error = {
+                "type": type(exc).__name__,
+                "message": str(exc),
+                "records_before_error": count,
+            }
             log.warning(
                 "Issue extraction terminated early at %d records: %s: %s",
                 count,
@@ -1024,6 +1216,11 @@ def main(argv: list[str] | None = None) -> int:
             # transport layer let through). Log and continue cleanup;
             # do NOT raise — the read-only contract requires this
             # function never to crash the orchestrator.
+            extraction_error = {
+                "type": type(exc).__name__,
+                "message": str(exc),
+                "records_before_error": count,
+            }
             log.warning(
                 "Issue extraction failed at %d records: %s: %s",
                 count,
@@ -1031,12 +1228,105 @@ def main(argv: list[str] | None = None) -> int:
                 exc,
             )
 
+    # An "available" run is one where at least one record was written
+    # AND no fatal extraction error halted the stream. A zero-record
+    # run is reported as unavailable so downstream consumers do not
+    # confuse "no defects found" with "endpoint inaccessible". The
+    # ``last_status`` field disambiguates: zero records + status 200
+    # means a genuinely empty bug list, zero records + status 0/4xx/5xx
+    # means an inaccessible endpoint.
+    available = count > 0 and extraction_error is None
+    manifest: dict[str, Any] = {
+        "accessed_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+        "owner": args.owner,
+        "repo": args.repo,
+        "skip_network": False,
+        "available": available,
+        "labels": list(labels_arg),
+        "issues_written": count,
+        "api_requests": client.request_count,
+        "last_status": client.last_status,
+        "token_provided": bool(token),
+        # Retry / reliability counters per the review feedback: record
+        # retry attempts in issues_access.json so operators can audit
+        # whether transient failures biased Metric 8 / Metric 12.
+        "retry_attempts": client.retry_attempts,
+        "retry_recoveries": client.retry_recoveries,
+        "retry_failures": client.retry_failures,
+        "retry_policy": retry_policy,
+    }
+    if extraction_error is not None:
+        manifest["error"] = extraction_error
+    if not available:
+        if count == 0 and client.last_status == 200:
+            manifest["reason"] = (
+                "Issue listing returned 200 with zero matching records."
+            )
+            manifest["needed"] = (
+                "No remediation required; the labels filter genuinely "
+                "matched no issues."
+            )
+        elif client.last_status in (401, 403):
+            manifest["reason"] = (
+                "GitHub Issues API returned an authentication or "
+                "authorisation error."
+            )
+            manifest["needed"] = (
+                "GITHUB_TOKEN with repo scope (or public_repo for public "
+                "repositories) is required to read /repos/{owner}/{repo}/issues."
+            )
+        elif client.last_status == 404:
+            manifest["reason"] = "Repository or labels endpoint not found."
+            manifest["needed"] = (
+                "Verify --owner/--repo and that the labels exist on the "
+                "target repository."
+            )
+        elif client.last_status == 0:
+            manifest["reason"] = (
+                "Network failure reached the retry budget without "
+                "recovery."
+            )
+            manifest["needed"] = (
+                "Verify outbound HTTPS to api.github.com and rerun. "
+                "Inspect retry_failures to determine how many calls "
+                "exhausted retries."
+            )
+        else:
+            manifest["reason"] = (
+                f"GitHub Issues API returned HTTP {client.last_status} "
+                "or the extraction halted before completion."
+            )
+            manifest["needed"] = (
+                "Inspect run logs for the failing request and rerun once "
+                "the upstream condition is resolved."
+            )
+    else:
+        manifest["reason"] = None
+        manifest["needed"] = None
+
+    access_path.write_text(
+        json.dumps(manifest, indent=2, default=str),
+        encoding="utf-8",
+    )
+
     log.info("Wrote %d issue records to %s", count, issues_path)
     log.info(
-        "GitHub API requests this run: %d (cap: %d)  last_status=%d",
+        "GitHub API requests this run: %d (cap: %d)  last_status=%d "
+        "(retry attempts: %d, recoveries: %d, failures: %d)",
         client.request_count,
         MAX_REQUESTS_PER_RUN,
         client.last_status,
+        client.retry_attempts,
+        client.retry_recoveries,
+        client.retry_failures,
+        extra={
+            "manifest": str(access_path),
+            "api_requests": client.request_count,
+            "last_status": client.last_status,
+            "retry_attempts": client.retry_attempts,
+            "retry_recoveries": client.retry_recoveries,
+            "retry_failures": client.retry_failures,
+        },
     )
     return 0
 
@@ -1059,6 +1349,13 @@ __all__ = [
     "Iterable",
     "Iterator",
     "MAX_REQUESTS_PER_RUN",
+    # Retry policy constants — re-exported so the orchestrator and
+    # verification scripts can pin against the same exponential-backoff
+    # schedule the live extractor uses; mirrors the surface of
+    # :mod:`extract_github` and :mod:`extract_ci_tests`.
+    "HTTP_MAX_RETRIES",
+    "HTTP_RETRY_BACKOFF_BASE",
+    "HTTP_RETRYABLE_STATUS",
     "PAGE_SIZE",
     "SLA_FILE_CANDIDATES",
     "SLA_HINT_PATTERNS",

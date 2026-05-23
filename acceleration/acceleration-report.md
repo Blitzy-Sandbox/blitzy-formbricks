@@ -1,6 +1,6 @@
-# Development Acceleration Analysis — Formbricks
+# Development Acceleration Analysis — formbricks/formbricks
 
-_Generated 2026-05-23T19:15:39.906652+00:00_
+_Generated 2026-05-23T22:21:10Z_
 
 ## Executive Summary
 
@@ -18,7 +18,7 @@ Every multiplier in this table appears byte-for-byte in the Requirements Traceab
 | 4 | Flow Active | Flow Framework | n/a | Medium |
 | 5 | Flow Efficiency | Flow Framework | n/a | Medium |
 | 7 | Flow Time | Flow Framework | n/a | Medium |
-| 9 | Releases | DORA-adjacent | Insufficient signal — GitHub Releases API not accessible | Insufficient signal |
+| 9 | Releases | DORA-adjacent | Insufficient signal — no release source available — GitHub Releases API not accessible (no token / skip-network), no annotated git tags present, and no CI/CD deployment events available | Insufficient signal |
 | 10 | Approved Exceptions | Governance | Insufficient signal — no admin audit-log access and no exception/waiver/override labels found | Insufficient signal |
 | 11 | Escaped Defects | DORA-adjacent | Insufficient signal — CI test history unavailable | Insufficient signal |
 | 12 | Defects Out of SLA | Governance | Insufficient signal — no SLA source found in repository or issue tracker | Insufficient signal |
@@ -30,18 +30,18 @@ The fields below are captured at pipeline start by the orchestrator (``accelerat
 | Field | Value |
 |-------|-------|
 | Repository URL | n/a |
-| Repository owner/name | n/a |
-| HEAD SHA | n/a |
+| Repository owner/name | formbricks/formbricks |
+| HEAD SHA | 58b4ee1efc7550652027265c110a95f2ca062a37 |
 | Default branch | main |
 | First commit date | n/a |
 | Latest commit date | n/a |
 | Total commits on main | n/a |
 | Active branch count | n/a |
 | Submodule state | none |
-| Git version | n/a |
-| Python version | n/a |
+| Git version | git version 2.51.0 |
+| Python version | 3.13.7 |
 | Node engine (.nvmrc) | n/a |
-| Extraction timestamp UTC | n/a |
+| Extraction timestamp UTC | 2026-05-23T22:21:10Z |
 
 ## Data Source Inventory
 
@@ -61,7 +61,7 @@ The fields below are captured at pipeline start by the orchestrator (``accelerat
 
 ## Methodology
 
-The analysis pipeline runs in batch mode against the cloned repository at HEAD `n/a`. Per AAP §0.8.4, the inflection date `2026-01-29` divides every metric into Baseline, Ramp-Up (first 6 windows = 84 days), and Steady State (windows 7+) using Monday-aligned 2-week UTC windows. When fewer than six post-introduction windows exist, the renderer falls back to a Baseline vs Post-Introduction schema and the Acceleration Curve table column labels record that fallback in place of Ramp-Up / Steady State.
+The analysis pipeline runs in batch mode against the cloned repository at HEAD `58b4ee1efc7550652027265c110a95f2ca062a37`. Per AAP §0.8.4, the inflection date `2026-01-29` divides every metric into Baseline, Ramp-Up (first 6 windows = 84 days), and Steady State (windows 7+) using Monday-aligned 2-week UTC windows. When fewer than six post-introduction windows exist, the renderer falls back to a Baseline vs Post-Introduction schema and the Acceleration Curve table column labels record that fallback in place of Ramp-Up / Steady State.
 
 ```mermaid
 %% =============================================================================
@@ -319,8 +319,8 @@ Each subsection presents one of the twelve metrics with the values, multiplier, 
 - **Multiplier (After / Before)**: 0.9×
 - **Confidence**: Medium
 - **Confidence rationale**: Approximated from git PR-merge counts per 14-day window.
-- **Boundary conditions**: Rate computed per Monday-aligned 2-week window in each phase; windows with zero merges are still counted.
-- **Interpretation**: Average merged PRs per 2-week window.
+- **Boundary conditions**: Rate computed per Monday-aligned 2-week window in each phase; windows with zero merges are still counted. The ``phases`` block holds the team-level rate; the ``phases_per_active_engineer`` block divides by the count of distinct authors with ≥1 non-merge commit in the phase per AAP §0.8.5.
+- **Interpretation**: Average merged PRs per 2-week window (team-level), with a per-active-engineer normalised view for team-growth correction.
 - **Direction of improvement**: higher
 - **Extraction command**: `git log --merges --grep='(#[0-9]+)$' (PR-merge identification) + GitHub PR API for the API-only in-progress PRs`
 
@@ -345,10 +345,10 @@ Each subsection presents one of the twelve metrics with the values, multiplier, 
 - **Multiplier (After / Before)**: n/a
 - **Confidence**: Medium
 - **Confidence rationale**: Approximated from git first-commit and merge timestamps (Flow Active proxy).
-- **Boundary conditions**: Excluded 3460/3465 merged PRs lacking branch-history timestamps (typical for squash-merged repositories).
+- **Boundary conditions**: Excluded 3460/3465 merged PRs lacking the timing data required for any computation path. Computation methods used: branch_life_proxy=5. The branch_life_proxy method overstates active time because it includes review-wait intervals; subsequent runs with reviews.jsonl populated migrate those PRs to ready_for_review_refinement.
 - **Interpretation**: Median active working-time per PR (hours).
 - **Direction of improvement**: lower
-- **Extraction command**: `first_commit_at → merged_at interval per PR from extract_git.py`
+- **Extraction command**: `Flow Active = initial(first_commit_at → ready_for_review_at) + Σ refinement(review_n → review_{n+1} OR merged_at) per PR`
 
 ### Metric 5 — Flow Efficiency (Flow Framework)
 
@@ -358,10 +358,10 @@ Each subsection presents one of the twelve metrics with the values, multiplier, 
 - **Multiplier (After / Before)**: n/a
 - **Confidence**: Medium
 - **Confidence rationale**: Approximated from git first-commit / active-span and total flow-time ratios.
-- **Boundary conditions**: Excluded 3460/3465 merged PRs lacking first_commit_at or producing a non-positive flow-time.
+- **Boundary conditions**: Excluded 3460/3465 merged PRs lacking first_commit_at or producing a non-positive flow-time. Computation methods used: branch_life_proxy=5. When the branch_life_proxy is the only available method the active span equals flow time and the ratio is pinned to 1.0 (treat as 'reviews data unavailable', not as 'perfect efficiency').
 - **Interpretation**: Median ratio of active work-time to total flow-time per PR.
 - **Direction of improvement**: higher
-- **Extraction command**: `active_spans_seconds / (merged_at - first_commit_at) per PR`
+- **Extraction command**: `Flow Active (ready-for-review + refinement) / (merged_at - first_commit_at) per PR`
 
 ### Metric 6 — Flow Distribution (Flow Framework)
 
@@ -391,28 +391,28 @@ Each subsection presents one of the twelve metrics with the values, multiplier, 
 
 ### Metric 8 — Problem Records (DORA-adjacent)
 
-- **Baseline value**: 6.00
+- **Baseline value**: 2.00
 - **Ramp-Up value**: 0.00
 - **Steady-State value**: 0.00
 - **Multiplier (After / Before)**: 0.0×
 - **Confidence**: Medium
 - **Confidence rationale**: Approximated from git revert commits (no incident labels were available in the issue tracker).
-- **Boundary conditions**: Revert commits are a proxy for production incidents; reverts attributable to a release are admitted, reverts whose original commit cannot be identified are excluded.
-- **Interpretation**: Count of revert commits per phase (incident proxy).
+- **Boundary conditions**: Revert commits are a proxy for production incidents per AAP §0.3.4. Counted only reverts with a resolved original commit (explicit message reference or tree-match). Excluded 4/6 unattributable reverts (per-phase: baseline=4); these would otherwise inflate the count with revert-of-revert noise and revert commits whose original commit cannot be identified.
+- **Interpretation**: Count of attributable revert commits per phase (incident proxy).
 - **Direction of improvement**: lower
-- **Extraction command**: `git log --grep='^Revert ' (extract_git.py reverts.jsonl)`
+- **Extraction command**: `git log --grep='^Revert ' (extract_git.py reverts.jsonl) AND original_resolution IN ('explicit_message_reference', 'tree_match')`
 
 ### Metric 9 — Releases (DORA-adjacent)
 
-- **Baseline value**: Insufficient signal — GitHub Releases API not accessible
+- **Baseline value**: Insufficient signal — no release source available — GitHub Releases API not accessible (no token / skip-network), no annotated git tags present, and no CI/CD deployment events available
 - **Ramp-Up value**: n/a
 - **Steady-State value**: n/a
-- **Multiplier (After / Before)**: Insufficient signal — GitHub Releases API not accessible
+- **Multiplier (After / Before)**: Insufficient signal — no release source available — GitHub Releases API not accessible (no token / skip-network), no annotated git tags present, and no CI/CD deployment events available
 - **Confidence**: Insufficient signal
-- **Confidence rationale**: Primary data source unavailable: GitHub Releases API not accessible.
-- **Boundary conditions**: GitHub Releases API not accessible
-- **Tried sources**: GitHub Releases API, annotated git tags
-- **Needed data source**: GITHUB_TOKEN with repo:read scope; this repository publishes via GitHub Releases (formbricks-release.yml triggers on release.published) so the API is the authoritative source.
+- **Confidence rationale**: Primary data source unavailable: no release source available — GitHub Releases API not accessible (no token / skip-network), no annotated git tags present, and no CI/CD deployment events available.
+- **Boundary conditions**: no release source available — GitHub Releases API not accessible (no token / skip-network), no annotated git tags present, and no CI/CD deployment events available
+- **Tried sources**: GitHub Releases API (Level 1, High confidence), annotated git tags via git for-each-ref refs/tags/ (Level 2, Medium confidence), GitHub Deployments API filtered to production (Level 3, Low confidence)
+- **Needed data source**: Any of: at least one published GitHub Release, at least one annotated semver tag, or at least one production CI/CD deployment event. GITHUB_TOKEN with repo:read scope unlocks the primary source; tags require no auth.
 
 ### Metric 10 — Approved Exceptions (Governance)
 
@@ -461,12 +461,12 @@ Inflection date: 2026-01-29 (method: single_signal).
 | 1 | Flow Load | `git log + GitHub PR API (window-end snapshots at Monday-aligned 14-day intervals…` | n/a | Medium |  |
 | 2 | Flow Velocity | `git log --merges --grep='(#[0-9]+)$' (PR-merge identification) + GitHub PR API f…` | 0.9× | Medium |  |
 | 3 | Flow Predictability | `git log --merges grouped by Monday-aligned 14-day window, then pstdev / mean` | 1.9× | Medium |  |
-| 4 | Flow Active | `first_commit_at → merged_at interval per PR from extract_git.py` | n/a | Medium |  |
-| 5 | Flow Efficiency | `active_spans_seconds / (merged_at - first_commit_at) per PR` | n/a | Medium |  |
+| 4 | Flow Active | `Flow Active = initial(first_commit_at → ready_for_review_at) + Σ refinement(revi…` | n/a | Medium |  |
+| 5 | Flow Efficiency | `Flow Active (ready-for-review + refinement) / (merged_at - first_commit_at) per …` | n/a | Medium |  |
 | 6 | Flow Distribution | `PR work_type field set by classify_prs.py (linked-issue labels → conventional-co…` | 0.3× | Medium |  |
 | 7 | Flow Time | `merged_at - first_commit_at per PR (PR-branch-life proxy)` | n/a | Medium |  |
-| 8 | Problem Records | `git log --grep='^Revert ' (extract_git.py reverts.jsonl)` | 0.0× | Medium |  |
-| 9 | Releases | `n/a` | Insufficient signal — GitHub Releases API not accessible | Insufficient signal |  |
+| 8 | Problem Records | `git log --grep='^Revert ' (extract_git.py reverts.jsonl) AND original_resolution…` | 0.0× | Medium |  |
+| 9 | Releases | `n/a` | Insufficient signal — no release source available — GitHub Releases API not accessible (no token / skip-network), no annotated git tags present, and no CI/CD deployment events available | Insufficient signal |  |
 | 10 | Approved Exceptions | `n/a` | Insufficient signal — no admin audit-log access and no exception/waiver/override labels found | Insufficient signal |  |
 | 11 | Escaped Defects | `n/a` | Insufficient signal — CI test history unavailable | Insufficient signal |  |
 | 12 | Defects Out of SLA | `n/a` | Insufficient signal — no SLA source found in repository or issue tracker | Insufficient signal |  |
@@ -1041,7 +1041,7 @@ Per AAP §0.7.2.4 Quality Gate, every Low-confidence metric and every insufficie
 
 | # | Risk | Severity | Affected Metrics |
 |---|------|----------|-------------------|
-| 1 | Metric releases: Insufficient signal — GitHub Releases API not accessible | Medium | releases |
+| 1 | Metric releases: Insufficient signal — no release source available — GitHub Releases API not accessible (no token / skip-network), no annotated git tags present, and no CI/CD deployment events available | Medium | releases |
 | 2 | Metric approved_exceptions: Insufficient signal — no admin audit-log access and no exception/waiver/override labels found | High | approved_exceptions |
 | 3 | Metric escaped_defects: Insufficient signal — CI test history unavailable | Medium | escaped_defects |
 | 4 | Metric defects_out_of_sla: Insufficient signal — no SLA source found in repository or issue tracker | High | defects_out_of_sla |
@@ -1052,7 +1052,7 @@ Per AAP §0.7.2.4 Quality Gate, every Low-confidence metric and every insufficie
 - PR work-type classification depends on linked-issue labels, conventional-commit PR-title prefixes, and keyword matching — historical PRs predating the convention may be classified as unknown.
 - Reverts whose original commit cannot be identified (no explicit SHA reference and no tree-match) are excluded from Metric 8's fallback path.
 - Flow Active uses the first-commit → merge interval as a proxy when explicit review-event timestamps are unavailable; review wait time is therefore included in the span (Flow Efficiency separately normalises this).
-- Metric releases (Insufficient signal — GitHub Releases API not accessible) — needs: GITHUB_TOKEN with repo:read scope; this repository publishes via GitHub Releases (formbricks-release.yml triggers on release.published) so the API is the authoritative source..
+- Metric releases (Insufficient signal — no release source available — GitHub Releases API not accessible (no token / skip-network), no annotated git tags present, and no CI/CD deployment events available) — needs: Any of: at least one published GitHub Release, at least one annotated semver tag, or at least one production CI/CD deployment event. GITHUB_TOKEN with repo:read scope unlocks the primary source; tags require no auth..
 - Metric approved_exceptions (Insufficient signal — no admin audit-log access and no exception/waiver/override labels found) — needs: PAT with admin:org scope on the GitHub organisation OR an exception-tracking label taxonomy in the issue tracker..
 - Metric escaped_defects (Insufficient signal — CI test history unavailable) — needs: GITHUB_TOKEN with actions:read scope; CI artifact retention extended beyond the default 90-day window..
 - Metric defects_out_of_sla (Insufficient signal — no SLA source found in repository or issue tracker) — needs: An SLA policy document at the repository root (e.g. SLA.md) or under docs/ with explicit severity tiers and response/resolution windows, OR an issue-tracker SLA field..
@@ -1077,7 +1077,7 @@ git --version
 python3 --version
 
 # 2. Pin to the analysed revision.
-git fetch origin && git checkout HEAD
+git fetch origin && git checkout 58b4ee1efc7550652027265c110a95f2ca062a37
 
 # 3. (Optional) export GITHUB_TOKEN for full API access.
 # export GITHUB_TOKEN=ghp_...
@@ -1109,7 +1109,7 @@ Each numbered comment below records the metric identifier and the steady-state m
 # Metric 6 (Flow Distribution): multiplier = 0.3; confidence = Medium; source: metrics.json['metrics']['flow_distribution']
 # Metric 7 (Flow Time): multiplier = n/a; confidence = Medium; source: metrics.json['metrics']['flow_time']
 # Metric 8 (Problem Records): multiplier = 0.0; confidence = Medium; source: metrics.json['metrics']['problem_records']
-# Metric 9 (Releases): multiplier = Insufficient signal — GitHub Releases API not accessible; confidence = Insufficient signal; source: metrics.json['metrics']['releases']
+# Metric 9 (Releases): multiplier = Insufficient signal — no release source available — GitHub Releases API not accessible (no token / skip-network), no annotated git tags present, and no CI/CD deployment events available; confidence = Insufficient signal; source: metrics.json['metrics']['releases']
 # Metric 10 (Approved Exceptions): multiplier = Insufficient signal — no admin audit-log access and no exception/waiver/override labels found; confidence = Insufficient signal; source: metrics.json['metrics']['approved_exceptions']
 # Metric 11 (Escaped Defects): multiplier = Insufficient signal — CI test history unavailable; confidence = Insufficient signal; source: metrics.json['metrics']['escaped_defects']
 # Metric 12 (Defects Out of SLA): multiplier = Insufficient signal — no SLA source found in repository or issue tracker; confidence = Insufficient signal; source: metrics.json['metrics']['defects_out_of_sla']

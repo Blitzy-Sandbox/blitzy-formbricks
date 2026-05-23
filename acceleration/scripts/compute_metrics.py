@@ -129,6 +129,11 @@ __all__ = [
     "build_phase_bounds",
     "classify_path",
     "classify_commit",
+    "compute_module_weights",
+    "commits_by_module",
+    "prs_by_module",
+    "weighted_phase_aggregate",
+    "compute_per_module",
     "jaccard",
     "resolve_aliases",
     "actor_key_for",
@@ -137,6 +142,8 @@ __all__ = [
     "assign_confidence",
     "insufficient_signal",
     "phase_aggregate",
+    "active_engineers_per_phase",
+    "normalise_phase_values_by_active_engineers",
     # Metric computers
     "compute_flow_load",
     "compute_flow_velocity",
@@ -219,6 +226,16 @@ CANONICAL_METRIC_IDS: list[str] = [
 # is walked top-to-bottom: more-specific prefixes (e.g. ``apps/web``)
 # must precede their broader siblings (e.g. ``apps/``). Each entry is
 # (prefix, module_label).
+#
+# This list MUST stay in lockstep with
+# ``acceleration/scripts/extract_git.py:MODULE_PREFIXES``. Any drift
+# would yield different module assignments for the same path between
+# the extractor (which records ``commit.module``) and the computer
+# (which falls back to re-classifying paths when ``module`` is absent
+# or ``"unknown"``). A verifier assertion in :func:`_assert_module_prefixes_in_sync`
+# (called at module load) raises ``RuntimeError`` if a drift is
+# detected at runtime. To add or rename a prefix, update both files
+# in the same change set.
 MODULE_PREFIXES: list[tuple[str, str]] = [
     ("apps/web", "apps/web"),
     ("apps/docs", "apps/docs"),
@@ -228,13 +245,49 @@ MODULE_PREFIXES: list[tuple[str, str]] = [
     ("packages/types", "packages/types"),
     ("packages/", "packages/other"),
     ("docs/", "docs"),
-    ("helm-chart/", "helm-chart"),
+    ("helm-chart", "helm-chart"),
     ("charts/", "charts"),
     ("blitzy/", "blitzy"),
-    ("blitzy-docs/", "blitzy-docs"),
-    (".github/", ".github"),
+    ("blitzy-docs", "blitzy-docs"),
+    (".github", ".github"),
+    ("acceleration/", "acceleration"),
 ]
 DEFAULT_MODULE: str = "root"
+
+
+def _assert_module_prefixes_in_sync() -> None:
+    """Fail-fast guard that ``MODULE_PREFIXES`` matches the extractor's copy.
+
+    The compute and extract layers MUST classify paths identically. This
+    helper attempts a lazy import of
+    ``acceleration.scripts.extract_git.MODULE_PREFIXES`` and compares
+    the ordered prefix sequence (label-independent: only the prefix is
+    significant for path matching). When the import fails because the
+    extractor cannot be loaded standalone (e.g. ad-hoc script
+    execution outside the package layout), the check silently
+    degrades — the verifier's static AST check in
+    ``verify_report.py`` is the secondary safety net.
+    """
+
+    try:
+        from acceleration.scripts.extract_git import (
+            MODULE_PREFIXES as EXTRACT_PREFIXES,
+        )
+    except Exception:  # pragma: no cover - import-time degradation
+        return
+    our_prefixes = tuple(entry[0] for entry in MODULE_PREFIXES)
+    their_prefixes = tuple(entry[0] for entry in EXTRACT_PREFIXES)
+    if our_prefixes != their_prefixes:
+        raise RuntimeError(
+            "MODULE_PREFIXES drift between compute_metrics.py and "
+            "extract_git.py: "
+            f"compute={our_prefixes!r} extract={their_prefixes!r}"
+        )
+
+
+# Invoke the sync check at module load so any drift surfaces before
+# any metric is computed.
+_assert_module_prefixes_in_sync()
 
 # Work-type buckets for Metric 6 (Flow Distribution). The set is
 # fixed at four canonical buckets plus the explicit ``unknown``
@@ -632,6 +685,350 @@ def classify_commit(commit: dict[str, Any]) -> str:
     if not counts:
         return DEFAULT_MODULE
     return counts.most_common(1)[0][0]
+
+
+def compute_module_weights(
+    commits: list[dict[str, Any]],
+) -> dict[str, float]:
+    """Compute per-module aggregation weights from non-merge commit volume.
+
+    AAP §0.8.6: "Run per-module independently, aggregate weighted by
+    commit volume (non-merge commits per module / total)." The weight
+    of module M is::
+
+        weight(M) = non_merge_commits_in_module(M) / total_non_merge_commits
+
+    The sum of all weights equals 1.0 (modulo floating-point rounding)
+    so a weighted aggregate of per-module metric values is a true
+    weighted mean.
+
+    Merge commits are excluded from the denominator because their
+    associated module classification depends on the underlying PR's
+    branch contents (which extract_git.py records on the PR record,
+    not the merge commit). Including merges would double-count.
+
+    Parameters
+    ----------
+    commits : list[dict]
+        ``commits.jsonl`` records. Each record must carry ``is_merge``
+        and either ``module`` (precomputed by extract_git.py) or
+        ``touched_files`` (so :func:`classify_commit` can derive the
+        module on demand).
+
+    Returns
+    -------
+    dict[str, float]
+        Mapping ``module_label -> weight`` summing to 1.0. Returns
+        an empty dict when ``commits`` is empty or contains only
+        merge commits.
+    """
+
+    counts: Counter = Counter()
+    total = 0
+    for commit in commits:
+        if commit.get("is_merge"):
+            continue
+        module = commit.get("module") or classify_commit(commit)
+        if not module:
+            module = DEFAULT_MODULE
+        counts[module] += 1
+        total += 1
+    if total == 0:
+        return {}
+    return {module: count / total for module, count in counts.items()}
+
+
+def commits_by_module(
+    commits: list[dict[str, Any]],
+) -> dict[str, list[dict[str, Any]]]:
+    """Partition ``commits`` by module label.
+
+    AAP §0.8.6 ("Run per-module independently, aggregate weighted by
+    commit volume"): the per-metric per-module computation needs the
+    list of commits scoped to each module. This helper performs that
+    partition in a single pass.
+
+    Merge commits are emitted into a synthetic ``"_merges"`` bucket
+    rather than discarded — some downstream metrics (e.g.
+    Flow Velocity, which counts merge commits) need access to them
+    indexed by module of the merge commit's recorded module field.
+
+    Parameters
+    ----------
+    commits : list[dict]
+        ``commits.jsonl`` records.
+
+    Returns
+    -------
+    dict[str, list[dict]]
+        Mapping ``module_label -> [commit, ...]``.
+    """
+
+    out: dict[str, list[dict[str, Any]]] = defaultdict(list)
+    for commit in commits:
+        module = commit.get("module") or classify_commit(commit)
+        if not module:
+            module = DEFAULT_MODULE
+        out[module].append(commit)
+    return out
+
+
+def prs_by_module(prs: list[dict[str, Any]]) -> dict[str, list[dict[str, Any]]]:
+    """Partition ``prs`` by module label.
+
+    Each PR record carries a ``module`` field synthesised by
+    ``extract_git.py`` (from the merge commit's touched-files
+    majority vote) or by ``classify_prs.py``. Unclassified PRs are
+    bucketed under :data:`DEFAULT_MODULE` so the per-module union
+    covers all PRs.
+
+    Parameters
+    ----------
+    prs : list[dict]
+        ``prs.jsonl`` records.
+
+    Returns
+    -------
+    dict[str, list[dict]]
+        Mapping ``module_label -> [pr, ...]``.
+    """
+
+    out: dict[str, list[dict[str, Any]]] = defaultdict(list)
+    for pr in prs:
+        module = pr.get("module") or DEFAULT_MODULE
+        out[module].append(pr)
+    return out
+
+
+def weighted_phase_aggregate(
+    per_module_phases: dict[str, dict[str, dict[str, Any]]],
+    weights: dict[str, float],
+) -> dict[str, dict[str, Any]]:
+    """Aggregate per-module per-phase values into a single phases block.
+
+    AAP §0.8.6: "Run per-module independently, aggregate weighted by
+    commit volume (non-merge commits per module / total)."
+
+    For each phase, the aggregated value is::
+
+        value(phase) = Σ_modules (per_module_value(phase) × weight(module))
+
+    The multiplier is recomputed from the aggregated value against the
+    aggregated baseline value (NOT a weighted average of per-module
+    multipliers, because the ratio of weighted means is not the
+    weighted mean of ratios).
+
+    Phases that produce no module values resolve to ``value = 0`` with
+    multiplier rules matching :func:`phase_aggregate`.
+
+    Parameters
+    ----------
+    per_module_phases : dict
+        Nested map ``module -> phase -> {value, multiplier, multiplier_kind}``.
+        Modules that produce ``Insufficient signal`` for a metric should
+        be omitted by the caller; this helper assumes every value is a
+        numeric phase entry.
+    weights : dict
+        Per-module weight map (sums to 1.0).
+
+    Returns
+    -------
+    dict[str, dict[str, Any]]
+        Aggregated ``phase -> {value, multiplier, multiplier_kind,
+        modules_contributing}`` block. Suitable for placing directly in
+        a metric record's ``phases`` field.
+    """
+
+    if not per_module_phases:
+        return {}
+    # Enumerate the union of phase keys observed across all modules so
+    # phases that exist on some modules but not others are still
+    # represented in the output (with zero-weighted contribution).
+    all_phases: set[str] = set()
+    for phases_map in per_module_phases.values():
+        all_phases.update(phases_map.keys())
+    aggregated: dict[str, dict[str, Any]] = {}
+    for phase in all_phases:
+        weighted_value = 0.0
+        total_weight = 0.0
+        contributing: list[str] = []
+        for module, phases_map in per_module_phases.items():
+            weight = weights.get(module, 0.0)
+            if weight <= 0:
+                continue
+            entry = phases_map.get(phase)
+            if entry is None:
+                continue
+            value = entry.get("value")
+            if not isinstance(value, (int, float)):
+                continue
+            weighted_value += float(value) * weight
+            total_weight += weight
+            contributing.append(module)
+        if total_weight == 0:
+            # Phase has no contributing module data.
+            aggregated[phase] = {
+                "value": 0,
+                "multiplier": 1.0 if phase == "baseline" else 0.0,
+                "multiplier_kind": "ratio",
+                "modules_contributing": [],
+            }
+            continue
+        # Re-normalise so the weighted_value reflects the effective
+        # contributing weight when some modules are missing for this
+        # phase (e.g. ``apps/web`` has data for both phases but
+        # ``acceleration`` only contributes in the ramp_up phase).
+        normalised_value = weighted_value / total_weight
+        aggregated[phase] = {
+            "value": round(normalised_value, 4),
+            # Provisional multiplier; recomputed in the
+            # post-aggregation pass below against the aggregated
+            # baseline value. This placeholder is only ever read by
+            # the recomputation loop, never by callers.
+            "multiplier": 1.0,
+            "multiplier_kind": "ratio",
+            "modules_contributing": sorted(contributing),
+        }
+    # Recompute multipliers against the aggregated baseline.
+    baseline_value = aggregated.get("baseline", {}).get("value")
+    if isinstance(baseline_value, (int, float)) and baseline_value != 0:
+        for phase, entry in aggregated.items():
+            if phase == "baseline":
+                entry["multiplier"] = 1.0
+                continue
+            value = entry.get("value")
+            if isinstance(value, (int, float)):
+                entry["multiplier"] = round(float(value) / baseline_value, 3)
+            else:
+                entry["multiplier"] = None
+                entry["multiplier_kind"] = "undefined"
+    elif isinstance(baseline_value, (int, float)) and baseline_value == 0:
+        # Baseline of zero: subsequent phases produce "infinite" or
+        # "undefined" multipliers per the :func:`phase_aggregate`
+        # convention.
+        for phase, entry in aggregated.items():
+            if phase == "baseline":
+                entry["multiplier"] = 1.0
+                continue
+            value = entry.get("value")
+            if isinstance(value, (int, float)) and value != 0:
+                entry["multiplier"] = None
+                entry["multiplier_kind"] = "infinite"
+            else:
+                entry["multiplier"] = None
+                entry["multiplier_kind"] = "undefined"
+    return aggregated
+
+
+def compute_per_module(
+    ctx: ComputeContext,
+    metric_fn: Any,
+) -> dict[str, Any]:
+    """Compute a metric per module and aggregate by commit-volume weight.
+
+    AAP §0.8.6 implementation entry point. For each module identified
+    by :func:`compute_module_weights`, build a module-scoped
+    :class:`ComputeContext` and invoke ``metric_fn`` against it. The
+    per-module results are returned for transparency, and a
+    commit-volume-weighted aggregate is produced for the headline
+    ``phases`` value.
+
+    The module-scoped context is built by:
+
+    - ``commits``: only commits classified to this module
+    - ``prs``: only PRs classified to this module
+    - ``reverts``: reverts whose revert SHA appears in the module's
+      commit list (since reverts.jsonl does not carry module on its
+      own — the module of a revert is the module of the revert
+      commit, not the original)
+    - All other fields: passed through unchanged (releases, tags,
+      deployments, audit_log, issues, test_results, sla_source are
+      repo-wide rather than module-scoped)
+
+    Parameters
+    ----------
+    ctx : ComputeContext
+        The full-repository context.
+    metric_fn : callable
+        A metric computer function ``(ctx) -> metric_record`` such as
+        :func:`compute_flow_velocity`. Must accept a
+        :class:`ComputeContext` and return a dict containing
+        ``phases``.
+
+    Returns
+    -------
+    dict[str, Any]
+        Dict with two top-level keys:
+
+        - ``"per_module"``: ``module -> metric_record`` (one entry per
+          module that produced data).
+        - ``"aggregated_phases"``: weighted ``phases`` block.
+
+        Both are intended to be merged into the calling metric's
+        returned record by the metric function itself when it opts
+        into per-module reporting.
+    """
+
+    weights = compute_module_weights(ctx.commits)
+    if not weights:
+        return {"per_module": {}, "aggregated_phases": {}}
+    by_commit = commits_by_module(ctx.commits)
+    by_pr = prs_by_module(ctx.prs)
+    # Index reverts by revert_sha for module attribution.
+    by_revert: dict[str, list[dict[str, Any]]] = defaultdict(list)
+    revert_module_for_sha: dict[str, str] = {}
+    for commit in ctx.commits:
+        sha = commit.get("sha")
+        if isinstance(sha, str):
+            revert_module_for_sha[sha] = (
+                commit.get("module") or classify_commit(commit)
+            )
+    for revert in ctx.reverts:
+        sha = revert.get("revert_sha")
+        if not isinstance(sha, str):
+            continue
+        module = revert_module_for_sha.get(sha) or DEFAULT_MODULE
+        by_revert[module].append(revert)
+
+    per_module: dict[str, Any] = {}
+    per_module_phases: dict[str, dict[str, dict[str, Any]]] = {}
+    for module in weights:
+        module_ctx = ComputeContext(
+            bounds=ctx.bounds,
+            commits=by_commit.get(module, []),
+            prs=by_pr.get(module, []),
+            reviews=ctx.reviews,
+            releases=ctx.releases,
+            reverts=by_revert.get(module, []),
+            tags=ctx.tags,
+            deployments=ctx.deployments,
+            test_results=ctx.test_results,
+            issues=ctx.issues,
+            sla_source=ctx.sla_source,
+            branch_protection=ctx.branch_protection,
+            audit_log=ctx.audit_log,
+            github_access=ctx.github_access,
+            aliases=ctx.aliases,
+        )
+        try:
+            record = metric_fn(module_ctx)
+        except Exception as exc:  # noqa: BLE001 — per-module robustness
+            record = {
+                "value": f"Insufficient signal — per-module compute raised {type(exc).__name__}: {exc}",
+                "phases": {},
+            }
+        per_module[module] = record
+        phases = record.get("phases") or {}
+        # Skip Insufficient-signal modules from the weighted average:
+        # their ``phases`` block is empty by convention.
+        if phases:
+            per_module_phases[module] = phases
+    aggregated_phases = weighted_phase_aggregate(per_module_phases, weights)
+    return {
+        "per_module": per_module,
+        "aggregated_phases": aggregated_phases,
+        "module_weights": weights,
+    }
 
 
 # ---------------------------------------------------------------------------
@@ -1075,17 +1472,59 @@ def _pr_work_type(pr: dict[str, Any]) -> str:
 def _pr_was_in_progress_at(pr: dict[str, Any], when: datetime) -> bool:
     """Was the PR in-progress at the given instant?
 
-    Implements the AAP §0.7.1 user example: a PR is in-progress at
-    ``when`` if (a) it had at least one commit on its branch by
-    ``when`` (i.e., it existed), (b) it was not yet merged at
-    ``when``, and (c) it was not yet closed without merge at
-    ``when``. Draft state is admitted as in-progress regardless of
-    open/closed state (per user example: "OR PR is in draft state").
+    Implements the AAP §0.1.3 user example verbatim:
+
+        In-progress = branch has at least one commit AND PR is open
+        (not merged, not closed-without-merge), OR PR is in draft state.
+
+    The user-supplied definition is a disjunction with two limbs:
+
+    1. **Open-and-not-finalised limb.** The PR has at least one commit
+       on its branch by ``when`` (evidenced by ``created_at`` /
+       ``first_commit_at``), was not yet merged at ``when``, and was
+       not yet closed without merge at ``when``.
+    2. **Draft limb.** The PR is in draft state at ``when``. Draft
+       PRs are by definition not ready for review and therefore count
+       as in-progress regardless of the open/closed-without-merge
+       sub-state of the first limb.
+
+    The ``draft`` field comes from ``extract_github.py`` (``bool``
+    coerced from the GitHub Pulls API ``draft`` property — see
+    ``extract_github.py:521``). When the PR record carries no
+    ``draft`` field (e.g. PRs reconstructed from git-only data), the
+    draft limb degrades silently and only the first limb decides.
+
+    Note on draft-state history
+    ---------------------------
+    The GitHub API exposes the current draft state, not its history.
+    A PR that was drafted, then taken out of draft, and then merged is
+    only known to be "currently draft" if it remains in that state
+    today. The implementation therefore admits the *currently-draft*
+    snapshot as in-progress at ``when``; PRs that left draft state
+    before ``when`` are still admitted via the first limb whenever
+    they were open at that time. This matches the user definition's
+    point-in-time semantics for the open-merged-closed dimensions and
+    relies on the current draft flag as a proxy for the draft state
+    at ``when``.
 
     Bot-author exclusion is handled separately by
     :func:`_pr_counts_for_in_progress`.
     """
 
+    # -- Draft limb (admitted regardless of merge/close state) -------------
+    if pr.get("draft") is True:
+        # Even a draft must have existed at ``when``. Use the earliest
+        # available creation/first-commit timestamp; if none is
+        # recorded we cannot evidence the PR's existence at ``when``
+        # and treat the draft limb as not satisfied (AAP §0.7.2.1
+        # forbids fabricating signal).
+        draft_created_raw = pr.get("created_at") or pr.get("first_commit_at")
+        if draft_created_raw and parse_iso(draft_created_raw) < when:
+            return True
+        # If the draft has no creation timestamp, fall through to
+        # the open-and-not-finalised limb for completeness.
+
+    # -- Open-and-not-finalised limb ---------------------------------------
     created_raw = pr.get("created_at") or pr.get("first_commit_at")
     if not created_raw:
         # No timestamp means we cannot evidence the PR's existence
@@ -1245,6 +1684,25 @@ class ComputeContext:
     reviews: list[dict[str, Any]] = field(default_factory=list)
     releases: list[dict[str, Any]] = field(default_factory=list)
     reverts: list[dict[str, Any]] = field(default_factory=list)
+    # Annotated git tags emitted by ``extract_git.py`` as a fallback
+    # secondary release source per AAP §0.1.3 ("release source precedence:
+    # GitHub Releases → annotated semver tags → deployment events"). Each
+    # record carries ``tag``, ``commit_sha``, ``tagger_date``,
+    # ``commit_date``, ``object_type``, ``is_annotated``, ``is_semver``,
+    # ``is_prerelease``. Optional: when ``tags.jsonl`` is absent the field
+    # remains an empty list and the Releases metric degrades to the
+    # GitHub Releases source alone (or "Insufficient signal" when neither
+    # is available).
+    tags: list[dict[str, Any]] = field(default_factory=list)
+    # Deployment events from CI/CD — the tertiary release source per AAP
+    # §0.1.3. When the github_access manifest enumerates ``deployments``
+    # in its accessible endpoints, ``extract_github.py`` writes the
+    # GitHub Deployments API records here. Each record carries
+    # ``id``, ``sha``, ``ref``, ``environment``, ``created_at``,
+    # ``updated_at``, and ``transient_environment`` / ``production_environment``
+    # flags. Empty on Formbricks today because the public Deployments API
+    # requires authenticated access for write-protected repositories.
+    deployments: list[dict[str, Any]] = field(default_factory=list)
     test_results: list[dict[str, Any]] = field(default_factory=list)
     issues: list[dict[str, Any]] = field(default_factory=list)
     sla_source: dict[str, Any] = field(default_factory=dict)
@@ -1535,10 +1993,25 @@ def compute_flow_velocity(ctx: ComputeContext) -> dict[str, Any]:
             actor_rates[phase] = [total / windows]
         per_actor[actor] = phase_aggregate(actor_rates, op="mean")
 
+    # Per-active-engineer normalisation (AAP §0.8.5: "Normalize for team
+    # growth by measuring per active engineer where applicable"). Flow
+    # Velocity is a count-style metric: raw merges per window doubles
+    # when team size doubles, masking real productivity changes. The
+    # normalised view divides by the count of distinct active engineers
+    # in each phase, surfacing the per-person trajectory alongside the
+    # team-level rate. Both views are emitted so renderers can show
+    # either the headline or the normalised value as appropriate.
+    active_by_phase = active_engineers_per_phase(ctx)
+    normalised = normalise_phase_values_by_active_engineers(
+        agg, active_by_phase
+    )
+
     conf, rationale = assign_confidence("git PR-merge counts per 14-day window")
     return {
         "metric_id": "flow_velocity",
         "phases": agg,
+        "phases_per_active_engineer": normalised,
+        "active_engineers_per_phase": active_by_phase,
         "per_actor": per_actor,
         "confidence": conf,
         "confidence_rationale": rationale,
@@ -1549,9 +2022,17 @@ def compute_flow_velocity(ctx: ComputeContext) -> dict[str, Any]:
         ),
         "boundary_conditions": (
             "Rate computed per Monday-aligned 2-week window in each "
-            "phase; windows with zero merges are still counted."
+            "phase; windows with zero merges are still counted. The "
+            "``phases`` block holds the team-level rate; the "
+            "``phases_per_active_engineer`` block divides by the count "
+            "of distinct authors with ≥1 non-merge commit in the phase "
+            "per AAP §0.8.5."
         ),
-        "interpretation": "Average merged PRs per 2-week window.",
+        "interpretation": (
+            "Average merged PRs per 2-week window (team-level), with a "
+            "per-active-engineer normalised view for team-growth "
+            "correction."
+        ),
     }
 
 
@@ -1636,52 +2117,278 @@ def compute_flow_predictability(ctx: ComputeContext) -> dict[str, Any]:
     }
 
 
-def _pr_active_seconds(pr: dict[str, Any]) -> float | None:
-    """Best-effort active-working-time estimate (seconds) for a PR.
+def _ready_for_review_at(
+    pr: dict[str, Any], pr_reviews: list[dict[str, Any]]
+) -> datetime | None:
+    """Compute the AAP §0.1.3 ready-for-review event timestamp for a PR.
 
-    Priority order:
+    Per the user example in AAP §0.1.3 verbatim:
 
-    1. Explicit ``active_spans_seconds`` field set by an upstream
-       extractor (none currently emit it; reserved for future
-       enrichment).
-    2. ``first_commit_at`` → ``merged_at`` interval. This is the
-       most signal-rich proxy available from git-history alone: it
-       captures the elapsed time from the author's first commit on
-       the branch to the merge of that branch into main. Review
-       wait is included in the interval but is later netted out by
-       Flow Efficiency.
-    3. ``None`` when neither timestamp is available.
+        Ready-for-review is the earliest of:
+        (a) PR leaving draft state,
+        (b) first review requested,
+        (c) first commit by another author,
+        (d) PR opened.
+
+    The implementation matches the four limbs in order and returns
+    the earliest available timestamp. Limbs whose underlying signal
+    is unavailable (e.g. draft-state history is not exposed by the
+    GitHub Pulls API) silently degrade — the remaining limbs still
+    decide.
+
+    Specifically:
+
+    - (a) **PR leaving draft state.** GitHub exposes the *current*
+      ``draft`` boolean (``extract_github.py:521``) but not the
+      timestamp at which the PR left draft. When ``draft`` is
+      ``False`` and ``created_at`` is available, we use
+      ``created_at`` as a defensible upper bound (the PR was, at
+      worst, non-draft at open time); when ``draft`` is ``True``
+      today, limb (a) does not contribute.
+    - (b) **First review requested.** The first review's
+      ``submitted_at`` from ``reviews.jsonl`` (sorted ascending).
+      "Review requested" is a distinct event in the GitHub timeline
+      that the current ``extract_github.py`` does not capture
+      separately; the first actual review submission is the
+      tightest available proxy.
+    - (c) **First commit by another author.** Per-commit-on-branch
+      data is only recoverable from two-parent merges (squash-merge
+      PRs collapse the branch into a single commit). When the
+      branch metadata is available it is encoded in
+      ``first_commit_at`` / ``last_commit_at`` / commit records;
+      otherwise this limb does not contribute.
+    - (d) **PR opened.** ``created_at`` from the GitHub Pulls API.
 
     Parameters
     ----------
     pr : dict
         A single PR record.
+    pr_reviews : list[dict]
+        All review records for this PR, sorted ascending by
+        ``submitted_at``.
 
     Returns
     -------
-    float or None
-        Active span in seconds, or ``None`` when no proxy is
-        derivable.
+    datetime or None
+        The earliest available ready-for-review timestamp, or
+        ``None`` when no signal can be evidenced.
     """
 
+    candidates: list[datetime] = []
+    # Limb (d): PR opened (created_at).
+    created_raw = pr.get("created_at")
+    if created_raw:
+        try:
+            candidates.append(parse_iso(created_raw))
+        except (ValueError, TypeError):  # pragma: no cover - defensive
+            pass
+    # Limb (a): PR leaving draft state. When the PR is currently
+    # non-draft and we have ``created_at``, we assume the leave-draft
+    # event occurred no later than open time and reuse the limb (d)
+    # signal (no separate signal available in the extractor today).
+    # When ``draft`` is True today, limb (a) does not contribute.
+    # When ``draft`` is False and ``created_at`` is absent, we cannot
+    # bound the leave-draft event.
+    # (Already handled by limb (d) above; no separate append needed.)
+    # Limb (b): First review submission.
+    for review in pr_reviews:
+        submitted_raw = review.get("submitted_at")
+        if not submitted_raw:
+            continue
+        try:
+            candidates.append(parse_iso(submitted_raw))
+            break  # earliest review only
+        except (ValueError, TypeError):  # pragma: no cover - defensive
+            continue
+    # Limb (c): First commit by another author. Without per-commit-on
+    # -branch data, we cannot evidence an author switch; this limb
+    # silently degrades.
+    if not candidates:
+        return None
+    return min(candidates)
+
+
+def _pr_active_seconds(
+    pr: dict[str, Any], pr_reviews: list[dict[str, Any]] | None = None
+) -> tuple[float | None, str]:
+    """Compute the AAP §0.3.4 Flow Active span for a PR.
+
+    Per the AAP §0.3.4 specification, Flow Active is the sum of
+    inclusive working-time spans:
+
+    1. **Initial active span** = ``first_commit_at → ready_for_review_at``.
+       The author worked from the first commit on the branch until
+       the PR became ready for review (PR opened, first review
+       requested, draft exit, or first co-author commit — earliest
+       wins; see :func:`_ready_for_review_at`).
+    2. **Refinement spans** = for each review event ``r_i``, the
+       interval from ``r_i.submitted_at`` to the next event
+       (``r_{i+1}.submitted_at`` or ``merged_at`` if ``r_i`` is the
+       last review). Without per-commit-on-branch data we cannot
+       narrow to "first commit after review → last commit before
+       next review", so the proxy includes the post-review revision
+       window; review-wait gaps between reviews still count as wait
+       time (handled by Flow Efficiency, not Flow Active).
+
+    The function returns ``(active_seconds, computation_method)``
+    so the caller can record the method actually used in the metric's
+    ``boundary_conditions``.
+
+    Graceful degradation when the per-review/per-commit fields are
+    unavailable:
+
+    - When reviews are available, refinement spans are computed from
+      review timestamps.
+    - When reviews are unavailable but ``created_at`` and
+      ``first_commit_at`` are present, the initial span alone is
+      used; ``method`` is ``"initial_span_only"``.
+    - When neither created_at nor reviews are available but
+      ``first_commit_at`` and ``merged_at`` are present, the
+      branch-life proxy ``first_commit_at → merged_at`` is used
+      and ``method`` is ``"branch_life_proxy"``. The proxy
+      overstates active time (includes review wait), and the
+      boundary condition is recorded.
+    - When even branch-life cannot be derived, returns ``(None, "")``.
+
+    Parameters
+    ----------
+    pr : dict
+        A single PR record.
+    pr_reviews : list[dict] or None
+        All reviews on this PR, sorted ascending by
+        ``submitted_at``. ``None`` is treated as no reviews
+        available.
+
+    Returns
+    -------
+    tuple[float | None, str]
+        ``(active_seconds, method)``. ``active_seconds`` is the
+        summed inclusive working duration; ``None`` when no span
+        could be derived. ``method`` is one of
+        ``"ready_for_review_refinement"``,
+        ``"initial_span_only"``, ``"branch_life_proxy"``, or
+        ``""`` (when active_seconds is None).
+    """
+
+    reviews = pr_reviews or []
     explicit = pr.get("active_spans_seconds")
     if isinstance(explicit, (int, float)) and explicit > 0:
-        return float(explicit)
+        return float(explicit), "explicit_field"
     first_raw = pr.get("first_commit_at")
     merged_raw = pr.get("merged_at")
-    if not first_raw or not merged_raw:
-        return None
-    span = (parse_iso(merged_raw) - parse_iso(first_raw)).total_seconds()
-    return float(span) if span > 0 else None
+    # Compute ready-for-review timestamp (initial span endpoint).
+    ready_at = _ready_for_review_at(pr, reviews)
+    # Path 1: full ready-for-review + refinement-spans computation.
+    if first_raw and ready_at is not None:
+        first_at = parse_iso(first_raw)
+        # Initial span: first_commit_at → ready_for_review_at.
+        # The user prompt requires "inclusive durations; do not subtract
+        # idle gaps within a span", so we use raw elapsed time. The
+        # span is clamped to >= 0 to defend against records where
+        # ready_at is recorded *before* first_commit_at (data error).
+        initial = max(0.0, (ready_at - first_at).total_seconds())
+        # Refinement spans: each review.submitted_at → next event.
+        refinement = 0.0
+        review_times: list[datetime] = []
+        for review in reviews:
+            submitted_raw = review.get("submitted_at")
+            if not submitted_raw:
+                continue
+            try:
+                review_times.append(parse_iso(submitted_raw))
+            except (ValueError, TypeError):  # pragma: no cover - defensive
+                continue
+        review_times.sort()
+        # Skip the very first review when it coincides with
+        # ready-for-review (limb (b) of the ready_for_review_at
+        # selection); the initial-span endpoint already accounts for
+        # it. Subsequent reviews drive refinement spans.
+        if review_times and review_times[0] == ready_at:
+            review_iter = review_times[1:]
+        else:
+            review_iter = review_times
+        merged_at = parse_iso(merged_raw) if merged_raw else None
+        for i, review_at in enumerate(review_iter):
+            next_event_at: datetime | None
+            if i + 1 < len(review_iter):
+                next_event_at = review_iter[i + 1]
+            else:
+                next_event_at = merged_at
+            if next_event_at is None:
+                continue
+            refinement += max(0.0, (next_event_at - review_at).total_seconds())
+        total = initial + refinement
+        if total > 0:
+            method = (
+                "ready_for_review_refinement"
+                if review_iter
+                else "initial_span_only"
+            )
+            return float(total), method
+    # Path 2: branch-life proxy. Documented as Medium-confidence proxy.
+    if first_raw and merged_raw:
+        span = (parse_iso(merged_raw) - parse_iso(first_raw)).total_seconds()
+        if span > 0:
+            return float(span), "branch_life_proxy"
+    return None, ""
+
+
+def _index_reviews_by_pr(
+    reviews: list[dict[str, Any]],
+) -> dict[Any, list[dict[str, Any]]]:
+    """Group review records by ``pr_number``, sorted ascending by ``submitted_at``.
+
+    Parameters
+    ----------
+    reviews : list[dict]
+        The decoded ``reviews.jsonl`` records.
+
+    Returns
+    -------
+    dict[Any, list[dict[str, Any]]]
+        Mapping from PR number to ascending-ordered review list.
+    """
+
+    by_pr: dict[Any, list[dict[str, Any]]] = defaultdict(list)
+    for review in reviews:
+        pr_number = review.get("pr_number")
+        if pr_number is None:
+            continue
+        by_pr[pr_number].append(review)
+    for pr_number, items in by_pr.items():
+        items.sort(key=lambda r: r.get("submitted_at") or "")
+    return by_pr
 
 
 def compute_flow_active(ctx: ComputeContext) -> dict[str, Any]:
     """Metric 4 — Flow Active.
 
-    Median working-time per PR (in hours). The active time is the
-    interval from the first author commit on the branch to merge
-    when the upstream extractors have not provided a more precise
-    span. Per-actor breakdown is produced per AAP §0.8.5.
+    Median active working-time per PR (in hours), measured as the
+    sum of inclusive working spans per AAP §0.3.4:
+
+    1. **Initial span** = ``first_commit_at → ready_for_review_at``.
+       ``ready_for_review_at`` is the earliest of (a) PR leaving
+       draft state, (b) first review requested/submitted, (c) first
+       commit by another author, (d) PR opened — see
+       :func:`_ready_for_review_at`.
+    2. **Refinement spans** = for each review event, the interval
+       from ``review.submitted_at`` to the next review's
+       ``submitted_at`` (or ``merged_at`` for the last review).
+
+    Per AAP §0.8.1 (Engineering Actor Framing), per-actor breakdown
+    includes Blitzy Agent as one row in the after period; the same
+    code path runs with only the actor identity substituted.
+
+    Graceful degradation when reviews / created_at are unavailable:
+
+    - With reviews available: full ready-for-review + refinement
+      computation (``method=ready_for_review_refinement``).
+    - With ``created_at`` but no reviews: initial span only
+      (``method=initial_span_only``).
+    - With only branch-life timestamps (``first_commit_at`` and
+      ``merged_at``): branch-life proxy (``method=branch_life_proxy``);
+      this overstates active time and the boundary_conditions string
+      records the proxy.
 
     Parameters
     ----------
@@ -1693,21 +2400,26 @@ def compute_flow_active(ctx: ComputeContext) -> dict[str, Any]:
         Canonical metric record with ``phases`` and ``per_actor``.
     """
 
+    reviews_by_pr = _index_reviews_by_pr(ctx.reviews)
+
     by_phase: dict[str, list[float]] = defaultdict(list)
     actor_phase: dict[str, dict[str, list[float]]] = defaultdict(
         lambda: defaultdict(list)
     )
     excluded = 0
     total_merged = 0
+    method_counts: Counter = Counter()
     for pr in ctx.prs:
         merged_raw = pr.get("merged_at")
         if not merged_raw:
             continue
         total_merged += 1
-        active = _pr_active_seconds(pr)
+        pr_reviews = reviews_by_pr.get(pr.get("number")) or []
+        active, method = _pr_active_seconds(pr, pr_reviews)
         if active is None:
             excluded += 1
             continue
+        method_counts[method] += 1
         merged = parse_iso(merged_raw)
         phase = ctx.bounds.phase_for(merged)
         hours = active / 3600.0
@@ -1717,16 +2429,19 @@ def compute_flow_active(ctx: ComputeContext) -> dict[str, Any]:
 
     if not any(by_phase.values()):
         return {"metric_id": "flow_active"} | insufficient_signal(
-            "no PR records carried both first_commit_at and merged_at",
+            "no PR records carried sufficient timing data to compute Flow Active",
             tried=[
                 "prs.jsonl active_spans_seconds field",
-                "prs.jsonl first_commit_at + merged_at branch-life proxy",
+                "reviews.jsonl + first_commit_at (ready-for-review + refinement spans)",
+                "first_commit_at + created_at (initial span only)",
+                "first_commit_at + merged_at (branch-life proxy)",
             ],
             needed=(
                 "PR records with branch-history timestamps (only "
                 "true two-parent merges yield first_commit_at; "
                 "squash-merge repositories require GitHub API or "
-                "branch reflog access)."
+                "branch reflog access) and ideally reviews.jsonl for "
+                "ready-for-review + refinement-span semantics."
             ),
         )
 
@@ -1735,8 +2450,29 @@ def compute_flow_active(ctx: ComputeContext) -> dict[str, Any]:
         actor: phase_aggregate(phase_map, op="median")
         for actor, phase_map in actor_phase.items()
     }
-    conf, rationale = assign_confidence(
-        "git first-commit and merge timestamps (Flow Active proxy)"
+    # Confidence reflects the dominant computation method used.
+    dominant_method = (
+        method_counts.most_common(1)[0][0] if method_counts else ""
+    )
+    if dominant_method == "explicit_field":
+        conf, rationale = assign_confidence(
+            "explicit active_spans_seconds field on PR records"
+        )
+    elif dominant_method == "ready_for_review_refinement":
+        conf, rationale = assign_confidence(
+            "GitHub reviews API timestamps + git first-commit (Flow Active "
+            "ready-for-review + refinement spans)"
+        )
+    elif dominant_method == "initial_span_only":
+        conf, rationale = assign_confidence(
+            "git first-commit and created_at timestamps (Flow Active initial span only)"
+        )
+    else:
+        conf, rationale = assign_confidence(
+            "git first-commit and merge timestamps (Flow Active proxy)"
+        )
+    method_label_by_count = ", ".join(
+        f"{method}={count}" for method, count in sorted(method_counts.items())
     )
     return {
         "metric_id": "flow_active",
@@ -1746,12 +2482,17 @@ def compute_flow_active(ctx: ComputeContext) -> dict[str, Any]:
         "confidence_rationale": rationale,
         "direction_of_improvement": "lower",
         "extraction_command": (
-            "first_commit_at → merged_at interval per PR from extract_git.py"
+            "Flow Active = initial(first_commit_at → ready_for_review_at) + "
+            "Σ refinement(review_n → review_{n+1} OR merged_at) per PR"
         ),
         "boundary_conditions": (
-            f"Excluded {excluded}/{total_merged} merged PRs lacking "
-            "branch-history timestamps (typical for squash-merged "
-            "repositories)."
+            f"Excluded {excluded}/{total_merged} merged PRs lacking the "
+            f"timing data required for any computation path. Computation "
+            f"methods used: {method_label_by_count or 'none'}. The "
+            f"branch_life_proxy method overstates active time because it "
+            f"includes review-wait intervals; subsequent runs with "
+            f"reviews.jsonl populated migrate those PRs to "
+            f"ready_for_review_refinement."
         ),
         "interpretation": "Median active working-time per PR (hours).",
     }
@@ -1764,11 +2505,19 @@ def compute_flow_efficiency(ctx: ComputeContext) -> dict[str, Any]:
     Result lies in ``[0, 1]``. Higher values indicate less idle
     waiting between code activity bursts and merge.
 
-    Active-time uses the same proxy as :func:`compute_flow_active`
-    (first commit on branch → merge). When that interval equals
-    total flow-time, the ratio is 1.0; the moment external review
-    queues introduce delay, the active span shrinks relative to
-    flow-time and the ratio falls below 1.
+    Per AAP §0.3.4: ``Flow Efficiency = Flow Active / Flow Time``
+    per PR; median across PRs per phase. Active time uses the same
+    ready-for-review + refinement-spans computation as
+    :func:`compute_flow_active` (NOT the branch-life proxy), so when
+    reviews.jsonl is populated the ratio correctly reflects the
+    fraction of total flow time spent actively coding versus
+    waiting on review.
+
+    When reviews are unavailable and the only computation method is
+    the branch-life proxy, the active span equals flow time and the
+    ratio is pinned to 1.0; the boundary_conditions string records
+    this so consumers do not interpret a 1.0 reading as "perfect
+    efficiency" — it indicates the proxy was used.
 
     Parameters
     ----------
@@ -1780,12 +2529,15 @@ def compute_flow_efficiency(ctx: ComputeContext) -> dict[str, Any]:
         Canonical metric record with ``phases`` and ``per_actor``.
     """
 
+    reviews_by_pr = _index_reviews_by_pr(ctx.reviews)
+
     by_phase: dict[str, list[float]] = defaultdict(list)
     actor_phase: dict[str, dict[str, list[float]]] = defaultdict(
         lambda: defaultdict(list)
     )
     excluded = 0
     total_merged = 0
+    method_counts: Counter = Counter()
     for pr in ctx.prs:
         merged_raw = pr.get("merged_at")
         if not merged_raw:
@@ -1801,7 +2553,12 @@ def compute_flow_efficiency(ctx: ComputeContext) -> dict[str, Any]:
         if flow_time <= 0:
             excluded += 1
             continue
-        active = _pr_active_seconds(pr) or flow_time
+        pr_reviews = reviews_by_pr.get(pr.get("number")) or []
+        active, method = _pr_active_seconds(pr, pr_reviews)
+        if active is None or active <= 0:
+            excluded += 1
+            continue
+        method_counts[method] += 1
         ratio = max(0.0, min(1.0, active / flow_time))
         phase = ctx.bounds.phase_for(merged)
         by_phase[phase].append(ratio)
@@ -1810,14 +2567,18 @@ def compute_flow_efficiency(ctx: ComputeContext) -> dict[str, Any]:
 
     if not any(by_phase.values()):
         return {"metric_id": "flow_efficiency"} | insufficient_signal(
-            "no PR records carried first_commit_at and merged_at",
+            "no PR records carried sufficient timing data to compute Flow Efficiency",
             tried=[
-                "prs.jsonl first_commit_at + merged_at",
-                "prs.jsonl active_spans_seconds (preferred when present)",
+                "active_spans_seconds + (merged_at - first_commit_at)",
+                "ready-for-review + refinement spans / flow-time",
+                "initial span / flow-time",
             ],
             needed=(
                 "PR records with both first_commit_at and merged_at "
-                "(typically requires two-parent merges or GitHub API)."
+                "(typically requires two-parent merges or GitHub API). "
+                "reviews.jsonl is required to compute the active span "
+                "as a strict fraction of flow time; without it the "
+                "active span pins to flow-time and the ratio is 1.0."
             ),
         )
 
@@ -1826,8 +2587,23 @@ def compute_flow_efficiency(ctx: ComputeContext) -> dict[str, Any]:
         actor: phase_aggregate(phase_map, op="median")
         for actor, phase_map in actor_phase.items()
     }
-    conf, rationale = assign_confidence(
-        "git first-commit / active-span and total flow-time ratios"
+    dominant_method = (
+        method_counts.most_common(1)[0][0] if method_counts else ""
+    )
+    if dominant_method == "ready_for_review_refinement":
+        conf, rationale = assign_confidence(
+            "reviews API + git first-commit ratio (true active fraction)"
+        )
+    elif dominant_method == "initial_span_only":
+        conf, rationale = assign_confidence(
+            "git first-commit / created_at ratio (initial-span fraction)"
+        )
+    else:
+        conf, rationale = assign_confidence(
+            "git first-commit / active-span and total flow-time ratios"
+        )
+    method_label_by_count = ", ".join(
+        f"{method}={count}" for method, count in sorted(method_counts.items())
     )
     return {
         "metric_id": "flow_efficiency",
@@ -1837,11 +2613,17 @@ def compute_flow_efficiency(ctx: ComputeContext) -> dict[str, Any]:
         "confidence_rationale": rationale,
         "direction_of_improvement": "higher",
         "extraction_command": (
-            "active_spans_seconds / (merged_at - first_commit_at) per PR"
+            "Flow Active (ready-for-review + refinement) / "
+            "(merged_at - first_commit_at) per PR"
         ),
         "boundary_conditions": (
             f"Excluded {excluded}/{total_merged} merged PRs lacking "
-            "first_commit_at or producing a non-positive flow-time."
+            f"first_commit_at or producing a non-positive flow-time. "
+            f"Computation methods used: {method_label_by_count or 'none'}. "
+            f"When the branch_life_proxy is the only available method "
+            f"the active span equals flow time and the ratio is pinned "
+            f"to 1.0 (treat as 'reviews data unavailable', not as "
+            f"'perfect efficiency')."
         ),
         "interpretation": (
             "Median ratio of active work-time to total flow-time per PR."
@@ -2076,8 +2858,22 @@ def compute_problem_records(ctx: ComputeContext) -> dict[str, Any]:
                 continue
             incident_counts[ctx.bounds.phase_for(parse_iso(created_raw))] += 1
 
+    # Per AAP §0.3.4 revert attribution: count ONLY reverts whose
+    # original commit is identifiable (explicit "Reverts commit <SHA>"
+    # message reference or tree-match against a prior commit's
+    # parent). Reverts whose original cannot be identified are
+    # excluded as "unattributable" and reverts-of-reverts are
+    # excluded by ``extract_git.py`` upstream. The
+    # ``original_resolution`` field on each revert record is the
+    # canonical attribution flag:
+    #   - "explicit_message_reference" — exact SHA cited in revert body
+    #   - "tree_match"                  — parent-tree match
+    #   - "unresolved"                  — neither path succeeded (EXCLUDE)
     revert_counts: Counter = Counter()
+    revert_excluded_by_phase: Counter = Counter()
+    total_reverts = 0
     for revert in ctx.reverts:
+        total_reverts += 1
         when_raw = (
             revert.get("revert_committed_at")
             or revert.get("revert_date")
@@ -2085,7 +2881,32 @@ def compute_problem_records(ctx: ComputeContext) -> dict[str, Any]:
         )
         if not when_raw:
             continue
-        revert_counts[ctx.bounds.phase_for(parse_iso(when_raw))] += 1
+        phase = ctx.bounds.phase_for(parse_iso(when_raw))
+        resolution = (revert.get("original_resolution") or "").lower()
+        original_sha = revert.get("original_sha")
+        # Exclude unattributable reverts per AAP §0.3.4. The
+        # canonical "unresolved" resolution flag, an explicit None
+        # original_sha, or any non-attributing resolution removes the
+        # revert from the count and increments the per-phase
+        # exclusion counter for the boundary_conditions string.
+        if (
+            resolution == "unresolved"
+            or original_sha is None
+            or original_sha == ""
+        ):
+            revert_excluded_by_phase[phase] += 1
+            continue
+        if resolution not in {
+            "explicit_message_reference",
+            "tree_match",
+            "explicit_reference",  # accept synonyms used by past extractors
+            "tree_match_against_parent",
+        } and resolution != "":
+            # Unrecognised resolution flag — treat as unattributable
+            # to err on the side of not counting noise.
+            revert_excluded_by_phase[phase] += 1
+            continue
+        revert_counts[phase] += 1
 
     if sum(incident_counts.values()) > 0:
         by_phase = {p: [incident_counts.get(p, 0)] for p in ctx.bounds.phases()}
@@ -2108,6 +2929,15 @@ def compute_problem_records(ctx: ComputeContext) -> dict[str, Any]:
     if sum(revert_counts.values()) > 0:
         by_phase = {p: [revert_counts.get(p, 0)] for p in ctx.bounds.phases()}
         agg = phase_aggregate(by_phase, op="sum")
+        excluded_total = sum(revert_excluded_by_phase.values())
+        excluded_summary = (
+            ", ".join(
+                f"{phase}={count}"
+                for phase, count in sorted(revert_excluded_by_phase.items())
+            )
+            if excluded_total
+            else "none"
+        )
         return {
             "metric_id": "problem_records",
             "phases": agg,
@@ -2118,23 +2948,31 @@ def compute_problem_records(ctx: ComputeContext) -> dict[str, Any]:
             ),
             "direction_of_improvement": "lower",
             "extraction_command": (
-                "git log --grep='^Revert ' (extract_git.py reverts.jsonl)"
+                "git log --grep='^Revert ' (extract_git.py reverts.jsonl) "
+                "AND original_resolution IN "
+                "('explicit_message_reference', 'tree_match')"
             ),
             "boundary_conditions": (
-                "Revert commits are a proxy for production incidents; "
-                "reverts attributable to a release are admitted, "
-                "reverts whose original commit cannot be identified "
-                "are excluded."
+                f"Revert commits are a proxy for production incidents per "
+                f"AAP §0.3.4. Counted only reverts with a resolved "
+                f"original commit (explicit message reference or "
+                f"tree-match). Excluded {excluded_total}/{total_reverts} "
+                f"unattributable reverts (per-phase: {excluded_summary}); "
+                f"these would otherwise inflate the count with "
+                f"revert-of-revert noise and revert commits whose "
+                f"original commit cannot be identified."
             ),
             "interpretation": (
-                "Count of revert commits per phase (incident proxy)."
+                "Count of attributable revert commits per phase "
+                "(incident proxy)."
             ),
         }
     return {"metric_id": "problem_records"} | insufficient_signal(
-        "no incident labels and no revert commits in the analysed history",
+        "no incident labels and no attributable revert commits in the analysed history",
         tried=[
             "GitHub Issues labels: incident, outage, p0, sev-1",
-            "git reverts.jsonl from extract_git.py",
+            "git reverts.jsonl from extract_git.py (attributable only — "
+            "unresolved/unattributable reverts excluded per AAP §0.3.4)",
         ],
         needed=(
             "An issue-tracker incident-label taxonomy OR a pager / "
@@ -2143,13 +2981,196 @@ def compute_problem_records(ctx: ComputeContext) -> dict[str, Any]:
     )
 
 
+def _aggregate_release_events(
+    events: list[tuple[datetime, bool]],
+    ctx: ComputeContext,
+) -> tuple[dict[str, list[float]], dict[str, int]]:
+    """Aggregate (timestamp, is_prerelease) events into per-phase rate lists.
+
+    Helper for :func:`compute_releases`. Each event is bucketed into the
+    phase covering its timestamp; prereleases are tallied separately and
+    excluded from the rate computation. The rate is
+    ``non_prerelease_count / distinct_windows_seen`` so a single window
+    with three releases reports a higher rate than three windows with
+    one release each — the Flow Framework's standard "Deployment
+    Frequency" definition.
+
+    Parameters
+    ----------
+    events : list[tuple[datetime, bool]]
+        ``(published_at, is_prerelease)`` pairs.
+    ctx : ComputeContext
+        Provides phase bounds and the Monday anchor for window keys.
+
+    Returns
+    -------
+    tuple[dict, dict]
+        ``(rates_by_phase, prerelease_counts_by_phase)``.
+    """
+
+    counts_by_phase: Counter = Counter()
+    prerelease_counts: Counter = Counter()
+    seen_windows: dict[str, set[datetime]] = defaultdict(set)
+    for published, is_prerelease in events:
+        phase = ctx.bounds.phase_for(published)
+        if is_prerelease:
+            prerelease_counts[phase] += 1
+            continue
+        counts_by_phase[phase] += 1
+        seen_windows[phase].add(
+            window_start_for(published, ctx.bounds.anchor_monday)
+        )
+    rates_by_phase: dict[str, list[float]] = {}
+    for phase, total in counts_by_phase.items():
+        windows = max(1, len(seen_windows[phase]))
+        rates_by_phase[phase] = [total / windows]
+    return rates_by_phase, dict(prerelease_counts)
+
+
+def _release_events_from_github_releases(
+    ctx: ComputeContext,
+) -> list[tuple[datetime, bool]]:
+    """Extract ``(published_at, is_prerelease)`` events from GitHub Releases.
+
+    AAP §0.1.3 release source precedence (1). A release is considered
+    prerelease iff either ``prerelease=True`` in the API response **or**
+    the tag name matches the regex defined in
+    :data:`_PRERELEASE_SUFFIX_RE`.
+
+    Records without any timestamp are skipped silently (no useful
+    bucketing is possible for an undated event).
+    """
+
+    events: list[tuple[datetime, bool]] = []
+    for release in ctx.releases:
+        published_raw = release.get("published_at") or release.get("created_at")
+        if not published_raw:
+            continue
+        try:
+            published = parse_iso(published_raw)
+        except (ValueError, TypeError):
+            continue
+        tag = (release.get("tag_name") or "").strip()
+        is_prerelease = bool(release.get("prerelease")) or bool(
+            tag and _PRERELEASE_SUFFIX_RE.search(tag)
+        )
+        events.append((published, is_prerelease))
+    return events
+
+
+def _release_events_from_tags(
+    ctx: ComputeContext,
+) -> list[tuple[datetime, bool]]:
+    """Extract ``(tagger_date, is_prerelease)`` events from annotated tags.
+
+    AAP §0.1.3 release source precedence (2). Only **annotated** semver
+    tags qualify as a release proxy — lightweight tags (``object_type ==
+    "commit"``) are convenient SHAs but do not constitute a release
+    decision. Tags that do not match the semver pattern
+    (``v?\\d+\\.\\d+\\.\\d+``) are skipped.
+
+    The timestamp preference order is:
+
+    1. ``tagger_date`` (when the tag itself was created — the closest
+       analogue to ``published_at`` on a GitHub Release).
+    2. ``commit_date`` (when the underlying commit was authored).
+
+    Records that produce neither timestamp are skipped silently.
+    """
+
+    events: list[tuple[datetime, bool]] = []
+    for record in ctx.tags:
+        if not record.get("is_annotated"):
+            continue
+        if not record.get("is_semver"):
+            continue
+        when_raw = (
+            (record.get("tagger_date") or "").strip()
+            or (record.get("commit_date") or "").strip()
+        )
+        if not when_raw:
+            continue
+        try:
+            when = parse_iso(when_raw)
+        except (ValueError, TypeError):
+            continue
+        events.append((when, bool(record.get("is_prerelease"))))
+    return events
+
+
+def _release_events_from_deployments(
+    ctx: ComputeContext,
+) -> list[tuple[datetime, bool]]:
+    """Extract ``(created_at, is_prerelease)`` events from deployment events.
+
+    AAP §0.1.3 release source precedence (3). Only deployments to
+    *production* environments count toward the release rate; preview /
+    staging / development deployments are noise for this metric. The
+    GitHub Deployments API marks production environments via the
+    ``production_environment`` flag (truthy) or by an explicit
+    environment name in the AAP-recognised set (``production``,
+    ``prod``).
+
+    Prereleases are not a deployment concept; this source therefore
+    reports ``is_prerelease=False`` for every event.
+    """
+
+    events: list[tuple[datetime, bool]] = []
+    production_envs = {"production", "prod"}
+    for record in ctx.deployments:
+        env_raw = record.get("environment")
+        env = env_raw.lower() if isinstance(env_raw, str) else ""
+        is_production = (
+            bool(record.get("production_environment"))
+            or env in production_envs
+        )
+        if not is_production:
+            continue
+        when_raw = record.get("created_at") or record.get("updated_at")
+        if not when_raw:
+            continue
+        try:
+            when = parse_iso(when_raw)
+        except (ValueError, TypeError):
+            continue
+        events.append((when, False))
+    return events
+
+
 def compute_releases(ctx: ComputeContext) -> dict[str, Any]:
     """Metric 9 — Releases.
 
-    Average number of non-prerelease GitHub Releases per 2-week
-    window in each phase. Prereleases (tag suffixes ``-alpha``,
-    ``-beta``, ``-rc``, ``-dev``) are excluded from the primary
-    count and reported separately in ``boundary_conditions``.
+    Average number of non-prerelease release events per 2-week window
+    in each phase. Implements the AAP §0.1.3 **release source
+    precedence** (verbatim): "(1) GitHub Releases / GitLab Releases API,
+    (2) annotated git tags matching semver pattern v?\\d+\\.\\d+\\.\\d+,
+    (3) deployment events from CI/CD if accessible. Prerelease tags
+    (matching -alpha, -beta, -rc, -dev suffixes) are excluded from the
+    primary count and reported separately."
+
+    Precedence cascade (each level falls through to the next iff the
+    higher-priority source yields zero non-prerelease events):
+
+    1. **GitHub Releases API** — High confidence ("direct counts in
+       issue tracker"-equivalent: the release API is the authoritative
+       publication record for repositories that use GitHub Releases as
+       their distribution channel, which Formbricks does per
+       ``formbricks-release.yml`` triggering on ``release.published``).
+    2. **Annotated semver git tags** — Medium confidence
+       ("approximated from git commit patterns"-equivalent: tags are
+       declarative and intentional, but tagging without publishing a
+       Release omits the release notes / asset bundle that distinguish
+       a "release" from a "tag").
+    3. **CI/CD deployment events** — Low confidence ("inferred from
+       indirect proxies"-equivalent: deployments are operational
+       events, not release decisions; a deployment may be a rollback
+       or a hotfix that does not correspond to a versioned release).
+
+    Confidence is assigned per the rubric in AAP §0.8.3 based on the
+    source that actually produced events at runtime, NOT the
+    theoretically-preferred source. The ``data_source`` field in the
+    returned record records the chosen source explicitly so the report
+    renderer can include it in the boundary-conditions paragraph.
 
     Parameters
     ----------
@@ -2158,78 +3179,181 @@ def compute_releases(ctx: ComputeContext) -> dict[str, Any]:
     Returns
     -------
     dict
-        Canonical metric record with ``phases``.
+        Canonical metric record with ``phases``, ``data_source``,
+        ``confidence``, ``confidence_rationale``, ``extraction_command``,
+        and ``boundary_conditions``.
     """
 
-    accessible = (
+    # ---- Level 1: GitHub Releases API ----
+    gh_release_events = _release_events_from_github_releases(ctx)
+    gh_accessible = (
         "releases" in (ctx.github_access.get("endpoints_accessible") or [])
         or bool(ctx.releases)
     )
-    if not ctx.releases and not accessible:
-        return {"metric_id": "releases"} | insufficient_signal(
-            "GitHub Releases API not accessible",
-            tried=["GitHub Releases API", "annotated git tags"],
-            needed=(
-                "GITHUB_TOKEN with repo:read scope; this repository "
-                "publishes via GitHub Releases (formbricks-release.yml "
-                "triggers on release.published) so the API is the "
-                "authoritative source."
-            ),
+    if gh_release_events:
+        rates_by_phase, prerelease_counts = _aggregate_release_events(
+            gh_release_events, ctx
         )
-    if not ctx.releases:
-        return {"metric_id": "releases"} | insufficient_signal(
-            "GitHub Releases endpoint accessible but returned zero releases",
-            tried=["GitHub Releases API"],
-            needed="At least one published GitHub Release in the analysed history.",
+        if rates_by_phase:
+            agg = phase_aggregate(rates_by_phase, op="mean")
+            conf, rationale = assign_confidence("GitHub Releases API")
+            return {
+                "metric_id": "releases",
+                "phases": agg,
+                "data_source": "github_releases",
+                "confidence": conf,
+                "confidence_rationale": rationale,
+                "direction_of_improvement": "higher",
+                "extraction_command": "GET /repos/{owner}/{repo}/releases",
+                "boundary_conditions": (
+                    f"Prereleases excluded from primary count: "
+                    f"{prerelease_counts or '{}'}."
+                ),
+                "interpretation": (
+                    "Average non-prerelease GitHub Releases per 2-week window."
+                ),
+            }
+        # GitHub Releases were accessible but every event was a prerelease;
+        # this is reported under the appropriate signal below.
+
+    # ---- Level 2: Annotated semver git tags ----
+    tag_events = _release_events_from_tags(ctx)
+    if tag_events:
+        rates_by_phase, prerelease_counts = _aggregate_release_events(
+            tag_events, ctx
         )
+        if rates_by_phase:
+            agg = phase_aggregate(rates_by_phase, op="mean")
+            conf, rationale = assign_confidence(
+                "annotated git tags matching semver pattern "
+                "(secondary release-source proxy via git for-each-ref)"
+            )
+            tags_total = sum(
+                1
+                for r in ctx.tags
+                if r.get("is_annotated") and r.get("is_semver")
+            )
+            skipped = sum(
+                1
+                for r in ctx.tags
+                if not r.get("is_annotated") or not r.get("is_semver")
+            )
+            return {
+                "metric_id": "releases",
+                "phases": agg,
+                "data_source": "annotated_semver_tags",
+                "confidence": conf,
+                "confidence_rationale": rationale,
+                "direction_of_improvement": "higher",
+                "extraction_command": (
+                    "git for-each-ref --format=... refs/tags/ "
+                    "(filter: object_type=tag AND is_semver=True)"
+                ),
+                "boundary_conditions": (
+                    f"GitHub Releases unavailable or empty — used "
+                    f"annotated semver tags as the secondary release "
+                    f"source per AAP §0.1.3. "
+                    f"Counted {tags_total} annotated semver tags; "
+                    f"skipped {skipped} non-annotated / non-semver tags. "
+                    f"Prereleases excluded from primary count: "
+                    f"{prerelease_counts or '{}'}."
+                ),
+                "interpretation": (
+                    "Average non-prerelease annotated semver tags per "
+                    "2-week window."
+                ),
+            }
 
-    counts_by_phase: Counter = Counter()
-    prerelease_counts: Counter = Counter()
-    seen_windows: dict[str, set[datetime]] = defaultdict(set)
+    # ---- Level 3: CI/CD deployment events ----
+    deployment_events = _release_events_from_deployments(ctx)
+    if deployment_events:
+        rates_by_phase, _ = _aggregate_release_events(deployment_events, ctx)
+        if rates_by_phase:
+            agg = phase_aggregate(rates_by_phase, op="mean")
+            # NOTE: avoid the substrings "git", "commit", "merge", "ci",
+            # "github actions", "junit", or " pr " anywhere in this
+            # source description (substring match, not word match) —
+            # they would incorrectly bump the confidence to Medium via
+            # :func:`assign_confidence` keyword matching. The word
+            # "decision" contains "ci"; the word "actions" contains
+            # nothing matching; the word "pipeline" contains nothing
+            # matching. Deployment events are an *indirect proxy* and
+            # must be reported as Low confidence per AAP §0.8.3.
+            conf, rationale = assign_confidence(
+                "production deployment events from a deploy pipeline "
+                "(indirect proxy; not equivalent to a versioned release)"
+            )
+            total_deployments = len(ctx.deployments)
+            production_count = len(deployment_events)
+            return {
+                "metric_id": "releases",
+                "phases": agg,
+                "data_source": "ci_cd_deployments",
+                "confidence": conf,
+                "confidence_rationale": rationale,
+                "direction_of_improvement": "higher",
+                "extraction_command": (
+                    "GET /repos/{owner}/{repo}/deployments "
+                    "(filter: production_environment=true OR "
+                    "environment in {production, prod})"
+                ),
+                "boundary_conditions": (
+                    f"Neither GitHub Releases nor annotated semver "
+                    f"tags produced events — used CI/CD deployment "
+                    f"events as the tertiary release source per AAP "
+                    f"§0.1.3. Counted {production_count}/{total_deployments} "
+                    f"production deployments; non-production environments "
+                    f"(preview, staging, development) excluded. "
+                    f"Confidence is Low because deployments are operational "
+                    f"events, not release decisions; rollbacks and hotfixes "
+                    f"inflate the count without representing new value."
+                ),
+                "interpretation": (
+                    "Average production CI/CD deployments per 2-week window."
+                ),
+            }
 
-    for release in ctx.releases:
-        published_raw = release.get("published_at") or release.get("created_at")
-        if not published_raw:
-            continue
-        published = parse_iso(published_raw)
-        phase = ctx.bounds.phase_for(published)
-        tag = (release.get("tag_name") or "").strip()
-        is_prerelease = bool(release.get("prerelease")) or bool(
-            tag and _PRERELEASE_SUFFIX_RE.search(tag)
+    # ---- All sources exhausted — Insufficient signal ----
+    # Distinguish three failure modes for the operator:
+    #
+    # a) No source was accessible (most common — no token / skip-network).
+    # b) Sources were accessible but every event was a prerelease.
+    # c) Sources were accessible but produced zero events of any kind.
+    tags_accessible = bool(ctx.tags)
+    deployments_accessible = bool(ctx.deployments)
+    all_prereleases = (
+        bool(gh_release_events)
+        and not any(not pr for _, pr in gh_release_events)
+    )
+    if all_prereleases:
+        reason = "all GitHub Releases in scope were prereleases"
+    elif not gh_accessible and not tags_accessible and not deployments_accessible:
+        reason = (
+            "no release source available — GitHub Releases API not "
+            "accessible (no token / skip-network), no annotated git "
+            "tags present, and no CI/CD deployment events available"
         )
-        if is_prerelease:
-            prerelease_counts[phase] += 1
-            continue
-        counts_by_phase[phase] += 1
-        seen_windows[phase].add(window_start_for(published, ctx.bounds.anchor_monday))
-
-    rates_by_phase: dict[str, list[float]] = {}
-    for phase, total in counts_by_phase.items():
-        windows = max(1, len(seen_windows[phase]))
-        rates_by_phase[phase] = [total / windows]
-    if not rates_by_phase:
-        return {"metric_id": "releases"} | insufficient_signal(
-            "all releases in scope were prereleases",
-            tried=["GitHub Releases API (non-prerelease filter)"],
-            needed="At least one non-prerelease GitHub Release in the analysed history.",
+    else:
+        reason = (
+            "all accessible release sources produced zero events in "
+            "the analysed history"
         )
-
-    agg = phase_aggregate(rates_by_phase, op="mean")
-    conf, rationale = assign_confidence("GitHub Releases API")
-    return {
-        "metric_id": "releases",
-        "phases": agg,
-        "confidence": conf,
-        "confidence_rationale": rationale,
-        "direction_of_improvement": "higher",
-        "extraction_command": "GET /repos/{owner}/{repo}/releases",
-        "boundary_conditions": (
-            f"Prereleases excluded from primary count: {dict(prerelease_counts)}."
+    return {"metric_id": "releases"} | insufficient_signal(
+        reason,
+        tried=[
+            "GitHub Releases API (Level 1, High confidence)",
+            "annotated git tags via git for-each-ref refs/tags/ "
+            "(Level 2, Medium confidence)",
+            "GitHub Deployments API filtered to production (Level 3, "
+            "Low confidence)",
+        ],
+        needed=(
+            "Any of: at least one published GitHub Release, at least "
+            "one annotated semver tag, or at least one production "
+            "CI/CD deployment event. GITHUB_TOKEN with repo:read scope "
+            "unlocks the primary source; tags require no auth."
         ),
-        "interpretation": (
-            "Average non-prerelease GitHub Releases per 2-week window."
-        ),
-    }
+    )
 
 
 
@@ -2290,9 +3414,20 @@ def compute_approved_exceptions(ctx: ComputeContext) -> dict[str, Any]:
                 )
                 for actor, phase_map in actor_phase.items()
             }
+            # Per-active-engineer normalisation (AAP §0.8.5). Approved
+            # exceptions scales with team size: a 10-engineer team with
+            # one approved exception is different from a 100-engineer
+            # team with one approved exception. The normalised view
+            # surfaces the per-person rate.
+            active_by_phase = active_engineers_per_phase(ctx)
+            normalised = normalise_phase_values_by_active_engineers(
+                agg, active_by_phase
+            )
             return {
                 "metric_id": "approved_exceptions",
                 "phases": agg,
+                "phases_per_active_engineer": normalised,
+                "active_engineers_per_phase": active_by_phase,
                 "per_actor": per_actor,
                 "confidence": "High",
                 "confidence_rationale": (
@@ -2305,7 +3440,9 @@ def compute_approved_exceptions(ctx: ComputeContext) -> dict[str, Any]:
                 ),
                 "interpretation": (
                     "Count of admin protected-branch / repo-policy "
-                    "override events per phase."
+                    "override events per phase (team-level), with a "
+                    "per-active-engineer normalised view for team-growth "
+                    "correction per AAP §0.8.5."
                 ),
             }
 
@@ -2339,9 +3476,19 @@ def compute_approved_exceptions(ctx: ComputeContext) -> dict[str, Any]:
             )
             for actor, phase_map in actor_phase.items()
         }
+        # Per-active-engineer normalisation (AAP §0.8.5). Same rationale
+        # as the audit-log path above; we apply it on the fallback as
+        # well so the report shape is consistent across confidence
+        # tiers.
+        active_by_phase = active_engineers_per_phase(ctx)
+        normalised = normalise_phase_values_by_active_engineers(
+            agg, active_by_phase
+        )
         return {
             "metric_id": "approved_exceptions",
             "phases": agg,
+            "phases_per_active_engineer": normalised,
+            "active_engineers_per_phase": active_by_phase,
             "per_actor": per_actor,
             "confidence": "Low",
             "confidence_rationale": (
@@ -2359,7 +3506,9 @@ def compute_approved_exceptions(ctx: ComputeContext) -> dict[str, Any]:
             ),
             "interpretation": (
                 "Count of PRs labelled with exception / waiver / "
-                "override per phase (fallback proxy)."
+                "override per phase (team-level), with a per-active-"
+                "engineer normalised view for team-growth correction "
+                "(fallback proxy)."
             ),
         }
     return {"metric_id": "approved_exceptions"} | insufficient_signal(
@@ -3039,6 +4188,143 @@ def _count_active_engineers_after(
     return len(active)
 
 
+def active_engineers_per_phase(ctx: ComputeContext) -> dict[str, int]:
+    """Return a mapping ``phase -> count_of_active_engineers``.
+
+    An *active engineer* in a phase is defined per AAP §0.8.5
+    ("Normalize for team growth by measuring per active engineer where
+    applicable") and the user prompt's per-engineer view rule as a
+    distinct canonical-actor identity with at least one non-merge
+    commit whose ``author_date`` falls within the phase's date range.
+
+    Used by count-style metrics (Metric 2 Flow Velocity, Metric 10
+    Approved Exceptions) to normalise for team growth: when the team
+    doubles in size, doubling raw merge count is not a real
+    acceleration; dividing by the active-engineer denominator surfaces
+    the true productivity-per-person trajectory.
+
+    A unique actor produces zero increment for a phase even if they
+    committed merges in that phase — merge commits are excluded
+    because the per-actor view should measure original work, not
+    ``git merge`` machinery. The ``unknown`` actor (resolved by
+    :func:`actor_key_for` when no canonical alias is found) is also
+    excluded because it conflates many physical contributors.
+
+    Parameters
+    ----------
+    ctx : ComputeContext
+        Computation context. ``ctx.commits``, ``ctx.aliases``, and
+        ``ctx.bounds`` are read.
+
+    Returns
+    -------
+    dict[str, int]
+        Mapping from phase name (``"baseline"``, ``"ramp_up"``,
+        ``"steady_state"``, or ``"post_introduction"`` under fallback
+        regime) to the count of distinct active engineers. Phases with
+        zero observed commits are populated with ``0`` so callers can
+        safely index without ``KeyError``.
+    """
+
+    per_phase: dict[str, set[str]] = defaultdict(set)
+    for commit in ctx.commits:
+        if commit.get("is_merge"):
+            continue
+        when_raw = commit.get("author_date")
+        if not when_raw:
+            continue
+        try:
+            when = parse_iso(when_raw)
+        except (ValueError, TypeError):
+            continue
+        actor = actor_key_for(commit.get("author_email"), ctx.aliases)
+        if not actor or actor == "unknown":
+            continue
+        phase = ctx.bounds.phase_for(when)
+        per_phase[phase].add(actor)
+    # Populate every phase the bounds defines so callers never see
+    # KeyError for an empty phase.
+    out: dict[str, int] = {}
+    for phase in ctx.bounds.phases():
+        out[phase] = len(per_phase.get(phase) or set())
+    return out
+
+
+def normalise_phase_values_by_active_engineers(
+    phase_values: dict[str, dict[str, Any]],
+    active_by_phase: dict[str, int],
+) -> dict[str, dict[str, Any]]:
+    """Return a copy of ``phase_values`` with per-active-engineer denominators applied.
+
+    For each phase, the ``value`` is divided by
+    ``active_by_phase[phase]`` (clamped to a minimum of 1 so a phase
+    with zero active engineers does not produce a ``ZeroDivisionError``;
+    the resulting ``value`` is unchanged). Multipliers are recomputed
+    against the new baseline value so the multiplier remains a
+    pure ratio.
+
+    Parameters
+    ----------
+    phase_values : dict
+        The ``phases`` block from a metric record, as produced by
+        :func:`phase_aggregate`. Each entry has ``value``,
+        ``multiplier``, and ``multiplier_kind``.
+    active_by_phase : dict
+        Map from phase name to active-engineer count.
+
+    Returns
+    -------
+    dict
+        New phase-values block with normalised values and recomputed
+        multipliers. The original input dict is not mutated.
+    """
+
+    normalised: dict[str, dict[str, Any]] = {}
+    baseline_value: float | None = None
+    for phase, entry in phase_values.items():
+        raw_value = entry.get("value")
+        denom = max(1, active_by_phase.get(phase, 0))
+        if isinstance(raw_value, (int, float)):
+            new_value = float(raw_value) / denom
+        else:
+            new_value = raw_value
+        normalised[phase] = {
+            "value": (
+                round(new_value, 4)
+                if isinstance(new_value, float)
+                else new_value
+            ),
+            # Keep the multiplier provisional; recomputed below.
+            "multiplier": entry.get("multiplier"),
+            "multiplier_kind": entry.get("multiplier_kind"),
+            "active_engineers": active_by_phase.get(phase, 0),
+        }
+        if phase == "baseline" and isinstance(new_value, (int, float)):
+            baseline_value = float(new_value)
+    # Recompute multipliers against the new baseline value.
+    for phase, entry in normalised.items():
+        value = entry.get("value")
+        if phase == "baseline":
+            entry["multiplier"] = 1.0
+            entry["multiplier_kind"] = "ratio"
+            continue
+        if not isinstance(value, (int, float)):
+            entry["multiplier"] = None
+            entry["multiplier_kind"] = "undefined"
+            continue
+        if baseline_value is None or baseline_value == 0:
+            if value == 0:
+                entry["multiplier"] = None
+                entry["multiplier_kind"] = "undefined"
+            else:
+                entry["multiplier"] = None
+                entry["multiplier_kind"] = "infinite"
+            continue
+        entry["multiplier"] = round(float(value) / baseline_value, 3)
+        entry["multiplier_kind"] = "ratio"
+    return normalised
+
+
 def main(argv: list[str] | None = None) -> int:
     """Compute the twelve metrics and write the canonical outputs.
 
@@ -3085,6 +4371,16 @@ def main(argv: list[str] | None = None) -> int:
     reviews = load_jsonl(data_dir / "reviews.jsonl")
     releases = load_jsonl(data_dir / "releases.jsonl")
     reverts = load_jsonl(data_dir / "reverts.jsonl")
+    # AAP §0.1.3 release source precedence (2): annotated semver tags
+    # produced by ``extract_git.py``. Loaded unconditionally; an absent
+    # or empty file is the expected state on the Formbricks repository
+    # which has zero annotated tags.
+    tags = load_jsonl(data_dir / "tags.jsonl")
+    # AAP §0.1.3 release source precedence (3): deployment events from
+    # the GitHub Deployments API (extract_github.py emits these when
+    # ``deployments`` is enumerated in ``github_access.endpoints_accessible``).
+    # Same graceful-degradation policy as ``tags``.
+    deployments = load_jsonl(data_dir / "deployments.jsonl")
     test_results = load_jsonl(data_dir / "test_results.jsonl")
     issues = load_jsonl(data_dir / "issues.jsonl")
     sla_source = load_json(data_dir / "sla_source.json")
@@ -3160,6 +4456,8 @@ def main(argv: list[str] | None = None) -> int:
         reviews=reviews,
         releases=releases,
         reverts=reverts,
+        tags=tags,
+        deployments=deployments,
         test_results=test_results,
         issues=issues,
         sla_source=sla_source,
@@ -3184,7 +4482,26 @@ def main(argv: list[str] | None = None) -> int:
         "escaped_defects": compute_escaped_defects,
         "defects_out_of_sla": compute_defects_out_of_sla,
     }
+    # Metrics that are meaningfully module-scoped (AAP §0.8.6).
+    # Repo-wide metrics (releases, audit-log-derived approved
+    # exceptions, escaped defects from CI, defects-out-of-SLA) are
+    # excluded because their underlying data sources are not
+    # partitionable along file-path module boundaries — a GitHub
+    # Release is a repo-wide event, not a per-module event.
+    PER_MODULE_METRICS: set[str] = {
+        "flow_load",
+        "flow_velocity",
+        "flow_predictability",
+        "flow_active",
+        "flow_efficiency",
+        "flow_distribution",
+        "flow_time",
+        "problem_records",
+    }
     results: dict[str, Any] = {"metrics": {}}
+    # Precompute the repository-wide module weights once so every
+    # metric's per-module pass reports the same denominator.
+    repo_module_weights = compute_module_weights(commits)
     for metric_id in CANONICAL_METRIC_IDS:
         try:
             record = dispatch[metric_id](ctx)
@@ -3209,6 +4526,47 @@ def main(argv: list[str] | None = None) -> int:
                 "boundary_conditions": "Pipeline error.",
                 "phases": {},
             }
+        # Per-module pass (AAP §0.8.6: "Run per-module independently,
+        # aggregate weighted by commit volume"). The headline ``phases``
+        # block stays as-is for backwards compatibility and renderer
+        # simplicity; the per-module breakdown plus the weighted
+        # aggregate land in dedicated fields so renderers can show the
+        # multi-module view when warranted. Modules with zero records
+        # for a metric simply contribute zero weight to that metric's
+        # weighted aggregate.
+        if metric_id in PER_MODULE_METRICS and record.get("phases"):
+            try:
+                multi = compute_per_module(ctx, dispatch[metric_id])
+                # Convert each per-module record to a compact form: keep
+                # only ``phases`` and ``confidence`` to bound the size of
+                # metrics.json; the renderer can request a full per-module
+                # rerun if it ever needs richer detail.
+                compact_per_module: dict[str, dict[str, Any]] = {}
+                for module, module_record in (
+                    multi.get("per_module") or {}
+                ).items():
+                    compact_per_module[module] = {
+                        "phases": module_record.get("phases") or {},
+                        "confidence": module_record.get("confidence"),
+                        "non_merge_commits_weight": (
+                            multi.get("module_weights", {}).get(module, 0.0)
+                        ),
+                    }
+                record["per_module"] = compact_per_module
+                record["module_weights"] = multi.get("module_weights") or {}
+                record["phases_module_weighted"] = (
+                    multi.get("aggregated_phases") or {}
+                )
+            except Exception as exc:  # noqa: BLE001 - graceful degradation
+                log.warning(
+                    "Per-module computation failed for %s: %r",
+                    metric_id,
+                    exc,
+                    extra={"metric_id": metric_id, "error": repr(exc)},
+                )
+                record["per_module"] = {}
+                record["module_weights"] = repo_module_weights
+                record["phases_module_weighted"] = {}
         results["metrics"][metric_id] = record
 
     log.info("Synthesising per-engineer view, risks, limitations")

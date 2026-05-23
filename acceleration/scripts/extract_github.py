@@ -164,6 +164,27 @@ PAGE_SIZE = 100
 # very wide PR-review histories.
 MAX_REQUESTS_PER_RUN = 4000
 
+# Retry policy for transient HTTP failures (review feedback: "Add bounded
+# exponential backoff for HTTPError 5xx, URLError, and transient socket
+# failures. Preserve GET-only discipline and record retry attempts in
+# github_access.json.").
+#
+# Backoff schedule with these defaults:
+#     attempt 1: immediate
+#     attempt 2: 2.0  seconds wait
+#     attempt 3: 4.0  seconds wait
+#     attempt 4: 8.0  seconds wait
+#     give up: total max wait ≈ 14 s; total attempts = 4
+HTTP_MAX_RETRIES: int = 3
+HTTP_RETRY_BACKOFF_BASE: float = 2.0
+# HTTP status codes that we retry. 429 is intentionally absent because
+# the upstream :meth:`GithubClient.respect_rate_limit` already handles
+# it correctly via the documented rate-limit-reset window. 4xx codes
+# other than 429 are deterministic (404 means not-found, 401 means
+# unauthorised, 422 means malformed request) — retrying wastes the
+# rate-limit budget without changing the outcome.
+HTTP_RETRYABLE_STATUS: frozenset[int] = frozenset({500, 502, 503, 504})
+
 # Prerelease tag-suffix detection per AAP §0.8 release-source precedence.
 # Matches ``v1.2.3-alpha``, ``v1.2.3-alpha.1``, ``v1.2.3-alpha1``,
 # ``v1.2.3-beta.4``, ``v1.2.3-rc1``, ``v1.2.3-RC1``, ``v1.2.3-dev``,
@@ -229,6 +250,20 @@ class GithubClient:
     request_count: int = 0
     api_base: str = GITHUB_API_BASE
     last_status: int = 0
+    # Total number of retry attempts issued across the run (for
+    # provenance / observability — recorded in github_access.json so
+    # operators can see whether transient failures degraded any metric).
+    retry_attempts: int = 0
+    # Total number of (request_url, status) pairs that ultimately
+    # succeeded after at least one retry. Useful as a low-level
+    # reliability KPI when the run produces complete data despite
+    # GitHub instability.
+    retry_recoveries: int = 0
+    # Total number of (request_url, status) pairs that exhausted all
+    # retry attempts and returned a final failure. Useful as a
+    # low-level signal that something is wrong with GitHub / the
+    # network.
+    retry_failures: int = 0
 
     def headers(self) -> dict[str, str]:
         """Compose the request headers for a GitHub REST API call.
@@ -260,8 +295,47 @@ class GithubClient:
         self,
         url: str,
         params: dict[str, Any] | None = None,
+        *,
+        max_retries: int | None = None,
+        retry_backoff_base: float | None = None,
     ) -> tuple[int, Any, dict[str, str]]:
-        """Issue a single HTTP **GET** to the supplied URL.
+        """Issue a single HTTP **GET** to the supplied URL with bounded retries.
+
+        The call is retried with bounded exponential backoff when the
+        server returns a transient 5xx (502, 503, 504), or when a
+        network-level failure occurs (DNS, connection refused, timeout,
+        connection reset, broken pipe). 4xx errors are returned as-is
+        because they are deterministic (404 means not-found, 401 means
+        unauthorised, 422 means malformed request) — retrying them only
+        wastes the rate-limit budget. 429 (Too Many Requests) is also
+        returned as-is because the upstream rate-limit honouring path
+        (:meth:`respect_rate_limit`) is the correct way to handle it.
+
+        Backoff schedule with the default values (``max_retries=3``,
+        ``retry_backoff_base=2.0``)::
+
+            attempt 1: immediate
+            attempt 2: 2.0  seconds wait
+            attempt 3: 4.0  seconds wait
+            attempt 4: 8.0  seconds wait
+            give up: total max wait ≈ 14 s; total attempts = 4
+
+        The total wait time is bounded so a stuck endpoint does not
+        block the entire pipeline. After exhausting retries, the final
+        failing status (5xx HTTPError code or 0 for URLError) is
+        returned so the caller's existing graceful-degradation logic
+        kicks in.
+
+        Counters incremented per call:
+
+        - :attr:`retry_attempts`  — total retry **attempts** (not
+          original requests). A single retried-once-then-succeeded call
+          contributes 1 to ``retry_attempts``.
+        - :attr:`retry_recoveries` — single retried call that
+          ultimately succeeds (status < 400 OR a deterministic 4xx
+          mid-retry that the caller wants to surface immediately).
+        - :attr:`retry_failures`   — single retried call that
+          ultimately exhausts retries with a still-transient failure.
 
         Parameters
         ----------
@@ -273,6 +347,16 @@ class GithubClient:
             Optional query parameters to URL-encode and append to ``url``.
             Pass-through-pagination callers should already have parameters
             baked into the URL and supply ``None`` here.
+        max_retries : int or None
+            Maximum number of retry attempts (in addition to the initial
+            attempt). Defaults to :data:`HTTP_MAX_RETRIES` (3 retries =
+            4 attempts total). Pass ``0`` to disable retries entirely
+            (used by tests).
+        retry_backoff_base : float or None
+            Backoff base in seconds. The nth retry sleeps for
+            ``retry_backoff_base * 2**(n-1)`` seconds. Defaults to
+            :data:`HTTP_RETRY_BACKOFF_BASE` (2.0). Used by tests to
+            collapse the schedule.
 
         Returns
         -------
@@ -297,34 +381,95 @@ class GithubClient:
         self.request_count += 1
         if params:
             url = f"{url}?{urllib.parse.urlencode(params)}"
-        req = urllib.request.Request(url, headers=self.headers(), method="GET")
-        try:
-            with urllib.request.urlopen(req, timeout=30) as resp:
-                self.last_status = resp.status
-                body = resp.read().decode("utf-8", errors="replace")
-                hdrs = {k.lower(): v for k, v in resp.headers.items()}
-                try:
-                    return resp.status, json.loads(body), hdrs
-                except json.JSONDecodeError:
-                    return resp.status, body, hdrs
-        except urllib.error.HTTPError as exc:
-            # 4xx / 5xx HTTPError carries a response body and headers; we
-            # surface them so the caller can record the error code in
-            # github_access.json. This is the normal path for 403/404 on
-            # admin-scoped endpoints.
-            self.last_status = exc.code
-            body = exc.read().decode("utf-8", errors="replace") if exc.fp else ""
-            hdrs = {k.lower(): v for k, v in (exc.headers or {}).items()}
+
+        retries = (
+            HTTP_MAX_RETRIES if max_retries is None else max(0, max_retries)
+        )
+        backoff_base = (
+            HTTP_RETRY_BACKOFF_BASE
+            if retry_backoff_base is None
+            else max(0.0, retry_backoff_base)
+        )
+        retried_at_least_once = False
+
+        for attempt in range(retries + 1):
+            req = urllib.request.Request(
+                url, headers=self.headers(), method="GET"
+            )
             try:
-                return exc.code, json.loads(body), hdrs
-            except (json.JSONDecodeError, ValueError):
-                return exc.code, body, hdrs
-        except urllib.error.URLError as exc:
-            # URLError covers network-level failures (DNS, connection
-            # refused, timeout). The caller treats status==0 as "endpoint
-            # not reachable" and records the endpoint as inaccessible.
-            self.last_status = 0
-            return 0, str(exc), {}
+                with urllib.request.urlopen(req, timeout=30) as resp:
+                    self.last_status = resp.status
+                    body = resp.read().decode("utf-8", errors="replace")
+                    hdrs = {k.lower(): v for k, v in resp.headers.items()}
+                    if retried_at_least_once:
+                        self.retry_recoveries += 1
+                    try:
+                        return resp.status, json.loads(body), hdrs
+                    except json.JSONDecodeError:
+                        return resp.status, body, hdrs
+            except urllib.error.HTTPError as exc:
+                self.last_status = exc.code
+                body = (
+                    exc.read().decode("utf-8", errors="replace")
+                    if exc.fp
+                    else ""
+                )
+                hdrs = {
+                    k.lower(): v for k, v in (exc.headers or {}).items()
+                }
+                # Retry only on transient 5xx codes; 4xx are
+                # deterministic and 429 is handled upstream by
+                # respect_rate_limit so the rate-limit reset window is
+                # the correct wait time, not exponential backoff.
+                if exc.code in HTTP_RETRYABLE_STATUS and attempt < retries:
+                    self.retry_attempts += 1
+                    retried_at_least_once = True
+                    time.sleep(backoff_base * (2 ** attempt))
+                    continue
+                if retried_at_least_once:
+                    # We retried and still got an error — record the
+                    # ultimate failure mode.
+                    if exc.code in HTTP_RETRYABLE_STATUS:
+                        self.retry_failures += 1
+                    else:
+                        # A non-retryable 4xx mid-retry: count as a
+                        # recovery because we have a deterministic
+                        # answer now.
+                        self.retry_recoveries += 1
+                try:
+                    return exc.code, json.loads(body), hdrs
+                except (json.JSONDecodeError, ValueError):
+                    return exc.code, body, hdrs
+            except urllib.error.URLError as exc:
+                # URLError covers DNS / connection refused / timeout /
+                # connection reset. All four are transient; we retry
+                # them.
+                self.last_status = 0
+                if attempt < retries:
+                    self.retry_attempts += 1
+                    retried_at_least_once = True
+                    time.sleep(backoff_base * (2 ** attempt))
+                    continue
+                if retried_at_least_once:
+                    self.retry_failures += 1
+                return 0, str(exc), {}
+            except (TimeoutError, OSError) as exc:
+                # OSError covers ConnectionResetError, BrokenPipeError,
+                # and similar transient transport-layer failures. Treat
+                # them like URLError.
+                self.last_status = 0
+                if attempt < retries:
+                    self.retry_attempts += 1
+                    retried_at_least_once = True
+                    time.sleep(backoff_base * (2 ** attempt))
+                    continue
+                if retried_at_least_once:
+                    self.retry_failures += 1
+                return 0, str(exc), {}
+        # Defensive: the loop always returns on the final iteration; we
+        # only reach this line if ``retries`` was negative, which the
+        # ``max(0, ...)`` clamp prevents.
+        return 0, "retry loop fell through", {}
 
     def respect_rate_limit(self, hdrs: dict[str, str]) -> None:
         """Sleep, if necessary, to respect the primary GitHub rate limit.
@@ -693,6 +838,104 @@ def normalize_release(raw: dict[str, Any]) -> dict[str, Any]:
         "target_commitish": raw.get("target_commitish"),
         "html_url": raw.get("html_url"),
         "author": author_block.get("login"),
+    }
+
+
+def iter_deployments(
+    client: GithubClient,
+    owner: str,
+    repo: str,
+) -> Iterator[dict[str, Any]]:
+    """Yield every Deployment event on ``owner/repo``.
+
+    Calls ``GET /repos/{owner}/{repo}/deployments?per_page=100`` and
+    follows ``Link: rel="next"`` pagination. Yields raw API records;
+    callers should pass each through :func:`normalize_deployment` to
+    select the fields downstream metrics consume.
+
+    Deployments are the **tertiary** release source in AAP §0.1.3
+    ("release source precedence ... (3) deployment events from CI/CD
+    if accessible"). They are an indirect proxy: a deployment is an
+    operational event (a "this code is now running here" record),
+    not a release decision. The Releases metric falls through to this
+    source only when neither GitHub Releases nor annotated semver
+    tags produce any events.
+
+    Parameters
+    ----------
+    client : GithubClient
+        Configured HTTP client.
+    owner : str
+        Repository owner.
+    repo : str
+        Repository name.
+
+    Yields
+    ------
+    dict[str, Any]
+        Raw deployment record from the GitHub API.
+    """
+
+    base = f"{client.api_base}/repos/{owner}/{repo}/deployments"
+    params = {"per_page": PAGE_SIZE}
+    next_url: str | None = f"{base}?{urllib.parse.urlencode(params)}"
+    while next_url:
+        status, data, hdrs = client.get(next_url)
+        client.respect_rate_limit(hdrs)
+        if status != 200 or not isinstance(data, list):
+            return
+        for raw_record in data:
+            if isinstance(raw_record, dict):
+                yield raw_record
+        next_url = parse_link_header(hdrs.get("link", "")).get("next")
+
+
+def normalize_deployment(raw: dict[str, Any]) -> dict[str, Any]:
+    """Project a raw deployment record into the downstream-friendly shape.
+
+    The ``production_environment`` field is sourced directly from the
+    GitHub API (which returns it as a boolean for repositories that
+    distinguish environments). When the field is absent we fall back
+    to recognising the conventional environment names ``production``
+    and ``prod`` so that legacy deployments without environment
+    metadata still classify correctly.
+
+    Parameters
+    ----------
+    raw : dict[str, Any]
+        A raw deployment record as returned by
+        ``GET /repos/{owner}/{repo}/deployments``.
+
+    Returns
+    -------
+    dict[str, Any]
+        Normalised deployment record with the keys ``id``, ``sha``,
+        ``ref``, ``task``, ``environment``, ``description``,
+        ``creator``, ``production_environment``,
+        ``transient_environment``, ``created_at``, ``updated_at``.
+    """
+
+    creator_block = raw.get("creator") or {}
+    env = raw.get("environment")
+    production_flag = raw.get("production_environment")
+    # Fall back to environment-name heuristics when the explicit flag
+    # is absent (older deployments) so the metric does not miss them.
+    if production_flag is None and isinstance(env, str):
+        production_flag = env.lower() in {"production", "prod"}
+    return {
+        "id": raw.get("id"),
+        "sha": raw.get("sha"),
+        "ref": raw.get("ref"),
+        "task": raw.get("task"),
+        "environment": env,
+        "description": raw.get("description"),
+        "creator": creator_block.get("login")
+        if isinstance(creator_block, dict)
+        else None,
+        "production_environment": bool(production_flag),
+        "transient_environment": bool(raw.get("transient_environment", False)),
+        "created_at": raw.get("created_at"),
+        "updated_at": raw.get("updated_at"),
     }
 
 
@@ -1120,13 +1363,13 @@ def _ensure_output_stubs(paths: dict[str, Path], reason: str) -> None:
     ----------
     paths : dict[str, Path]
         Output file map; keys are ``prs``, ``reviews``, ``releases``,
-        ``branch_protection``, ``audit_log``, ``access``.
+        ``deployments``, ``branch_protection``, ``audit_log``, ``access``.
     reason : str
         Human-readable reason that callers will copy into the
         ``github_access.json`` ``reason`` field.
     """
 
-    for key in ("prs", "reviews", "releases", "audit_log"):
+    for key in ("prs", "reviews", "releases", "deployments", "audit_log"):
         if not paths[key].exists():
             paths[key].write_text("", encoding="utf-8")
     if not paths["branch_protection"].exists():
@@ -1211,6 +1454,11 @@ def main(argv: list[str] | None = None) -> int:
         "prs": args.output_dir / "prs.jsonl",
         "reviews": args.output_dir / "reviews.jsonl",
         "releases": args.output_dir / "releases.jsonl",
+        # Deployments are the tertiary release source per AAP §0.1.3.
+        # Emitted as ``deployments.jsonl`` so ``compute_metrics.py`` can
+        # use them as a Low-confidence fallback when neither GitHub
+        # Releases nor annotated semver tags produce events.
+        "deployments": args.output_dir / "deployments.jsonl",
         "branch_protection": args.output_dir / "branch_protection.json",
         "audit_log": args.output_dir / "audit_log.jsonl",
         "access": args.output_dir / "github_access.json",
@@ -1248,6 +1496,7 @@ def main(argv: list[str] | None = None) -> int:
                         "pulls",
                         "reviews",
                         "releases",
+                        "deployments",
                         "branch_protection",
                         "audit_log",
                     ],
@@ -1256,6 +1505,12 @@ def main(argv: list[str] | None = None) -> int:
                         "pulls": "GITHUB_TOKEN with repo:read scope.",
                         "reviews": "GITHUB_TOKEN with repo:read scope.",
                         "releases": "GITHUB_TOKEN with repo:read scope.",
+                        "deployments": (
+                            "GITHUB_TOKEN with repo:read scope; the "
+                            "Deployments API is read-public for public "
+                            "repositories but counts against the same "
+                            "rate limit as other endpoints."
+                        ),
                         "branch_protection": (
                             "GITHUB_TOKEN with repo scope and Maintain or "
                             "Admin role on the repository."
@@ -1445,6 +1700,56 @@ def main(argv: list[str] | None = None) -> int:
     )
 
     # -------------------------------------------------------------------
+    # 3a. Deployments (tertiary release source per AAP §0.1.3)
+    # -------------------------------------------------------------------
+    # The Deployments API is the **tertiary** release source. We always
+    # attempt it when we have a working client so the Releases metric
+    # can fall through to it when both GitHub Releases and annotated
+    # semver tags are empty. Graceful degradation: failures append the
+    # endpoint to ``endpoints_inaccessible`` and leave deployments.jsonl
+    # empty so ``compute_metrics.py`` sees zero events.
+    log.info(
+        "Fetching deployments for %s/%s",
+        args.owner,
+        args.repo,
+        extra={"endpoint": "deployments"},
+    )
+    access["endpoints_attempted"].append("deployments")
+    deployment_count = 0
+    deployment_error: str | None = None
+    try:
+        with paths["deployments"].open("w", encoding="utf-8") as fhandle:
+            for raw_deployment in iter_deployments(
+                client, args.owner, args.repo
+            ):
+                fhandle.write(
+                    json.dumps(
+                        normalize_deployment(raw_deployment),
+                        ensure_ascii=False,
+                        default=str,
+                    )
+                )
+                fhandle.write("\n")
+                deployment_count += 1
+    except Exception as exc:  # noqa: BLE001 - graceful degradation
+        deployment_error = f"{type(exc).__name__}: {exc}"
+        log.warning(
+            "Deployments fetch terminated early: %s",
+            deployment_error,
+            extra={"endpoint": "deployments", "count": deployment_count},
+        )
+    if deployment_error is None:
+        access["endpoints_accessible"].append("deployments")
+    else:
+        access["endpoints_inaccessible"].append("deployments")
+    log.info(
+        "Wrote %d deployment records to %s",
+        deployment_count,
+        paths["deployments"],
+        extra={"path": str(paths["deployments"]), "count": deployment_count},
+    )
+
+    # -------------------------------------------------------------------
     # 4. Branch protection
     # -------------------------------------------------------------------
     log.info(
@@ -1525,6 +1830,17 @@ def main(argv: list[str] | None = None) -> int:
     # Final access manifest
     # -------------------------------------------------------------------
     access["api_requests"] = client.request_count
+    # Retry / reliability counters per the review feedback: "record
+    # retry attempts in github_access.json" so operators can audit
+    # whether transient failures biased any metric.
+    access["retry_attempts"] = client.retry_attempts
+    access["retry_recoveries"] = client.retry_recoveries
+    access["retry_failures"] = client.retry_failures
+    access["retry_policy"] = {
+        "max_retries": HTTP_MAX_RETRIES,
+        "backoff_base_seconds": HTTP_RETRY_BACKOFF_BASE,
+        "retryable_status_codes": sorted(HTTP_RETRYABLE_STATUS),
+    }
     access["needed"] = {
         "audit_log": "PAT with admin:org scope on the GitHub organisation.",
         "branch_protection": (
@@ -1536,12 +1852,19 @@ def main(argv: list[str] | None = None) -> int:
         json.dumps(access, indent=2, default=str), encoding="utf-8"
     )
     log.info(
-        "Wrote access manifest to %s; total API requests: %d",
+        "Wrote access manifest to %s; total API requests: %d "
+        "(retry attempts: %d, recoveries: %d, failures: %d)",
         paths["access"],
         client.request_count,
+        client.retry_attempts,
+        client.retry_recoveries,
+        client.retry_failures,
         extra={
             "manifest": str(paths["access"]),
             "api_requests": client.request_count,
+            "retry_attempts": client.retry_attempts,
+            "retry_recoveries": client.retry_recoveries,
+            "retry_failures": client.retry_failures,
             "endpoints_accessible": access["endpoints_accessible"],
             "endpoints_inaccessible": access["endpoints_inaccessible"],
         },
@@ -1563,6 +1886,9 @@ __all__ = [
     "EXCEPTION_LABELS",
     "GITHUB_API_BASE",
     "GithubClient",
+    "HTTP_MAX_RETRIES",
+    "HTTP_RETRYABLE_STATUS",
+    "HTTP_RETRY_BACKOFF_BASE",
     "Iterable",
     "MAX_REQUESTS_PER_RUN",
     "PAGE_SIZE",
@@ -1571,12 +1897,14 @@ __all__ = [
     "fetch_branch_protection",
     "field",
     "iter_audit_log",
+    "iter_deployments",
     "iter_prs",
     "iter_releases",
     "iter_reviews",
     "load_jsonl",
     "main",
     "merge_pr_records",
+    "normalize_deployment",
     "normalize_pr",
     "normalize_release",
     "parse_args",

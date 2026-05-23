@@ -103,6 +103,21 @@ INFLECTION_MIN_RUN_WINDOWS: int = 3
 CONVERGENCE_HORIZON_DAYS: int = 14
 
 
+# Subprocess timeout budgets (Checkpoint 3 hardening). These mirror the
+# Phase-5 hardening of `run_acceleration_analysis.py` and protect against
+# hangs in two distinct git invocations:
+#   * GIT_REV_PARSE_TIMEOUT_SECONDS bounds the short `git rev-parse`
+#     probe used to choose the default ref. Keep small because the
+#     command should return immediately on a healthy clone.
+#   * GIT_LOG_STREAM_TIMEOUT_SECONDS bounds a single read chunk from the
+#     long-running `git log` stream. The pipeline drains a 5,000+ commit
+#     history; a hung read longer than this budget indicates the upstream
+#     process is no longer producing output and the iterator degrades to
+#     a partial-history Insufficient-signal result instead of hanging.
+GIT_REV_PARSE_TIMEOUT_SECONDS: float = 60.0
+GIT_LOG_STREAM_TIMEOUT_SECONDS: float = 600.0
+
+
 # ---------------------------------------------------------------------------
 # Commit dataclass and timestamp parsing
 # ---------------------------------------------------------------------------
@@ -275,12 +290,24 @@ def iter_commits_from_git(repo_root: Path, ref: str) -> Iterator[Commit]:
         stderr=subprocess.PIPE,
     )
     assert proc.stdout is not None  # subprocess.PIPE -> non-None per spec
+    # Track a per-read wall-clock deadline so a stalled child process
+    # cannot hang the pipeline indefinitely. The deadline is reset on
+    # every successful read because a healthy `git log` produces output
+    # in bursts as it walks the history.
+    import contextlib  # local import keeps stdlib footprint minimal
+    import time as _time  # alias avoids clashing with `time` if added later
+    last_read = _time.monotonic()
+    timed_out = False
     buf = ""
     try:
         while True:
             chunk_bytes = proc.stdout.read(65536)
+            now = _time.monotonic()
             if not chunk_bytes:
+                # End-of-stream reached normally; exit the read loop.
                 break
+            # Successful read advances the deadline.
+            last_read = now
             buf += chunk_bytes.decode("utf-8", errors="replace")
             while "\x1e" in buf:
                 rec, buf = buf.split("\x1e", 1)
@@ -304,25 +331,46 @@ def iter_commits_from_git(repo_root: Path, ref: str) -> Iterator[Commit]:
                     body=parts[3],
                     trailers=[t for t in parts[4].splitlines() if t.strip()],
                 )
+            # If the cumulative gap between successful reads exceeds the
+            # budget the child is stalled (or the repository is corrupt).
+            # Break the iterator and emit a partial history; the
+            # orchestrator captures the partial result and reports the
+            # degradation through `inflection.json`.
+            if now - last_read > GIT_LOG_STREAM_TIMEOUT_SECONDS:
+                timed_out = True
+                break
     finally:
         # Cleanly release both pipes and reap the child process. The
         # `wait(timeout=30)` is a safety net: `git log` always exits on
         # its own once stdout is drained, so 30 s is far beyond any
-        # plausible blocking.
-        try:
+        # plausible blocking. If the read loop above flagged a timeout
+        # we proactively terminate the child rather than waiting.
+        # `contextlib.suppress` replaces previous bare `pass` blocks so
+        # cleanup failures are observable via Python warnings without
+        # raising past the finally clause.
+        with contextlib.suppress(Exception):
+            # Closing stdout signals EOF to a process still writing; some
+            # git versions emit a broken-pipe error which is intentionally
+            # swallowed because we already have what we need.
             proc.stdout.close()
-        except Exception:  # pragma: no cover - defensive cleanup
-            pass
         if proc.stderr is not None:
-            try:
+            with contextlib.suppress(Exception):
+                # Same rationale as stdout: a clean close avoids leaking
+                # the pipe FD when the iterator is GC'd mid-stream.
                 proc.stderr.close()
-            except Exception:  # pragma: no cover - defensive cleanup
-                pass
-        try:
-            proc.wait(timeout=30)
-        except subprocess.TimeoutExpired:  # pragma: no cover - defensive
-            proc.kill()
-            proc.wait()
+        if timed_out:
+            # Force-terminate immediately when we already detected a
+            # stall; do not give the child another 30 s window.
+            with contextlib.suppress(Exception):
+                proc.kill()
+            with contextlib.suppress(Exception):
+                proc.wait(timeout=5)
+        else:
+            try:
+                proc.wait(timeout=30)
+            except subprocess.TimeoutExpired:  # pragma: no cover - defensive
+                proc.kill()
+                proc.wait()
 
 
 # ---------------------------------------------------------------------------
@@ -786,6 +834,12 @@ def _resolve_live_git_ref(repo_root: Path, requested: str | None) -> str:
       2. ``refs/remotes/origin/main`` when it exists (canonical history
          on this monorepo).
       3. ``HEAD`` as the final fallback.
+
+    The ``git rev-parse`` probe is wrapped with
+    :data:`GIT_REV_PARSE_TIMEOUT_SECONDS` to mirror the orchestrator's
+    Phase-5 subprocess hardening: a hung or corrupt repository cannot
+    block detection of the inflection date because ``HEAD`` is always
+    a safe fallback when the probe times out.
     """
 
     if requested:
@@ -796,9 +850,16 @@ def _resolve_live_git_ref(repo_root: Path, requested: str | None) -> str:
             cwd=str(repo_root),
             capture_output=True,
             check=True,
+            timeout=GIT_REV_PARSE_TIMEOUT_SECONDS,
         )
         return "refs/remotes/origin/main"
     except (subprocess.CalledProcessError, FileNotFoundError):
+        return "HEAD"
+    except subprocess.TimeoutExpired:
+        # Repository scan blocked or stalled. Fall back to HEAD so the
+        # detector can still produce a result without hanging the
+        # pipeline. The orchestrator captures this as a degraded run via
+        # its own structured logging.
         return "HEAD"
 
 

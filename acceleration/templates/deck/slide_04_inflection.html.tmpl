@@ -100,7 +100,7 @@
 <section class="content-slide">
   <span class="eyebrow">Methodology</span>
   <h3>Inflection Date &amp; Temporal Phases</h3>
-  <p><i data-lucide="git-branch"></i> Detected: <strong>{{INFLECTION_DATE}}</strong> · Method: {{INFLECTION_METHOD}}</p>
+  <p><i data-lucide="git-branch" aria-hidden="true"></i> Detected: <strong>{{INFLECTION_DATE}}</strong> · Method: {{INFLECTION_METHOD}}</p>
   <pre class="mermaid">
 gantt
     title Temporal Phases (Monday-aligned 2-week windows)
@@ -113,5 +113,5 @@ gantt
     section Steady State
     90+ days           :steady, after ramp, {{STEADY_END}}
   </pre>
-  <p class="diagram-legend"><i data-lucide="info"></i> Baseline = repository activity before the inflection date. Ramp-Up = the first 84 days after (six 2-week windows). Steady State = window seven onward.</p>
+  <p class="diagram-legend"><i data-lucide="info" aria-hidden="true"></i> Baseline = repository activity before the inflection date. Ramp-Up = the first 84 days after (six 2-week windows). Steady State = window seven onward.</p>
 </section>

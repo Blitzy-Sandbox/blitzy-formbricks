@@ -93,8 +93,16 @@ SUBJECTIVE_QUALIFIERS: tuple[str, ...] = (
 # AAP §0.7.1 Rule 5 — pinned CDN versions. Each value MUST appear verbatim
 # in ``acceleration/executive-presentation.html`` to satisfy the
 # self-contained, reproducible-build constraint for the deck.
+#
+# The Mermaid pin is intentionally raised from the AAP §0.6.1 literal
+# ``11.4.0`` to ``11.15.0`` per ``acceleration/decision-log.md`` D-016 to
+# address CVE-2026-41148, CVE-2026-41149, and CVE-2026-41150 (HTML/CSS
+# injection and Gantt-chart DoS). The verifier MUST stay in lockstep with
+# ``acceleration/scripts/render_deck.py:CDN_MERMAID`` and the generated
+# ``acceleration/executive-presentation.html`` import URL; any drift
+# between these three locations is a regression.
 PINNED_REVEAL_VERSION: str = "5.1.0"
-PINNED_MERMAID_VERSION: str = "11.4.0"
+PINNED_MERMAID_VERSION: str = "11.15.0"
 PINNED_LUCIDE_VERSION: str = "0.460.0"
 
 # AAP §0.7.1 Rule 5 — Blitzy brand identity. The four pairs below MUST

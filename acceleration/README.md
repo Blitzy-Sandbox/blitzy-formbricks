@@ -77,15 +77,15 @@ Node.js is not a prerequisite for this pipeline. The Formbricks application pins
 
 ## 3. Environment Variables
 
-| Name                   | Required | Default             | Description                                                                                                                                                                                                                                                                                                  |
-| ---------------------- | -------- | ------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `GITHUB_TOKEN`         | No       | unset               | GitHub personal access token. Recommended scopes: `repo`, `read:org`, `read:audit_log`. Without it, the pipeline falls back to unauthenticated calls (60 req/hour) and downgrades Metrics 1, 8, 9, 10, 11, 12 to Medium or Insufficient confidence per the rubric in [`decision-log.md`](./decision-log.md). |
-| `REPO_OWNER`           | No       | `formbricks`        | GitHub organization or user that owns the repository under analysis.                                                                                                                                                                                                                                         |
-| `REPO_NAME`            | No       | `formbricks`        | GitHub repository name under analysis.                                                                                                                                                                                                                                                                       |
-| `ACCEL_OUTPUT_DIR`     | No       | `acceleration/data` | Directory where extractors write `*.jsonl` and `*.json` artifacts. The orchestrator creates it if missing.                                                                                                                                                                                                   |
-| `ACCEL_LOG_LEVEL`      | No       | `INFO`              | Verbosity of the structured logger. Accepted values: `DEBUG`, `INFO`, `WARNING`, `ERROR`.                                                                                                                                                                                                                    |
-| `ACCEL_RUN_ID`         | No       | auto-generated UUID | Correlation ID injected into every log line. Override to group logs across multiple invocations of the same pipeline run.                                                                                                                                                                                    |
-| `ACCEL_FORCE_GIT_ONLY` | No       | `0`                 | Set to `1` to skip every GitHub API call. Equivalent to passing `--no-github` to the orchestrator.                                                                                                                                                                                                           |
+| Name              | Required | Default             | Description                                                                                                                                                                                                                                                                                                  |
+| ----------------- | -------- | ------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `GITHUB_TOKEN`    | No       | unset               | GitHub personal access token. Recommended scopes: `repo`, `read:org`, `read:audit_log`. Without it, the pipeline falls back to unauthenticated calls (60 req/hour) and downgrades Metrics 1, 8, 9, 10, 11, 12 to Medium or Insufficient confidence per the rubric in [`decision-log.md`](./decision-log.md). |
+| `REPO_OWNER`      | No       | `formbricks`        | GitHub repository owner (organization or user). Consumed as the default for `--owner`.                                                                                                                                                                                                                       |
+| `REPO_NAME`      | No       | `formbricks`        | GitHub repository name. Consumed as the default for `--repo`.                                                                                                                                                                                                                                                 |
+| `ACCEL_LOG_LEVEL` | No       | `INFO`              | Verbosity of the structured logger. Accepted values: `DEBUG`, `INFO`, `WARNING`, `ERROR`. Read by [`acceleration/observability/logger.py`](./observability/logger.py).                                                                                                                                       |
+| `ACCEL_RUN_ID`    | No       | auto-generated UUID | Correlation ID injected into every log line. Override to group logs across multiple invocations of the same pipeline run. The orchestrator publishes its resolved value to the environment so every subprocess inherits the same ID.                                                                          |
+
+The output directory is configured via the `--output-dir` flag (not an environment variable). To run offline, pass `--skip-network` to disable all GitHub API calls, or `--skip-github` / `--skip-ci-tests` / `--skip-issues` to drop one extractor at a time.
 
 Create a fine-grained personal access token at <https://github.com/settings/tokens?type=beta>. Limit the token to the single repository under analysis. Expiration: 30 days is sufficient for one-off acceleration analyses.
 
@@ -135,39 +135,75 @@ The orchestrator [`scripts/run_acceleration_analysis.py`](./scripts/run_accelera
 # Default — produces every artifact under acceleration/
 python3 acceleration/scripts/run_acceleration_analysis.py
 
-# Skip every GitHub API call (faster; Metrics 8–12 may report Insufficient signal)
-python3 acceleration/scripts/run_acceleration_analysis.py --no-github
+# Skip every network-bound extractor at once (offline smoke test)
+python3 acceleration/scripts/run_acceleration_analysis.py --skip-network
 
-# Smoke test against the most recent N commits
-python3 acceleration/scripts/run_acceleration_analysis.py --limit-commits 500
+# Skip a single network-bound extractor (others still attempt their calls)
+python3 acceleration/scripts/run_acceleration_analysis.py --skip-github
+python3 acceleration/scripts/run_acceleration_analysis.py --skip-ci-tests
+python3 acceleration/scripts/run_acceleration_analysis.py --skip-issues
 
-# Direct artifacts to an alternate directory
+# Direct artifacts to an alternate output directory
 python3 acceleration/scripts/run_acceleration_analysis.py --output-dir /tmp/accel-run
 
-# Increase log verbosity to DEBUG
-python3 acceleration/scripts/run_acceleration_analysis.py --verbose
+# Increase log verbosity to DEBUG (environment variable, not a flag)
+ACCEL_LOG_LEVEL=DEBUG python3 acceleration/scripts/run_acceleration_analysis.py
 
-# Combine flags
-python3 acceleration/scripts/run_acceleration_analysis.py --no-github --verbose --output-dir /tmp/accel-run
+# Run only specific steps (canonical order is preserved; unlisted steps emit status=skipped)
+python3 acceleration/scripts/run_acceleration_analysis.py --only render_report,render_deck,verify_report
+
+# Override repository identifiers (defaults: REPO_OWNER env → 'formbricks', REPO_NAME env → 'formbricks')
+python3 acceleration/scripts/run_acceleration_analysis.py --owner formbricks --repo formbricks --branch main
+
+# Combine flags — full offline run against an alternate output dir
+ACCEL_LOG_LEVEL=DEBUG \
+python3 acceleration/scripts/run_acceleration_analysis.py \
+    --skip-network --output-dir /tmp/accel-run
 ```
 
-Every step is also independently runnable for debugging or partial reruns. Each script accepts `--help` and writes a single deterministic output file.
+Full list of orchestrator flags (always available via `--help`):
+
+| Flag                    | Default              | Purpose                                                                                                                                                                       |
+| ----------------------- | -------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `--repo-root`           | `.`                  | Path to the repository root.                                                                                                                                                  |
+| `--output-dir`          | `acceleration/data`  | Directory under which all extractor outputs (`*.jsonl`, `*.json`, `metrics.json`, `run_manifest.json`) are written. The orchestrator creates the directory if it is missing.   |
+| `--accel-dir`           | `acceleration`       | Path to the acceleration root containing `scripts/`, `observability/`, `templates/`. Renderers write `acceleration-report.md` and `executive-presentation.html` into this dir. |
+| `--owner`               | env `REPO_OWNER`     | GitHub repository owner.                                                                                                                                                      |
+| `--repo`                | env `REPO_NAME`      | GitHub repository name.                                                                                                                                                       |
+| `--branch`              | `main`               | Git branch / ref to log.                                                                                                                                                      |
+| `--skip-network`        | `false`              | Pass `--skip-network` to every network-bound extractor.                                                                                                                       |
+| `--skip-github`         | `false`              | Skip the `extract_github` step entirely (still records a `skipped` entry in `run_manifest.json`).                                                                              |
+| `--skip-ci-tests`       | `false`              | Skip the `extract_ci_tests` step entirely.                                                                                                                                    |
+| `--skip-issues`         | `false`              | Skip the `extract_issues` step entirely.                                                                                                                                      |
+| `--only`                | (run all)            | Comma-separated list of step names to run (e.g. `render_report,verify_report`). Steps not listed emit `status=skipped`.                                                       |
+| `--continue-on-error`   | `false`              | Do not halt the pipeline on a non-optional step failure. Useful for forensic runs that need to inspect every step.                                                            |
+| `--no-readonly-check`   | `false`              | Disable the pre/post git-status diff that enforces AAP §0.5.2 read-only-outside-`acceleration/`. CI runs MUST NOT use this; intended for development convenience only.        |
+
+Every individual step script is independently runnable for debugging or partial reruns. Each script accepts `--help` and writes a deterministic output file.
 
 ```bash
 # Detect the AI-introduction inflection date in isolation
-python3 acceleration/scripts/detect_inflection.py --help
-python3 acceleration/scripts/detect_inflection.py --output acceleration/data/inflection.json
+python3 -m acceleration.scripts.detect_inflection --help
+python3 -m acceleration.scripts.detect_inflection \
+    --data-dir acceleration/data \
+    --output acceleration/data/inflection.json
 
 # Re-extract git history only (no GitHub API)
-python3 acceleration/scripts/extract_git.py --output-dir acceleration/data
+python3 -m acceleration.scripts.extract_git --output-dir acceleration/data
 
 # Re-render the report from an existing acceleration/data/metrics.json
-python3 acceleration/scripts/render_report.py --input acceleration/data/metrics.json \
-                                              --output acceleration/acceleration-report.md
+python3 -m acceleration.scripts.render_report \
+    --metrics acceleration/data/metrics.json \
+    --inflection acceleration/data/inflection.json \
+    --manifest acceleration/data/run_manifest.json \
+    --templates-dir acceleration/templates/mermaid \
+    --output acceleration/acceleration-report.md
 
 # Verify report-internal Rules 1–6 against an existing report
-python3 acceleration/scripts/verify_report.py --report acceleration/acceleration-report.md \
-                                              --metrics acceleration/data/metrics.json
+python3 -m acceleration.scripts.verify_report \
+    --report acceleration/acceleration-report.md \
+    --deck acceleration/executive-presentation.html \
+    --metrics acceleration/data/metrics.json
 ```
 
 ---
@@ -253,7 +289,7 @@ The pipeline enforces several invariants from the Agent Action Plan. Violating a
 - **Do not use subjective qualifiers in the report.** `verify_report.py` greps the report body against a fixed allow-deny list of opinion-bearing adjectives and adverbs (the full list is defined as `SUBJECTIVE_TOKENS` at the top of `verify_report.py`). Any match fails the run. Replace such terms with numeric statements grounded in `data/metrics.json`.
 - **Do not bypass identical methodology.** The before-period and after-period extractors run the same code path with only the actor parameter substituted. Do not branch the extraction logic on the period; branch only on the actor identity passed in.
 - **Mind the Mermaid version floor.** The Acceleration Curve diagram uses `xychart-beta`, which requires Mermaid ≥ 11.0. The deck pins Mermaid `11.15.0` via CDN per Rule 5. Older Mermaid versions silently fail to render the chart.
-- **Mind the `gh` vs `curl` precedence.** When `gh` CLI is installed, the extractors prefer it because it handles paginated responses automatically. If you want to force `curl`, unset `gh` on `PATH` for the run or pass `--http-client=curl` to the extractor scripts.
+- **Network-bound extractors use stdlib `urllib`, not `curl` or `gh`.** All HTTP calls are made by `urllib.request.urlopen` inside the extractor scripts. There is no `gh`/`curl` selection knob. If outbound HTTPS is restricted, pass `--skip-network` (or the per-extractor skip flag) to the orchestrator so the relevant metrics degrade to `Insufficient signal` instead of failing the run.
 
 ---
 
@@ -261,11 +297,12 @@ The pipeline enforces several invariants from the Agent Action Plan. Violating a
 
 The pipeline is structured to make the following extensions straightforward. Each one is bounded to a single script.
 
-- **Add a new data source.** Extend the relevant `extract_*.py` script with a new fetch function, normalize its output into a `*.jsonl` file under `data/`, and add an entry to `observability/metrics.json` documenting the source binding. The orchestrator picks up the new extractor when it is listed in the orchestrator's `EXTRACTORS` constant.
-- **Refine an existing metric's extraction.** Locate the metric ID in `compute_metrics.py` (each metric is an explicit function named `compute_metric_N`). Update the function in place. Re-run the full pipeline; the renderer rereads `metrics.json` without code changes.
-- **Add a new diagram to the report.** Drop a `.mmd.tmpl` file into [`templates/mermaid/`](./templates/mermaid) and reference it from `render_report.py` via the existing `render_mermaid()` helper. Provide a descriptive title and a legend per Rule 4.
-- **Add a new slide to the deck.** Drop a `slide_NN_<topic>.html.tmpl` into [`templates/deck/`](./templates/deck), then add its filename to the `SLIDE_ORDER` list in `render_deck.py`. The slide count must stay within 12–18 inclusive per Rule 5; `verify_report.py` enforces this.
-- **Add a new verification rule.** In `verify_report.py`, define a function with signature `def check_<rule_name>(report_text: str, metrics: dict) -> tuple[str, bool, str]` and register it in the `RULES` list. The orchestrator exit code becomes non-zero if any registered rule returns `False`.
+- **Add a new pipeline step.** The orchestrator's canonical sequence is defined as the module-level `PIPELINE: list[Step]` constant in [`run_acceleration_analysis.py`](./scripts/run_acceleration_analysis.py). Append a new `Step(name=..., description=..., runner="python_module"|"python_function", target="acceleration.scripts.your_step", args_factory="your_step_args", optional=False, skip_when=None)` entry and add the matching `your_step_args` method to `PipelineContext`. The new step is picked up automatically; supply `--only your_step` to drive it in isolation.
+- **Add a new data source.** Extend the relevant `extract_*.py` script with a new fetch function, normalize its output into a `*.jsonl` file under `data/`, and add an entry to [`observability/metrics.json`](./observability/metrics.json) documenting the source binding. Update the file inventory table in §6 of this README.
+- **Refine an existing metric's extraction.** Locate the metric in `compute_metrics.py` (each metric has a `compute_<name>(ctx)` function: `compute_flow_load`, `compute_flow_velocity`, …, `compute_defects_out_of_sla`). Update the function in place. Re-run the full pipeline; the renderer rereads `metrics.json` without code changes.
+- **Add a new diagram to the report.** Drop a `.mmd.tmpl` file into [`templates/mermaid/`](./templates/mermaid). Render templates are picked up by name from `render_report.compose_report()` via the `--templates-dir` argument. Provide a descriptive title and a legend per Rule 4.
+- **Add a new slide to the deck.** Drop a `slide_NN_<topic>.html.tmpl` into [`templates/deck/`](./templates/deck), then append its filename to the `SLIDE_FILENAMES` list in `render_deck.py`. The slide count must stay within 12–18 inclusive per Rule 5; `verify_report.py` enforces this.
+- **Add a new verification check.** In `verify_report.py`, add a new function matching the existing check style and append it to the `CHECKS` registry at the bottom of the file. The orchestrator exit code becomes non-zero if any registered check fails.
 - **Add a new troubleshooting entry to this README.** When a new failure mode is observed, document the symptom, cause, and fix in §7 above. Keep the table sorted by frequency.
 
 For governance reasons, **adding a thirteenth metric is forbidden** by AAP §0.7.2.1. The metric registry in `compute_metrics.py` validates membership against the twelve specified IDs and rejects additions. If a stakeholder requests an additional metric, surface the request as a follow-up task in §11 below rather than implementing it inline.

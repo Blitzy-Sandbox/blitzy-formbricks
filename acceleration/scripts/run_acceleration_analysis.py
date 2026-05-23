@@ -117,7 +117,45 @@ __all__ = [
     "snapshot_git_status",
     "diff_status",
     "now_iso",
+    "SUBPROCESS_TIMEOUT_DEFAULT",
+    "SUBPROCESS_TIMEOUT_HEALTH",
+    "SUBPROCESS_TIMEOUT_GIT_HELPERS",
 ]
+
+
+# ---------------------------------------------------------------------------
+# Subprocess timeout constants
+# ---------------------------------------------------------------------------
+#
+# Per the checkpoint feedback (review finding L594/L799/L1070), every
+# subprocess invocation MUST carry a bounded timeout so a single hanging
+# child (corrupt repo, frozen git process, blocked HTTPS handshake) cannot
+# stall the orchestrator indefinitely. The constants below give callers a
+# named, auditable upper bound:
+#
+#   * ``SUBPROCESS_TIMEOUT_DEFAULT`` — 1800s (30 min). Generous enough for
+#     the heaviest worker (``extract_git`` traversing 5,178 commits with
+#     ``--name-only``) on slow hardware; tight enough to surface a
+#     pathological hang within a reasonable budget. Per AAP §0.8.7 the
+#     analysis "runs at any time, against any commit window", so timeouts
+#     must not be tuned to a specific repo size — they are an absolute
+#     safety net, not a performance budget.
+#   * ``SUBPROCESS_TIMEOUT_HEALTH`` — 60s. The health probe in
+#     :mod:`acceleration.observability.health` calls ``git --version``
+#     and similar fast diagnostics; 60s catches a stalled diagnostic
+#     without disturbing the slowest measured run (≤2s).
+#   * ``SUBPROCESS_TIMEOUT_GIT_HELPERS`` — 60s. Inline helpers
+#     (``git status --porcelain``, ``git --version``, ``git rev-parse
+#     HEAD``) finish in milliseconds on a healthy clone; 60s tolerates
+#     transient filesystem stalls without masking a real hang.
+#
+# When a timeout fires, the affected step records ``timed_out=True`` in
+# the :class:`StepResult` so the manifest distinguishes a deterministic
+# crash from a wall-clock budget exhaustion. The error string also
+# encodes the timeout budget so operators can re-tune deliberately.
+SUBPROCESS_TIMEOUT_DEFAULT: float = 1800.0
+SUBPROCESS_TIMEOUT_HEALTH: float = 60.0
+SUBPROCESS_TIMEOUT_GIT_HELPERS: float = 60.0
 
 
 # ---------------------------------------------------------------------------
@@ -203,6 +241,13 @@ class StepResult:
     error
         Short one-line error description when the step did not succeed,
         otherwise ``None``.
+    timed_out
+        ``True`` when the step's subprocess exceeded the configured
+        wall-clock budget (:data:`SUBPROCESS_TIMEOUT_DEFAULT` for most
+        workers; smaller for the health step). When ``True``, the
+        :attr:`error` field carries the budget value so the manifest
+        records the policy that was enforced, and ``status`` is
+        ``"failed"`` (or ``"skipped"`` for optional steps).
     """
 
     name: str
@@ -213,6 +258,7 @@ class StepResult:
     elapsed_seconds: float
     optional: bool
     error: str | None = None
+    timed_out: bool = False
 
 
 # ---------------------------------------------------------------------------
@@ -559,13 +605,20 @@ def run_python_module(
     argv: list[str],
     cwd: Path,
     run_id: str,
-) -> int:
+    timeout: float | None = None,
+) -> tuple[int, bool]:
     """Invoke a worker script as ``python -m <module> <argv>``.
 
     Each worker runs in its own subprocess so a crash or unhandled exception
     cannot corrupt the orchestrator's address space. The child receives a
     copy of the parent environment plus ``ACCEL_RUN_ID`` so its log lines
     carry the same correlation ID.
+
+    A bounded wall-clock timeout protects the orchestrator from a hanging
+    worker (corrupt repo, frozen child, blocked HTTPS handshake). When the
+    timeout expires the child is terminated and the helper returns
+    ``(-1, True)`` so the caller can record the structured timeout in the
+    :class:`StepResult` manifest entry.
 
     Parameters
     ----------
@@ -579,11 +632,17 @@ def run_python_module(
     run_id
         Correlation ID injected into the child environment as
         ``ACCEL_RUN_ID`` (already-set values are preserved).
+    timeout
+        Wall-clock budget in seconds. Defaults to
+        :data:`SUBPROCESS_TIMEOUT_DEFAULT`. Pass ``None`` to retain the
+        default.
 
     Returns
     -------
-    int
-        The subprocess exit code. ``0`` indicates success.
+    tuple[int, bool]
+        Two-tuple ``(exit_code, timed_out)``. ``exit_code`` is the
+        subprocess exit code (``0`` indicates success); on timeout the
+        exit code is ``-1`` and ``timed_out`` is ``True``.
     """
 
     cmd = [sys.executable, "-m", target] + argv
@@ -591,8 +650,22 @@ def run_python_module(
     # setdefault preserves an explicit ACCEL_RUN_ID set upstream while
     # injecting our own when nothing is set yet.
     env.setdefault("ACCEL_RUN_ID", run_id)
-    completed = subprocess.run(cmd, cwd=str(cwd), env=env, check=False)
-    return completed.returncode
+    budget = SUBPROCESS_TIMEOUT_DEFAULT if timeout is None else timeout
+    try:
+        completed = subprocess.run(
+            cmd,
+            cwd=str(cwd),
+            env=env,
+            check=False,
+            timeout=budget,
+        )
+        return completed.returncode, False
+    except subprocess.TimeoutExpired:
+        # ``subprocess.run`` already kills the child on timeout. Return
+        # the sentinel exit code -1 plus ``timed_out=True`` so the
+        # caller can attribute the failure to wall-clock exhaustion
+        # rather than a deterministic non-zero exit.
+        return -1, True
 
 
 def run_python_function(
@@ -705,14 +778,28 @@ def execute_step(
             log.info(
                 f"[step={step.name}] python -m {step.target} {' '.join(argv)}"
             )
-            rc = run_python_module(step.target, argv, ctx.repo_root, ctx.run_id)
+            rc, timed_out = run_python_module(
+                step.target, argv, ctx.repo_root, ctx.run_id
+            )
             elapsed = time.time() - t0
-            if rc == 0:
+            if timed_out:
+                # A timeout always counts as a failure (or skipped for
+                # optional steps). The ``error`` field encodes the
+                # budget so the manifest captures what was enforced.
+                status = "skipped" if step.optional else "failed"
+                err_msg = (
+                    f"subprocess timed out after "
+                    f"{SUBPROCESS_TIMEOUT_DEFAULT:.0f}s"
+                )
+            elif rc == 0:
                 status = "ok"
+                err_msg = None
             elif step.optional:
                 status = "skipped"
+                err_msg = f"non-zero exit code: {rc}"
             else:
                 status = "failed"
+                err_msg = f"non-zero exit code: {rc}"
             return StepResult(
                 name=step.name,
                 description=step.description,
@@ -721,7 +808,8 @@ def execute_step(
                 started_at=started,
                 elapsed_seconds=round(elapsed, 3),
                 optional=step.optional,
-                error=None if rc == 0 else f"non-zero exit code: {rc}",
+                error=err_msg,
+                timed_out=timed_out,
             )
         elif step.runner == "python_function":
             kwargs_factory = getattr(ctx, step.args_factory)
@@ -748,6 +836,7 @@ def execute_step(
                     if rc == 0
                     else "function returned non-ok status"
                 ),
+                timed_out=False,
             )
         else:
             raise ValueError(f"Unknown runner: {step.runner}")
@@ -762,6 +851,7 @@ def execute_step(
             elapsed_seconds=round(elapsed, 3),
             optional=step.optional,
             error=f"{type(exc).__name__}: {exc}",
+            timed_out=False,
         )
 
 
@@ -801,9 +891,15 @@ def snapshot_git_status(repo_root: Path) -> str:
             cwd=str(repo_root),
             capture_output=True,
             check=False,
+            timeout=SUBPROCESS_TIMEOUT_GIT_HELPERS,
         )
         return completed.stdout.decode("utf-8", errors="replace")
     except FileNotFoundError:
+        return ""
+    except subprocess.TimeoutExpired:
+        # Treat a stalled ``git status`` as "no detectable changes"
+        # so the read-only diff degrades safely. The orchestrator's
+        # structured log captures the timeout for operator audit.
         return ""
 
 
@@ -815,10 +911,19 @@ def diff_status(
     """Return lines in ``after`` that are not in ``before`` and violate the
     read-only contract.
 
-    A line is a violation when its path (the substring after the two-char
-    status code and one space, with any ``-> rename-target`` arrow
-    resolved to the renamed-to side, and any surrounding quotes stripped)
-    does not start with ``allow_prefix``.
+    A line is a violation when at least one of its paths (the substring
+    after the two-char status code and one space) falls OUTSIDE
+    ``allow_prefix``.
+
+    For rename entries (``XY <orig> -> <new>``) BOTH the source AND
+    the target path are checked. This closes the review feedback
+    edge case where an outside→inside rename (e.g. moving
+    ``docs/foo.md`` into ``acceleration/foo.md``) used to pass the
+    read-only check even though the source outside ``acceleration/``
+    was modified by the rename. Per AAP §0.5.2 the contract is
+    "additive plus read-only, satisfying the read-only boundary",
+    which means **no** file outside ``acceleration/`` may be created,
+    modified, deleted, or renamed.
 
     Parameters
     ----------
@@ -847,10 +952,22 @@ def diff_status(
         if len(line) < 4:
             continue
         path_section = line[3:]
-        # If a rename arrow is present, the "new" path is what landed on
-        # disk after the run, so that's the one to assess.
-        path = path_section.split(" -> ")[-1].strip().strip('"')
-        if not path.startswith(allow_prefix):
+        # Parse rename entries (``<orig> -> <new>``) into both paths;
+        # otherwise treat the whole section as a single path. Stripping
+        # surrounding quotes covers the C-quoted variant git emits for
+        # paths containing whitespace or special characters.
+        if " -> " in path_section:
+            orig_raw, _, new_raw = path_section.partition(" -> ")
+            paths = (
+                orig_raw.strip().strip('"'),
+                new_raw.strip().strip('"'),
+            )
+        else:
+            paths = (path_section.strip().strip('"'),)
+        # A rename is a violation if EITHER side falls outside the
+        # allowed prefix. A non-rename is a violation if its single
+        # path falls outside the allowed prefix.
+        if any(not p.startswith(allow_prefix) for p in paths if p):
             violations.append(line)
     return violations
 
@@ -1071,10 +1188,203 @@ def _git_version() -> str | None:
             ["git", "--version"],
             capture_output=True,
             check=False,
+            timeout=SUBPROCESS_TIMEOUT_GIT_HELPERS,
         )
         decoded = completed.stdout.decode("utf-8", errors="replace").strip()
         return decoded or None
     except FileNotFoundError:
+        return None
+    except subprocess.TimeoutExpired:
+        # ``git --version`` should return in milliseconds. A timeout
+        # indicates a broken git install or filesystem stall; surface
+        # ``None`` so the manifest records "git unavailable".
+        return None
+
+
+def _build_run_manifest(
+    *,
+    run_id: str,
+    started_at: str,
+    finished_at: str | None,
+    repo_root: Path,
+    output_dir: Path,
+    accel_dir: Path,
+    owner: str,
+    repo: str,
+    branch: str,
+    head_sha: str | None,
+    args_skip_network: bool,
+    args_skip_github: bool,
+    args_skip_ci_tests: bool,
+    args_skip_issues: bool,
+    args_only: tuple[str, ...] | None,
+    args_continue_on_error: bool,
+    args_no_readonly_check: bool,
+    results: list[StepResult],
+    overall_status: str,
+    readonly_violations: list[str],
+    git_version: str | None,
+) -> dict[str, Any]:
+    """Assemble the ``run_manifest.json`` payload.
+
+    Centralising the schema in a single helper ensures every write
+    site (initial-before-loop, per-step, final-after-readonly-check)
+    emits an identical shape. This also makes the schema auditable in
+    one place when downstream renderers add new field expectations.
+
+    The payload includes BOTH legacy field names (``owner``, ``repo``,
+    ``started_at``, ``finished_at``) and the explicit aliases the
+    renderers and ``compute_metrics.build_reproduce_script`` read
+    (``repo_owner``, ``repo_name``, ``repo_owner_name``, ``head_sha``,
+    ``generated_at``, ``extraction_timestamp``, ``extracted_at``).
+    The aliases are first-class fields, not just alternatives — they
+    are the schema the renderers consume; the legacy names are
+    retained for orchestrator-internal logging and for back-compat
+    with any downstream tooling that reads the older shape.
+
+    Parameters
+    ----------
+    run_id
+        Run correlation ID.
+    started_at, finished_at
+        Pipeline start and (optional) end timestamps as ISO 8601 UTC
+        strings with the ``Z`` suffix.
+    repo_root, output_dir, accel_dir
+        Absolute paths captured for reproducibility.
+    owner, repo, branch
+        Repository identifiers; ``repo_owner_name`` is built as
+        ``"{owner}/{repo}"``.
+    head_sha
+        Resolved HEAD SHA from :func:`_git_head_sha`, or ``None``.
+    args_*
+        Verbatim values of the orchestrator CLI flags.
+    results
+        :class:`StepResult` records accumulated so far. May be partial
+        when called from the per-step write site.
+    overall_status
+        ``"running"``, ``"ok"``, or ``"failed"``.
+    readonly_violations
+        Output of :func:`diff_status` (empty list until the final
+        write).
+    git_version
+        Trimmed stdout of ``git --version`` (captured once at
+        manifest-emit time).
+
+    Returns
+    -------
+    dict[str, Any]
+        JSON-serialisable payload ready for atomic write.
+    """
+
+    repo_owner_name = f"{owner}/{repo}"
+    # The ``generated_at`` field is what render_report and render_deck
+    # read for the "Extraction timestamp" cell. We bind it to
+    # ``finished_at`` when the pipeline has completed; while running it
+    # binds to the current time so a freshly-written manifest is never
+    # missing the field. ``extraction_timestamp`` and ``extracted_at``
+    # are aliases consumed by the deck renderer and compute_metrics
+    # respectively.
+    generated_at = finished_at or now_iso()
+    return {
+        # Legacy / orchestrator-canonical fields (retained for back-compat).
+        "run_id": run_id,
+        "started_at": started_at,
+        "finished_at": finished_at,
+        "repo_root": str(repo_root),
+        "output_dir": str(output_dir),
+        "accel_dir": str(accel_dir),
+        "owner": owner,
+        "repo": repo,
+        "branch": branch,
+        # Renderer-expected aliases (per the review feedback): every
+        # field name a downstream consumer reads is present at the top
+        # level of the manifest.
+        "repo_owner": owner,
+        "repo_name": repo,
+        "repo_owner_name": repo_owner_name,
+        "head_sha": head_sha,
+        "generated_at": generated_at,
+        "extraction_timestamp": generated_at,
+        "extracted_at": generated_at,
+        # Orchestrator argv snapshot — captured verbatim so a run can
+        # be reproduced from the manifest alone.
+        "args": {
+            "skip_network": args_skip_network,
+            "skip_github": args_skip_github,
+            "skip_ci_tests": args_skip_ci_tests,
+            "skip_issues": args_skip_issues,
+            "only": list(args_only) if args_only else None,
+            "continue_on_error": args_continue_on_error,
+            "no_readonly_check": args_no_readonly_check,
+        },
+        "steps": [asdict(r) for r in results],
+        "overall_status": overall_status,
+        "readonly_violations": readonly_violations,
+        "python_version": sys.version.split()[0],
+        "git_version": git_version,
+    }
+
+
+def _write_run_manifest(manifest_path: Path, payload: dict[str, Any]) -> None:
+    """Atomically write the run manifest payload to ``manifest_path``.
+
+    Writes to ``<path>.tmp`` first, then renames atomically. This
+    prevents a partial manifest from being observed by a renderer that
+    happens to read between two writes (the per-step update cycle).
+
+    Parameters
+    ----------
+    manifest_path
+        Target ``run_manifest.json`` path.
+    payload
+        Dict returned by :func:`_build_run_manifest`.
+    """
+
+    tmp_path = manifest_path.with_suffix(manifest_path.suffix + ".tmp")
+    tmp_path.write_text(
+        json.dumps(payload, indent=2, default=str),
+        encoding="utf-8",
+    )
+    tmp_path.replace(manifest_path)
+
+
+def _git_head_sha(repo_root: Path) -> str | None:
+    """Return the resolved SHA of ``HEAD`` for the manifest, or ``None``.
+
+    Captured once at manifest-emit time so downstream renderers and the
+    ``reproduce.sh`` script can pin the exact commit the analysis ran
+    against. The compute_metrics worker reads ``head_sha`` to generate
+    the ``git -C ... rev-parse <sha>`` pin in the appendix, and the
+    report renderer surfaces it in the Environment Verification table.
+
+    Parameters
+    ----------
+    repo_root
+        Path to the repository working directory. Passed to ``git`` via
+        ``-C`` so the helper does not depend on the orchestrator's cwd.
+
+    Returns
+    -------
+    str | None
+        The full SHA-1 hexadecimal string (e.g.
+        ``"bb1acd083..."``) or ``None`` when git is unavailable, the
+        path is not a git working tree, or the call times out.
+    """
+
+    try:
+        completed = subprocess.run(
+            ["git", "-C", str(repo_root), "rev-parse", "HEAD"],
+            capture_output=True,
+            check=False,
+            timeout=SUBPROCESS_TIMEOUT_GIT_HELPERS,
+        )
+        if completed.returncode != 0:
+            return None
+        decoded = completed.stdout.decode("utf-8", errors="replace").strip()
+        return decoded or None
+    except FileNotFoundError:
+        return None
+    except subprocess.TimeoutExpired:
         return None
 
 
@@ -1157,8 +1467,70 @@ def main(argv: list[str] | None = None) -> int:
         run_id=run_id,
     )
 
+    # Capture environment fingerprint ONCE up-front so the initial
+    # manifest carries it even before any step runs. The renderers and
+    # compute_metrics worker read ``head_sha`` / ``repo_owner`` /
+    # ``repo_name`` / ``generated_at`` from this file, so an
+    # initial-write-before-renderers-consume ordering is required.
+    head_sha = _git_head_sha(repo_root)
+    git_version_str = _git_version()
+    started_at = now_iso()
+
+    manifest_path = output_dir / "run_manifest.json"
+
+    # ---- Initial manifest -------------------------------------------------
+    # Per the review feedback (L1230-1270), the renderers consume
+    # ``run_manifest.json`` and must see an up-to-date copy when they
+    # run. Writing an initial "running" manifest before the step loop
+    # also lets the operator inspect a freshly-cloned, mid-run state
+    # (the file exists; ``overall_status == "running"``; ``steps`` is
+    # the partial list completed so far). Subsequent per-step writes
+    # update ``steps`` so the manifest is always consistent with the
+    # last completed step.
     results: list[StepResult] = []
     overall_ok = True
+
+    def _write_current_manifest(
+        *, finished_at: str | None, status: str, violations: list[str]
+    ) -> None:
+        """Persist the manifest reflecting current step results."""
+
+        _write_run_manifest(
+            manifest_path,
+            _build_run_manifest(
+                run_id=run_id,
+                started_at=started_at,
+                finished_at=finished_at,
+                repo_root=repo_root,
+                output_dir=output_dir,
+                accel_dir=accel_dir,
+                owner=args.owner,
+                repo=args.repo,
+                branch=args.branch,
+                head_sha=head_sha,
+                args_skip_network=args.skip_network,
+                args_skip_github=args.skip_github,
+                args_skip_ci_tests=args.skip_ci_tests,
+                args_skip_issues=args.skip_issues,
+                args_only=only,
+                args_continue_on_error=args.continue_on_error,
+                args_no_readonly_check=args.no_readonly_check,
+                results=results,
+                overall_status=status,
+                readonly_violations=violations,
+                git_version=git_version_str,
+            ),
+        )
+
+    _write_current_manifest(
+        finished_at=None, status="running", violations=[]
+    )
+    log.info(
+        f"Initial run manifest written: {manifest_path}  "
+        f"head_sha={head_sha or 'n/a'}"
+    )
+
+    # ---- Step loop --------------------------------------------------------
     for step in PIPELINE:
         # --only restricts execution to a hand-picked subset while
         # preserving canonical order. Steps not in the allow-list are
@@ -1174,7 +1546,14 @@ def main(argv: list[str] | None = None) -> int:
                     elapsed_seconds=0.0,
                     optional=step.optional,
                     error=f"not in --only={only}",
+                    timed_out=False,
                 )
+            )
+            # Per-step manifest update — keeps the file consistent with
+            # the last completed step so renderers reading mid-run see
+            # the most recent state.
+            _write_current_manifest(
+                finished_at=None, status="running", violations=[]
             )
             continue
         # skip_when implements user-requested step removal (e.g.
@@ -1194,14 +1573,30 @@ def main(argv: list[str] | None = None) -> int:
                     elapsed_seconds=0.0,
                     optional=step.optional,
                     error="user-requested skip",
+                    timed_out=False,
                 )
+            )
+            _write_current_manifest(
+                finished_at=None, status="running", violations=[]
             )
             continue
         result = execute_step(step, ctx, log)
         results.append(result)
+        # ---- Per-step manifest update ------------------------------------
+        # Before the next step runs (and before any renderer that might
+        # be configured to run mid-pipeline), persist the just-completed
+        # step into the manifest. This is the fix for the review
+        # feedback "Manifest is written after consumers run". The
+        # render_report / render_deck steps later in the pipeline can
+        # now read a manifest that reflects every step before them.
         if result.status == "failed":
             overall_ok = False
             log.error(f"[step={step.name}] FAILED: {result.error}")
+            _write_current_manifest(
+                finished_at=None,
+                status="running",
+                violations=[],
+            )
             if not args.continue_on_error:
                 log.error(
                     "Halting pipeline due to step failure "
@@ -1213,9 +1608,16 @@ def main(argv: list[str] | None = None) -> int:
                 f"[step={step.name}] {result.status} "
                 f"in {result.elapsed_seconds}s"
             )
+            _write_current_manifest(
+                finished_at=None,
+                status="running",
+                violations=[],
+            )
 
-    # Post-run read-only check. The diff of ``before`` vs ``after`` is
-    # restricted to lines whose path does not start with ``acceleration/``.
+    # ---- Post-run read-only check ----------------------------------------
+    # The diff of ``before`` vs ``after`` is restricted to lines whose
+    # path does not start with ``acceleration/``. Rename entries are
+    # checked on BOTH source and target paths per the review feedback.
     post_status = "" if args.no_readonly_check else snapshot_git_status(repo_root)
     violations: list[str] = []
     if not args.no_readonly_check:
@@ -1231,38 +1633,20 @@ def main(argv: list[str] | None = None) -> int:
                 "Read-only contract verified: no changes outside acceleration/."
             )
 
-    manifest_path = output_dir / "run_manifest.json"
-    manifest: dict[str, Any] = {
-        "run_id": run_id,
-        "started_at": results[0].started_at if results else now_iso(),
-        "finished_at": now_iso(),
-        "repo_root": str(repo_root),
-        "output_dir": str(output_dir),
-        "accel_dir": str(accel_dir),
-        "owner": args.owner,
-        "repo": args.repo,
-        "branch": args.branch,
-        "args": {
-            "skip_network": args.skip_network,
-            "skip_github": args.skip_github,
-            "skip_ci_tests": args.skip_ci_tests,
-            "skip_issues": args.skip_issues,
-            "only": list(only) if only else None,
-            "continue_on_error": args.continue_on_error,
-            "no_readonly_check": args.no_readonly_check,
-        },
-        "steps": [asdict(r) for r in results],
-        "overall_status": "ok" if overall_ok else "failed",
-        "readonly_violations": violations,
-        "python_version": sys.version.split()[0],
-        "git_version": _git_version(),
-    }
-    manifest_path.write_text(
-        json.dumps(manifest, indent=2, default=str),
-        encoding="utf-8",
+    # ---- Final manifest --------------------------------------------------
+    # Write the finalised manifest once the readonly check has run. The
+    # ``finished_at`` field is now set, ``overall_status`` flips from
+    # ``"running"`` to its terminal value, and ``readonly_violations``
+    # carries the verified output of :func:`diff_status`.
+    finished_at = now_iso()
+    final_status = "ok" if overall_ok else "failed"
+    _write_current_manifest(
+        finished_at=finished_at,
+        status=final_status,
+        violations=violations,
     )
-    log.info(f"Run manifest written: {manifest_path}")
-    log.info(f"Overall status: {manifest['overall_status']}")
+    log.info(f"Run manifest finalised: {manifest_path}")
+    log.info(f"Overall status: {final_status}")
     return 0 if overall_ok else 1
 
 

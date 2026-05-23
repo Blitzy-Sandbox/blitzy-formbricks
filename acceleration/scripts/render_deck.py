@@ -10,7 +10,10 @@ seventeen ``slide_*.html.tmpl`` files and ``theme.css`` under
 
 The output is a SELF-CONTAINED single HTML file. The only external
 network references are the three CDN-pinned libraries
-(reveal.js 5.1.0, Mermaid 11.4.0, Lucide 0.460.0) and Google Fonts.
+(reveal.js 5.1.0, Mermaid 11.15.0, Lucide 0.460.0) and Google Fonts.
+The Mermaid pin is intentionally raised from the AAP §0.6.1 literal
+``11.4.0`` to ``11.15.0`` per ``decision-log.md`` D-016 (CVE-2026-41148,
+CVE-2026-41149, CVE-2026-41150).
 
 Reads
 -----
@@ -69,6 +72,7 @@ stable string per run).
 from __future__ import annotations
 
 import argparse
+import html
 import json
 import logging
 import os
@@ -92,11 +96,19 @@ from typing import Any
 # so the values below MUST NOT be loosened without coordinated updates.
 
 # AAP §0.7.1 Rule 5 — CDN-pinned versions. ``verify_report.py`` greps
-# the rendered HTML for ``reveal.js@5.1.0``, ``mermaid@11.4.0``, and
+# the rendered HTML for ``reveal.js@5.1.0``, ``mermaid@11.15.0``, and
 # ``lucide@0.460.0`` substrings; the strings below must produce those
 # substrings verbatim.
+#
+# The Mermaid pin is intentionally raised from the AAP §0.6.1 literal
+# ``11.4.0`` to ``11.15.0`` per ``acceleration/decision-log.md`` D-016
+# to address CVE-2026-41148, CVE-2026-41149, and CVE-2026-41150
+# (HTML/CSS injection and Gantt-chart DoS). Any drift between this
+# constant, ``acceleration/scripts/verify_report.py:PINNED_MERMAID_VERSION``,
+# and the rendered ``acceleration/executive-presentation.html`` import URL
+# is a regression.
 CDN_REVEAL: str = "https://cdn.jsdelivr.net/npm/reveal.js@5.1.0"
-CDN_MERMAID: str = "https://cdn.jsdelivr.net/npm/mermaid@11.4.0/dist/mermaid.esm.min.mjs"
+CDN_MERMAID: str = "https://cdn.jsdelivr.net/npm/mermaid@11.15.0/dist/mermaid.esm.min.mjs"
 CDN_LUCIDE: str = "https://cdn.jsdelivr.net/npm/lucide@0.460.0/dist/umd/lucide.min.js"
 
 # AAP §0.7.1 Rule 5 — typography stack: Inter (body), Space Grotesk
@@ -158,6 +170,21 @@ SLIDE_FILENAMES: list[str] = [
 # single braces. The regex is reused by ``substitute_tokens`` and by
 # the verifier's leftover-token scan.
 TOKEN_RE: re.Pattern[str] = re.compile(r"\{\{([A-Z][A-Z0-9_]*)\}\}")
+
+# Matcher for the body of a Mermaid block (``<pre class="mermaid">…</pre>``).
+# Substitution inside this block intentionally does NOT HTML-escape token
+# values because Mermaid parses the block content as Mermaid DSL, not HTML;
+# inserting ``&quot;`` or ``&amp;`` would corrupt the chart. Mermaid-safe
+# sanitisation is therefore applied at the token-source level in
+# :func:`build_tokens` (e.g. ``METRIC_LABEL`` strips quotes; ``ENG_LABELS``
+# and ``ENG_VALUES`` are JSON-encoded; date tokens are constrained to
+# ``YYYY-MM-DD`` by :func:`_iso_date`). The pattern tolerates extra
+# attributes on the ``<pre>`` tag and is case-insensitive.
+MERMAID_BLOCK_RE: re.Pattern[str] = re.compile(
+    r"<pre\b[^>]*\bclass\s*=\s*[\"']?[^\"']*\bmermaid\b[^\"']*[\"']?[^>]*>"
+    r".*?</pre\s*>",
+    re.DOTALL | re.IGNORECASE,
+)
 
 # HTML-comment matcher used by ``load_slides`` to strip the lengthy
 # provenance comments from the head of each slide template before
@@ -618,6 +645,66 @@ def _rampup_end(inflection: dict[str, Any]) -> str:
     return (dt + timedelta(days=_RAMP_UP_WINDOW_DAYS)).strftime("%Y-%m-%d")
 
 
+def _sanitise_for_mermaid_label(value: Any) -> str:
+    """Return a Mermaid-block-safe label string.
+
+    Mermaid block contexts (``<pre class="mermaid">…</pre>``) are NOT
+    HTML-escaped at substitution time (see :func:`substitute_tokens`
+    rationale). The renderer therefore sanitises any externally-sourced
+    label string before it enters the Mermaid DSL by:
+
+    1. Coercing non-string inputs to ``str()``.
+    2. Stripping ASCII control characters (categories ``Cc``) other
+       than ordinary spaces — a NUL, tab, vertical tab, form-feed, or
+       newline embedded in an engineer display name would otherwise
+       break the Mermaid line that the label appears on.
+    3. Removing the double-quote character (``"``). Mermaid ``title``
+       directives wrap the label in double quotes; an embedded quote
+       terminates the label and lets the remainder of the value run as
+       Mermaid DSL.
+    4. Removing the backslash character (``\\``). Mermaid recognises
+       certain backslash escapes; stripping them removes the smuggling
+       surface.
+    5. Collapsing internal whitespace runs to a single space and
+       trimming leading/trailing whitespace.
+
+    This sanitiser is intentionally lossy: a label with embedded HTML
+    or DSL metacharacters renders as its plain-text equivalent, which
+    is acceptable for engineer display names and metric labels.
+
+    Parameters
+    ----------
+    value
+        Any value supplied via ``per_engineer.labels`` or
+        ``per_engineer.metric_label`` in ``metrics.json``.
+
+    Returns
+    -------
+    str
+        Mermaid-block-safe representation of ``value``.
+    """
+
+    text = str(value) if value is not None else ""
+    if not text:
+        return ""
+    # Drop characters whose Unicode category is "Cc" (control) except
+    # ordinary space. We process Python characters one at a time rather
+    # than use a regex so the implementation is stdlib-only and obvious.
+    cleaned_chars: list[str] = []
+    for ch in text:
+        if ch == "\u0020":
+            cleaned_chars.append(ch)
+            continue
+        if ord(ch) < 0x20 or ord(ch) == 0x7F:
+            continue
+        if ch in ('"', "\\"):
+            continue
+        cleaned_chars.append(ch)
+    cleaned = "".join(cleaned_chars)
+    # Collapse repeated spaces and trim.
+    return re.sub(r"\s+", " ", cleaned).strip()
+
+
 def _extract_caveat(metric: dict[str, Any]) -> str:
     """Return the most informative caveat string for a metric.
 
@@ -741,18 +828,31 @@ def build_tokens(
     # ``inflection.json`` uses ``date`` and ``method`` as the canonical
     # field names; some downstream tools use ``inflection_date`` as
     # the field name — accept either to be robust.
+    #
+    # SECURITY: ``INFLECTION_DATE`` and ``INFLECTION_METHOD`` are
+    # interpolated into BOTH HTML text (slide 04 paragraph) AND a
+    # Mermaid Gantt block (slide 04). The HTML occurrence is
+    # HTML-escaped by :func:`substitute_tokens`; the Mermaid
+    # occurrence is passed through verbatim, so the values that flow
+    # here must be Mermaid-safe at the source. ``_iso_date`` already
+    # constrains the date token to the ``YYYY-MM-DD`` character set;
+    # ``_sanitise_for_mermaid_label`` does the same for the method
+    # string (typically ``convergent_evidence`` / ``single_signal`` /
+    # ``velocity_only``).
     inflection_date = _iso_date(
         inflection.get("date")
         or inflection.get("inflection_date")
         or "n/a"
     )
-    inflection_method = (
+    inflection_method_raw = (
         inflection.get("method")
         or inflection.get("detection_method")
         or "n/a"
     )
     tokens["INFLECTION_DATE"] = inflection_date
-    tokens["INFLECTION_METHOD"] = str(inflection_method)
+    tokens["INFLECTION_METHOD"] = (
+        _sanitise_for_mermaid_label(inflection_method_raw) or "n/a"
+    )
 
     # -- Generated timestamp -----------------------------------------------
     # ``run_manifest.json["generated_at"]`` is the canonical source;
@@ -836,17 +936,50 @@ def build_tokens(
     # is False so that engineer names with non-ASCII characters
     # (Theodór Tómas, etc.) render in their native glyphs rather than
     # ``\uXXXX`` escapes.
-    eng_labels = per_engineer.get("labels") or []
-    eng_values = per_engineer.get("values") or []
-    if not isinstance(eng_labels, list):
-        eng_labels = []
-    if not isinstance(eng_values, list):
-        eng_values = []
+    #
+    # SECURITY: ENG_LABELS and ENG_VALUES are emitted inside a
+    # ``<pre class="mermaid">`` block (Mermaid DSL context). ``json.dumps``
+    # encodes the values as JSON literals, escaping any embedded ``"``
+    # / ``\`` / control characters in author display names — this is
+    # the Mermaid-safe form. ``substitute_tokens`` recognises the
+    # Mermaid block via :data:`MERMAID_BLOCK_RE` and does NOT apply
+    # HTML escaping on top, which would corrupt the JSON literal.
+    eng_labels_raw = per_engineer.get("labels") or []
+    eng_values_raw = per_engineer.get("values") or []
+    if not isinstance(eng_labels_raw, list):
+        eng_labels_raw = []
+    if not isinstance(eng_values_raw, list):
+        eng_values_raw = []
+    # Defensive normalisation: ensure every label is a string and every
+    # value is a JSON number-or-null. Drop ASCII control characters
+    # other than ordinary whitespace before JSON-encoding so a malicious
+    # author display name carrying a NUL or a vertical tab cannot
+    # smuggle a chart-breaking character into the Mermaid block.
+    eng_labels: list[str] = [
+        _sanitise_for_mermaid_label(label) for label in eng_labels_raw
+    ]
+    eng_values: list[Any] = []
+    for value in eng_values_raw:
+        if isinstance(value, (int, float)) and not isinstance(value, bool):
+            eng_values.append(value)
+        elif value is None:
+            eng_values.append(None)
+        else:
+            # Non-numeric values would break the Mermaid bar definition;
+            # fall back to 0 rather than render the literal string.
+            eng_values.append(0)
     tokens["ENG_LABELS"] = json.dumps(eng_labels, ensure_ascii=False)
     tokens["ENG_VALUES"] = json.dumps(eng_values)
     metric_label = per_engineer.get("metric_label")
+    # ``METRIC_LABEL`` is interpolated into a Mermaid ``title "…"``
+    # directive (slide 12). The wrapping double quotes are part of the
+    # template, so any embedded double quote in the substituted value
+    # would terminate the Mermaid title literal. The sanitiser also
+    # collapses control characters / newlines (which would split the
+    # Mermaid line and corrupt the chart) and strips the backslash so
+    # an attacker cannot smuggle a Mermaid escape sequence.
     if isinstance(metric_label, str) and metric_label.strip():
-        tokens["METRIC_LABEL"] = metric_label.strip()
+        tokens["METRIC_LABEL"] = _sanitise_for_mermaid_label(metric_label)
     else:
         tokens["METRIC_LABEL"] = "Post-Introduction Activity (Metric 2)"
 
@@ -941,7 +1074,43 @@ def _humanise_timestamp(raw: str) -> str:
 
 
 def substitute_tokens(template: str, tokens: dict[str, str]) -> str:
-    """Replace every ``{{TOKEN}}`` occurrence with the mapped value.
+    """Replace every ``{{TOKEN}}`` occurrence with the mapped value, applying
+    context-aware escaping.
+
+    The deck template carries tokens whose substitution VALUES originate
+    from runtime data (``metrics.json``, ``inflection.json``,
+    ``run_manifest.json``, and indirectly from git commit messages,
+    GitHub PR titles, engineer display names, label text, and risk
+    text). All of those sources sit outside the trust boundary of this
+    renderer — a maliciously crafted git author name, branch name, or
+    issue label could, before this hardening, inject script tags or
+    HTML attributes into the rendered deck (CWE-79 cross-site scripting
+    via context-confusion). The trust boundary is therefore:
+
+    Trusted   : ``acceleration/templates/deck/*.html.tmpl`` (in-repo);
+                ``HTML_SHELL`` literal in this module.
+    Untrusted : every string value in the ``tokens`` mapping.
+
+    Context-aware escaping
+    ----------------------
+    Two output contexts coexist in the same template:
+
+    1. **HTML text & attribute contexts.** The vast majority of tokens
+       (``RISK_*``, ``M*_CAVEAT``, ``COMMIT_TOTAL``, …) render as
+       inner-HTML or attribute values. Substitution applies
+       :func:`html.escape` with ``quote=True`` so that ``<``, ``>``,
+       ``&``, ``"`` and ``'`` are inert and cannot break out of the
+       surrounding tag or attribute.
+    2. **Mermaid block contexts** (inside ``<pre class="mermaid">…</pre>``).
+       Mermaid parses the block as its own DSL — applying HTML escape
+       would corrupt the chart (``&quot;`` is not a string literal in
+       Mermaid). Substitution inside Mermaid blocks therefore passes
+       the token value through verbatim. The values that flow into
+       Mermaid contexts are sanitised at their source in
+       :func:`build_tokens` (``ENG_LABELS``/``ENG_VALUES`` are
+       :func:`json.dumps`-encoded; ``METRIC_LABEL`` has embedded
+       quotes/newlines stripped; date tokens are restricted to
+       ``YYYY-MM-DD`` by :func:`_iso_date`).
 
     Tokens not present in the ``tokens`` dict are substituted with the
     string ``"n/a"`` rather than left raw, because the verifier (see
@@ -962,16 +1131,54 @@ def substitute_tokens(template: str, tokens: dict[str, str]) -> str:
     str
         The substituted text. All ``{{UPPERCASE_TOKEN}}`` occurrences
         are replaced.
+
+    See Also
+    --------
+    :data:`MERMAID_BLOCK_RE`
+        The regex used to identify Mermaid block boundaries.
+    :func:`build_tokens`
+        Source-level sanitisation that complements the substitution
+        escaping (Mermaid-safe and HTML-safe normalisation of values
+        derived from external data).
     """
 
-    def _replace(match: re.Match[str]) -> str:
+    def _replace_html(match: re.Match[str]) -> str:
+        # HTML text & attribute context: escape so that ``<``, ``>``,
+        # ``&``, single and double quotes cannot break out of the
+        # surrounding HTML structure.
+        key = match.group(1)
+        value = tokens.get(key)
+        if value is None:
+            return "n/a"
+        return html.escape(str(value), quote=True)
+
+    def _replace_mermaid(match: re.Match[str]) -> str:
+        # Mermaid DSL context: pass through verbatim. The values that
+        # arrive here must already be Mermaid-safe per ``build_tokens``;
+        # if the value is structurally a JSON literal (ENG_LABELS,
+        # ENG_VALUES) it is also already JSON-encoded.
         key = match.group(1)
         value = tokens.get(key)
         if value is None:
             return "n/a"
         return str(value)
 
-    return TOKEN_RE.sub(_replace, template)
+    # Walk the template, treating each ``<pre class="mermaid">…</pre>``
+    # block as a Mermaid region (verbatim substitution) and every other
+    # segment as an HTML region (HTML-escaped substitution).
+    pieces: list[str] = []
+    pos = 0
+    for block in MERMAID_BLOCK_RE.finditer(template):
+        # HTML region up to the start of this Mermaid block.
+        if block.start() > pos:
+            pieces.append(TOKEN_RE.sub(_replace_html, template[pos : block.start()]))
+        # The Mermaid block itself (verbatim substitution).
+        pieces.append(TOKEN_RE.sub(_replace_mermaid, block.group(0)))
+        pos = block.end()
+    # Final HTML region (after the last Mermaid block, if any).
+    if pos < len(template):
+        pieces.append(TOKEN_RE.sub(_replace_html, template[pos:]))
+    return "".join(pieces)
 
 
 # ---------------------------------------------------------------------------

@@ -224,6 +224,14 @@ MAX_ARTIFACT_BYTES: int = 50 * 1024 * 1024  # 50 MiB
 # listing pagination.
 MAX_REQUESTS_PER_RUN: int = 1500
 
+# Retry policy for transient HTTP failures (review feedback: "Add bounded
+# retries with backoff around workflow run/artifact ZIP requests and
+# record failures in test_results_access.json."). Same shape as the
+# sibling :mod:`acceleration.scripts.extract_github` policy.
+HTTP_MAX_RETRIES: int = 3
+HTTP_RETRY_BACKOFF_BASE: float = 2.0
+HTTP_RETRYABLE_STATUS: frozenset[int] = frozenset({500, 502, 503, 504})
+
 # Regular-expression patterns identifying JUnit-shaped XML files inside a
 # downloaded artifact ZIP. All three conventional names are covered:
 #
@@ -294,6 +302,12 @@ class GithubClient:
     request_count: int = 0
     api_base: str = GITHUB_API_BASE
     last_status: int = 0
+    # Retry / reliability counters per the review feedback. Recorded
+    # in ``test_results_access.json`` so operators can audit whether
+    # transient failures degraded Metric 11 (Escaped Defects).
+    retry_attempts: int = 0
+    retry_recoveries: int = 0
+    retry_failures: int = 0
 
     def headers(self) -> dict[str, str]:
         """Compose the request headers for a GitHub REST API call.
@@ -327,8 +341,19 @@ class GithubClient:
         params: dict[str, Any] | None = None,
         *,
         raw: bool = False,
+        max_retries: int | None = None,
+        retry_backoff_base: float | None = None,
     ) -> tuple[int, Any, dict[str, str]]:
-        """Issue a single HTTP ``GET`` to the supplied URL.
+        """Issue a single HTTP ``GET`` to the supplied URL with bounded retries.
+
+        Retry policy mirrors
+        :meth:`acceleration.scripts.extract_github.GithubClient.get`:
+        retry on 5xx (500, 502, 503, 504), :class:`urllib.error.URLError`,
+        :class:`TimeoutError`, and other transient :class:`OSError`
+        instances (e.g. :class:`ConnectionResetError`,
+        :class:`BrokenPipeError`). 4xx are NOT retried (deterministic);
+        429 is NOT retried at this layer (the upstream rate-limit handler
+        is the correct response).
 
         Parameters
         ----------
@@ -344,6 +369,14 @@ class GithubClient:
             ``bytes`` (for artifact ZIP downloads). When ``False`` (the
             default), the body is decoded as UTF-8 and parsed as JSON
             when possible.
+        max_retries : int or None
+            Maximum number of retry attempts (in addition to the
+            initial attempt). Defaults to :data:`HTTP_MAX_RETRIES`.
+            Pass ``0`` to disable retries.
+        retry_backoff_base : float or None
+            Backoff base in seconds. Defaults to
+            :data:`HTTP_RETRY_BACKOFF_BASE`. The nth retry sleeps for
+            ``retry_backoff_base * 2**(n-1)`` seconds.
 
         Returns
         -------
@@ -370,43 +403,82 @@ class GithubClient:
         self.request_count += 1
         if params:
             url = f"{url}?{urllib.parse.urlencode(params)}"
-        req = urllib.request.Request(url, headers=self.headers(), method="GET")
-        try:
-            # A 60-second timeout accommodates the larger transfer sizes
-            # typical of artifact ZIP downloads; small JSON responses
-            # return long before the cap.
-            with urllib.request.urlopen(req, timeout=60) as resp:
-                self.last_status = resp.status
-                hdrs = {k.lower(): v for k, v in resp.headers.items()}
-                if raw:
-                    return resp.status, resp.read(), hdrs
-                body = resp.read().decode("utf-8", errors="replace")
-                try:
-                    return resp.status, json.loads(body), hdrs
-                except json.JSONDecodeError:
-                    return resp.status, body, hdrs
-        except urllib.error.HTTPError as exc:
-            # 4xx / 5xx HTTPError carries a response body and headers;
-            # surface them so the caller can record the error code in
-            # the access manifest. This is the normal path for 403 / 404
-            # on artifact-download endpoints whose token lacks
-            # ``actions:read`` scope.
-            self.last_status = exc.code
-            data = exc.read() if exc.fp else b""
-            hdrs = {k.lower(): v for k, v in (exc.headers or {}).items()}
-            if raw:
-                return exc.code, data, hdrs
-            text = data.decode("utf-8", errors="replace")
+
+        retries = (
+            HTTP_MAX_RETRIES if max_retries is None else max(0, max_retries)
+        )
+        backoff_base = (
+            HTTP_RETRY_BACKOFF_BASE
+            if retry_backoff_base is None
+            else max(0.0, retry_backoff_base)
+        )
+        retried_at_least_once = False
+
+        for attempt in range(retries + 1):
+            req = urllib.request.Request(
+                url, headers=self.headers(), method="GET"
+            )
             try:
-                return exc.code, json.loads(text), hdrs
-            except (json.JSONDecodeError, ValueError):
-                return exc.code, text, hdrs
-        except urllib.error.URLError as exc:
-            # URLError covers network-level failures (DNS, connection
-            # refused, timeout). Callers treat status==0 as "endpoint
-            # not reachable" and record the run as inaccessible.
-            self.last_status = 0
-            return 0, str(exc), {}
+                # 60-second timeout for artifact ZIP downloads; small
+                # JSON responses return long before the cap.
+                with urllib.request.urlopen(req, timeout=60) as resp:
+                    self.last_status = resp.status
+                    hdrs = {k.lower(): v for k, v in resp.headers.items()}
+                    if retried_at_least_once:
+                        self.retry_recoveries += 1
+                    if raw:
+                        return resp.status, resp.read(), hdrs
+                    body = resp.read().decode("utf-8", errors="replace")
+                    try:
+                        return resp.status, json.loads(body), hdrs
+                    except json.JSONDecodeError:
+                        return resp.status, body, hdrs
+            except urllib.error.HTTPError as exc:
+                self.last_status = exc.code
+                data = exc.read() if exc.fp else b""
+                hdrs = {
+                    k.lower(): v for k, v in (exc.headers or {}).items()
+                }
+                if exc.code in HTTP_RETRYABLE_STATUS and attempt < retries:
+                    self.retry_attempts += 1
+                    retried_at_least_once = True
+                    time.sleep(backoff_base * (2 ** attempt))
+                    continue
+                if retried_at_least_once:
+                    if exc.code in HTTP_RETRYABLE_STATUS:
+                        self.retry_failures += 1
+                    else:
+                        self.retry_recoveries += 1
+                if raw:
+                    return exc.code, data, hdrs
+                text = data.decode("utf-8", errors="replace")
+                try:
+                    return exc.code, json.loads(text), hdrs
+                except (json.JSONDecodeError, ValueError):
+                    return exc.code, text, hdrs
+            except urllib.error.URLError as exc:
+                self.last_status = 0
+                if attempt < retries:
+                    self.retry_attempts += 1
+                    retried_at_least_once = True
+                    time.sleep(backoff_base * (2 ** attempt))
+                    continue
+                if retried_at_least_once:
+                    self.retry_failures += 1
+                return 0, str(exc), {}
+            except (TimeoutError, OSError) as exc:
+                self.last_status = 0
+                if attempt < retries:
+                    self.retry_attempts += 1
+                    retried_at_least_once = True
+                    time.sleep(backoff_base * (2 ** attempt))
+                    continue
+                if retried_at_least_once:
+                    self.retry_failures += 1
+                return 0, str(exc), {}
+        # Defensive fallback: only reachable if ``retries`` were
+        # negative, which the clamp prevents.
+        return 0, "retry loop fell through", {}
 
     def respect_rate_limit(self, hdrs: dict[str, str]) -> None:
         """Sleep, if necessary, to respect the primary GitHub rate limit.
@@ -1537,6 +1609,23 @@ def main(argv: list[str] | None = None) -> int:
         "runs_with_test_artifacts": total_runs_with_artifacts,
         "records_written": total_records,
         "api_requests": client.request_count,
+        # Retry / reliability counters per the review feedback: record
+        # retry attempts in test_results_access.json so operators can
+        # audit whether transient failures (5xx, URLError, timeouts)
+        # biased Metric 11's input data. ``retry_attempts`` counts every
+        # retry across the run; ``retry_recoveries`` counts retried
+        # calls that ultimately succeeded; ``retry_failures`` counts
+        # retried calls that exhausted the budget. The static
+        # ``retry_policy`` snapshot allows downstream consumers to
+        # reproduce the exact retry schedule without reading source.
+        "retry_attempts": client.retry_attempts,
+        "retry_recoveries": client.retry_recoveries,
+        "retry_failures": client.retry_failures,
+        "retry_policy": {
+            "max_retries": HTTP_MAX_RETRIES,
+            "backoff_base_seconds": HTTP_RETRY_BACKOFF_BASE,
+            "retryable_status_codes": sorted(HTTP_RETRYABLE_STATUS),
+        },
         "per_workflow_runs_seen": per_workflow_runs_seen,
         "per_workflow_runs_with_artifacts": per_workflow_runs_with_artifacts,
         "per_workflow_record_count": per_workflow_record_count,
@@ -1562,16 +1651,22 @@ def main(argv: list[str] | None = None) -> int:
 
     log.info(
         "Wrote %d test records from %d/%d runs with artifacts; "
-        "api_requests=%d",
+        "api_requests=%d (retry attempts: %d, recoveries: %d, failures: %d)",
         total_records,
         total_runs_with_artifacts,
         total_runs_seen,
         client.request_count,
+        client.retry_attempts,
+        client.retry_recoveries,
+        client.retry_failures,
         extra={
             "records": total_records,
             "runs_with_artifacts": total_runs_with_artifacts,
             "runs_seen": total_runs_seen,
             "api_requests": client.request_count,
+            "retry_attempts": client.retry_attempts,
+            "retry_recoveries": client.retry_recoveries,
+            "retry_failures": client.retry_failures,
             "out_path": str(out_path),
             "manifest": str(access_path),
         },
@@ -1596,6 +1691,13 @@ __all__ = [
     "MAX_ARTIFACT_BYTES",
     "MAX_REQUESTS_PER_RUN",
     "JUNIT_FILENAME_PATTERNS",
+    # Retry policy constants (re-exported so the orchestrator and test
+    # harnesses can pin against the same exponential-backoff schedule
+    # the live extractor uses; mirrors :mod:`extract_github` so both
+    # network extractors expose an identical reliability surface.)
+    "HTTP_MAX_RETRIES",
+    "HTTP_RETRY_BACKOFF_BASE",
+    "HTTP_RETRYABLE_STATUS",
     # Class
     "GithubClient",
     # Functions

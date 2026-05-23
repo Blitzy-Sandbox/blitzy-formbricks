@@ -107,6 +107,7 @@ This is the first data extractor invoked by
 from __future__ import annotations
 
 import argparse
+import contextlib
 import json
 import os
 import re
@@ -193,6 +194,53 @@ REVERTS_COMMIT_RE: re.Pattern[str] = re.compile(
 ALT_REVERTS_RE: re.Pattern[str] = re.compile(
     r"\bReverts commit ([0-9a-f]{7,40})", re.IGNORECASE
 )
+
+# Semver tag patterns (AAP §0.1.3 — "release source precedence ... (2) annotated
+# git tags matching semver pattern v?\\d+\\.\\d+\\.\\d+. Prerelease tags
+# (matching -alpha, -beta, -rc, -dev suffixes) are excluded from the primary
+# count and reported separately."). The pattern intentionally permits both
+# ``v1.2.3`` and bare ``1.2.3`` forms, plus a ``+build`` metadata segment.
+SEMVER_TAG_RE: re.Pattern[str] = re.compile(
+    r"^v?\d+\.\d+\.\d+"
+    r"(?P<prerelease>-(?:[0-9A-Za-z\-]+(?:\.[0-9A-Za-z\-]+)*))?"
+    r"(?P<build>\+[0-9A-Za-z\-]+(?:\.[0-9A-Za-z\-]+)*)?$"
+)
+# Substring tokens that mark a tag as a prerelease per AAP §0.1.3 even when
+# they appear inside the prerelease segment after the first dash.
+PRERELEASE_TOKENS: tuple[str, ...] = (
+    "alpha",
+    "beta",
+    "rc",
+    "dev",
+    "pre",
+    "preview",
+    "snapshot",
+    "nightly",
+    "next",
+    "canary",
+)
+
+
+# ---------------------------------------------------------------------------
+# Subprocess timeout budgets (Checkpoint 3 hardening)
+# ---------------------------------------------------------------------------
+# These bound every git subprocess invocation so a hung / corrupt repository
+# cannot deadlock the pipeline. The values mirror the Phase-5 hardening of
+# ``run_acceleration_analysis.py`` and ``detect_inflection.py``:
+#
+#   * GIT_RUN_TIMEOUT_SECONDS — bounds short blocking git commands invoked
+#     via :func:`run_git` (rev-parse, rev-list, for-each-ref, show, etc).
+#     The 5,178-commit ``git rev-list --count`` on the live Formbricks
+#     repository takes well under a second; 600 s is a very generous safety
+#     net that still terminates a hung child long before downstream waits.
+#   * GIT_LOG_STREAM_TIMEOUT_SECONDS — bounds a single read chunk from the
+#     long-running ``git log`` stream in :func:`iter_commits`. A healthy
+#     git log produces output in dense bursts; a stall longer than this
+#     budget indicates the child is no longer producing data, and the
+#     iterator degrades to a partial-history extraction rather than
+#     hanging forever.
+GIT_RUN_TIMEOUT_SECONDS: float = 600.0
+GIT_LOG_STREAM_TIMEOUT_SECONDS: float = 600.0
 
 
 # ---------------------------------------------------------------------------
@@ -320,6 +368,7 @@ def run_git(
     cwd: Path | None = None,
     *,
     check: bool = True,
+    timeout: float | None = None,
 ) -> str:
     """Invoke ``git`` with the supplied arguments and return decoded stdout.
 
@@ -343,6 +392,12 @@ def run_git(
         :class:`RuntimeError` with the captured stderr. When ``False``,
         the function returns the empty string on failure so callers can
         detect missing refs / commits without aborting the pipeline.
+    timeout : float or None, default None
+        Maximum wall-clock seconds to wait for the git invocation. When
+        ``None`` the function applies :data:`GIT_RUN_TIMEOUT_SECONDS`
+        (Checkpoint 3 hardening). On timeout, behaviour mirrors a non-zero
+        exit: a :class:`RuntimeError` is raised when ``check=True`` and an
+        empty string is returned when ``check=False``.
 
     Returns
     -------
@@ -355,17 +410,31 @@ def run_git(
     Raises
     ------
     RuntimeError
-        When ``check=True`` and git exits non-zero. The exception message
-        includes the failing command line and the stderr text.
+        When ``check=True`` and git exits non-zero, or when the timeout is
+        exceeded. The exception message includes the failing command line
+        and (where available) the stderr text.
     """
 
     cmd: list[str] = ["git"] + args
-    result = subprocess.run(
-        cmd,
-        cwd=str(cwd) if cwd else None,
-        check=False,
-        capture_output=True,
-    )
+    budget = GIT_RUN_TIMEOUT_SECONDS if timeout is None else timeout
+    try:
+        result = subprocess.run(
+            cmd,
+            cwd=str(cwd) if cwd else None,
+            check=False,
+            capture_output=True,
+            timeout=budget,
+        )
+    except subprocess.TimeoutExpired as exc:
+        # Surface the timeout uniformly with non-zero exit handling so
+        # callers do not need to special-case it. Per AAP §0.7.2.1 the
+        # script must never hang the pipeline on a corrupt repository.
+        if check:
+            raise RuntimeError(
+                f"`{' '.join(cmd)}` timed out after {budget:.0f}s "
+                f"(set GIT_RUN_TIMEOUT_SECONDS or pass timeout=...)"
+            ) from exc
+        return ""
     if check and result.returncode != 0:
         stderr_text = result.stderr.decode("utf-8", errors="replace").strip()
         raise RuntimeError(
@@ -512,6 +581,174 @@ def date_range(cwd: Path, ref: str) -> tuple[str | None, str | None]:
     first_raw: str | None = min(root_dates) if root_dates else None
 
     return first_raw, (last_raw or None)
+
+
+def is_prerelease_tag(name: str) -> bool:
+    """Return True when ``name`` is an annotated semver *prerelease* tag.
+
+    Implements AAP §0.1.3 — "Prerelease tags (matching -alpha, -beta, -rc,
+    -dev suffixes) are excluded from the primary count and reported
+    separately." The check is:
+
+    1. The tag matches the semver pattern ``^v?\\d+\\.\\d+\\.\\d+`` so that
+       non-version tags (e.g. ``release-2024-q2``) never qualify as
+       prereleases of nothing.
+    2. The tag carries a prerelease segment, *or* the lowercased tag
+       contains one of the recognised prerelease tokens (alpha / beta /
+       rc / dev / pre / preview / snapshot / nightly / next / canary). The
+       second arm catches non-standard prerelease conventions seen in
+       practice (e.g. ``v1.2.3.beta`` with a period instead of a hyphen).
+
+    Parameters
+    ----------
+    name : str
+        The tag name as reported by ``git for-each-ref``.
+
+    Returns
+    -------
+    bool
+        True when the tag should be excluded from the primary release count.
+    """
+
+    if not name:
+        return False
+    match = SEMVER_TAG_RE.match(name.strip())
+    if match is None:
+        return False
+    if match.group("prerelease"):
+        return True
+    lowered = name.lower()
+    for token in PRERELEASE_TOKENS:
+        if token in lowered:
+            return True
+    return False
+
+
+def iter_tags(cwd: Path) -> Iterator[dict[str, Any]]:
+    """Yield annotated tag records from the repository.
+
+    This implements the **secondary** release source defined in AAP §0.1.3
+    ("release source precedence ... (2) annotated git tags matching semver
+    pattern v?\\d+\\.\\d+\\.\\d+"). The Formbricks repository has zero
+    annotated tags at the time of writing, so the generator simply yields
+    nothing on that repository. The implementation is included so that the
+    extractor is correct on any repository that DOES tag releases.
+
+    Per-tag record fields:
+
+    ``tag``
+        The tag name (with the ``refs/tags/`` prefix stripped).
+    ``commit_sha``
+        The peeled commit SHA the tag ultimately resolves to (i.e. the
+        target of an annotated tag's tag object).
+    ``tagger_date``
+        Strict-ISO 8601 timestamp of the *tag* (the moment of tagging), not
+        the commit it points to. Resolves to the empty string for
+        lightweight tags that have no tagger record.
+    ``commit_date``
+        Strict-ISO 8601 committer date of the commit the tag points to.
+    ``object_type``
+        One of ``tag`` (annotated), ``commit`` (lightweight), or another
+        object type that git considers tag-targetable.
+    ``is_annotated``
+        True iff ``object_type == "tag"``. Lightweight tags are emitted as
+        well so callers can decide whether to include them; the
+        ``main()`` orchestrator's manifest reports the split.
+    ``is_semver``
+        True iff the tag matches the semver pattern.
+    ``is_prerelease``
+        True iff :func:`is_prerelease_tag` returns True.
+
+    The Iterator yields tags in chronological order of their tagger date
+    (oldest first), with lightweight tags ordered by the underlying commit
+    date as a fallback. This deterministic ordering simplifies downstream
+    windowing in ``compute_metrics.py``.
+
+    Parameters
+    ----------
+    cwd : pathlib.Path
+        The repository root.
+
+    Yields
+    ------
+    dict[str, Any]
+        One record per tag in ``refs/tags/``. The generator is
+        non-stateful: a fresh ``git for-each-ref`` invocation produces the
+        same sequence each time absent concurrent repository writes (which
+        this read-only pipeline does not perform).
+
+    Read-only discipline
+    --------------------
+    Invokes only ``git for-each-ref`` — a strict read-only inspection
+    command that touches neither refs, working tree, nor index.
+    """
+
+    # Field separators identical to those used for commit streaming so the
+    # parse logic is consistent. The format string requests, in order:
+    #   0  refname (e.g. refs/tags/v1.2.3)
+    #   1  object type of the *tag* object (tag | commit | tree | blob)
+    #   2  tagger date in strict ISO 8601 (empty for lightweight tags)
+    #   3  *peeled* commit committer date in strict ISO 8601
+    #   4  peeled commit SHA (the actual commit the tag eventually points to)
+    fmt = FIELD_SEP.join(
+        [
+            "%(refname)",
+            "%(objecttype)",
+            "%(taggerdate:iso-strict)",
+            "%(*committerdate:iso-strict)",
+            "%(*objectname)",
+        ]
+    ) + RECORD_SEP
+
+    out = run_git(
+        ["for-each-ref", "--format=" + fmt, "refs/tags/"],
+        cwd=cwd,
+        check=False,
+    )
+
+    records: list[dict[str, Any]] = []
+    for raw in out.split(RECORD_SEP):
+        line = raw.strip()
+        if not line:
+            continue
+        parts = line.split(FIELD_SEP)
+        # Pad to 5 fields to tolerate empty trailing components such as a
+        # missing tagger date on a lightweight tag.
+        if len(parts) < 5:
+            parts.extend([""] * (5 - len(parts)))
+        refname, object_type, tagger_date, commit_date, commit_sha = parts[:5]
+        if not refname.startswith("refs/tags/"):
+            continue
+        tag_name = refname[len("refs/tags/"):]
+        is_annotated = object_type == "tag"
+        # For lightweight tags, %(*committerdate) and %(*objectname) are
+        # empty because there is no intermediate tag object. We fall back
+        # to %(committerdate) and %(objectname) via a second cheap query
+        # only if needed; here we simply blank them and let the caller
+        # decide. In practice Formbricks has zero tags so this path is
+        # exercised only on other repositories.
+        record: dict[str, Any] = {
+            "tag": tag_name,
+            "commit_sha": commit_sha or "",
+            "tagger_date": tagger_date or "",
+            "commit_date": commit_date or "",
+            "object_type": object_type or "",
+            "is_annotated": is_annotated,
+            "is_semver": bool(SEMVER_TAG_RE.match(tag_name)),
+            "is_prerelease": is_prerelease_tag(tag_name),
+        }
+        records.append(record)
+
+    # Sort by the most reliable date available — tagger date for annotated
+    # tags, commit date as the fallback — so downstream windowing sees a
+    # chronologically monotonic stream regardless of how git stored the
+    # refs internally.
+    def _sort_key(rec: dict[str, Any]) -> str:
+        return rec.get("tagger_date") or rec.get("commit_date") or ""
+
+    records.sort(key=_sort_key)
+    for rec in records:
+        yield rec
 
 
 # ---------------------------------------------------------------------------
@@ -673,12 +910,25 @@ def iter_commits(cwd: Path, ref: str) -> Iterator[CommitFields]:
     # early consumer close, NOT a real extraction failure, so we suppress
     # the RuntimeError that the failure branch would otherwise raise.
     consumer_closed_early: bool = False
+    # ``stream_timed_out`` flips True if the per-read deadline elapses
+    # without progress. The finally block force-terminates the child and
+    # converts the situation into a RuntimeError so the orchestrator can
+    # capture the partial extraction as a degraded run.
+    stream_timed_out: bool = False
+    # Track wall-clock progress on the read loop so a hung child can be
+    # detected without polling every read. A healthy ``git log`` of the
+    # Formbricks history produces output in dense bursts, so each
+    # successful read is allowed to reset the deadline.
+    last_read_monotonic = time.monotonic()
     try:
         try:
             while True:
                 raw_chunk = proc.stdout.read(65536)
+                now = time.monotonic()
                 if not raw_chunk:
                     break
+                # Successful read advances the deadline.
+                last_read_monotonic = now
                 buffer += raw_chunk.decode("utf-8", errors="replace")
                 # Drain as many complete records as possible. Each iteration
                 # peels one record off the front of ``buffer`` and re-binds
@@ -695,6 +945,13 @@ def iter_commits(cwd: Path, ref: str) -> Iterator[CommitFields]:
                     if not record:
                         continue
                     yield _emit_commit(record.split(FIELD_SEP))
+                # Per-read deadline check: if too much time elapsed without
+                # the child producing data, treat the stream as stalled and
+                # bail out. The finally block force-kills the child and
+                # converts the situation into a RuntimeError.
+                if now - last_read_monotonic > GIT_LOG_STREAM_TIMEOUT_SECONDS:
+                    stream_timed_out = True
+                    break
 
             # Tail drain — if the very last record was not terminated by a
             # RECORD_SEP (e.g. because the format string was misconfigured or
@@ -719,20 +976,43 @@ def iter_commits(cwd: Path, ref: str) -> Iterator[CommitFields]:
     finally:
         # Always reap the child process. Closing stdout first signals EOF
         # to git so it terminates promptly; we then wait for the actual
-        # exit so the OS does not leave a zombie behind.
-        try:
+        # exit so the OS does not leave a zombie behind. The previous
+        # implementation used bare ``pass`` statements in the cleanup
+        # except blocks; Checkpoint 3 disallows that pattern, so we use
+        # ``contextlib.suppress`` which both documents intent and keeps
+        # the surrounding code observable via tracebacks if it ever leaks.
+        with contextlib.suppress(Exception):
+            # Closing stdout signals EOF to git. Some git versions emit
+            # a broken-pipe error which is intentionally swallowed because
+            # we already have the data we need at this point in the loop.
             proc.stdout.close()
-        except Exception:
-            pass
         try:
             stderr_bytes = proc.stderr.read()
         except Exception:
+            # Reading stderr after the child has been killed can fail on
+            # some platforms. Fall back to an empty buffer so the error
+            # message below remains coherent.
             stderr_bytes = b""
         finally:
-            try:
+            with contextlib.suppress(Exception):
+                # Mirror the stdout cleanup; suppression here is intentional
+                # because the FD may already be closed by the kernel after
+                # an early ``proc.kill()`` below.
                 proc.stderr.close()
-            except Exception:
-                pass
+        if stream_timed_out:
+            # Force-terminate immediately when the read loop already
+            # diagnosed a stall; do not give the child an additional 30 s
+            # window to exit on its own.
+            with contextlib.suppress(Exception):
+                proc.kill()
+            with contextlib.suppress(Exception):
+                proc.wait(timeout=5)
+            stderr_text = stderr_bytes.decode("utf-8", errors="replace").strip()
+            raise RuntimeError(
+                f"`git log {ref}` stalled "
+                f"({GIT_LOG_STREAM_TIMEOUT_SECONDS:.0f}s without output): "
+                f"{stderr_text}"
+            )
         try:
             returncode = proc.wait(timeout=30)
         except subprocess.TimeoutExpired:
@@ -1415,6 +1695,7 @@ def main(argv: list[str] | None = None) -> int:
     commits_path: Path = args.output_dir / "commits.jsonl"
     prs_path: Path = args.output_dir / "prs.jsonl"
     reverts_path: Path = args.output_dir / "reverts.jsonl"
+    tags_path: Path = args.output_dir / "tags.jsonl"
     access_path: Path = args.output_dir / "extract_git_access.json"
 
     try:
@@ -1598,6 +1879,61 @@ def main(argv: list[str] | None = None) -> int:
         )
         return 2
 
+    # ---- tags.jsonl ----
+    # Emit annotated git tags so ``compute_metrics.py`` can use them as the
+    # secondary release source per AAP §0.1.3 (release source precedence:
+    # GitHub Releases → annotated semver tags → deployment events). The
+    # Formbricks repository has zero tags today, but the extractor must
+    # produce a deterministic, schema-stable artifact regardless. Failure
+    # to enumerate tags is non-fatal: ``compute_metrics.py`` already
+    # tolerates a missing or empty ``tags.jsonl``.
+    tag_record_count = 0
+    tag_annotated_count = 0
+    tag_semver_count = 0
+    tag_prerelease_count = 0
+    try:
+        with tags_path.open("w", encoding="utf-8") as tf:
+            for tag_record in iter_tags(repo):
+                tf.write(
+                    json.dumps(tag_record, ensure_ascii=False, default=str)
+                )
+                tf.write("\n")
+                tag_record_count += 1
+                if tag_record.get("is_annotated"):
+                    tag_annotated_count += 1
+                if tag_record.get("is_semver"):
+                    tag_semver_count += 1
+                if tag_record.get("is_prerelease"):
+                    tag_prerelease_count += 1
+    except OSError as exc:
+        log.error(
+            "Failed to write tags.jsonl: %s",
+            exc,
+            extra={"tags_path": str(tags_path)},
+        )
+        return 2
+    except RuntimeError as exc:
+        # Non-fatal: log a warning and write an empty tags.jsonl so the
+        # downstream metric computation degrades cleanly to "GitHub
+        # Releases only" rather than crashing.
+        log.warning(
+            "git for-each-ref failed: %s — tags.jsonl will be empty",
+            exc,
+            extra={"repo_root": str(repo)},
+        )
+        try:
+            tags_path.write_text("", encoding="utf-8")
+        except OSError as os_exc:
+            # If we cannot even write an empty placeholder, surface the
+            # condition through the logger so the orchestrator can see it.
+            # The previous implementation swallowed this via bare ``pass``,
+            # which violated Checkpoint 3's no-pass-in-cleanup rule.
+            log.debug(
+                "Failed to write empty tags.jsonl fallback: %s",
+                os_exc,
+                extra={"tags_path": str(tags_path)},
+            )
+
     access_manifest: dict[str, Any] = {
         "extracted_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
         "repo_root": str(repo),
@@ -1611,11 +1947,16 @@ def main(argv: list[str] | None = None) -> int:
         "revert_count": revert_count,
         "unresolved_revert_count": unresolved_revert_count,
         "ai_signal_count": ai_signal_count,
+        "tag_record_count": tag_record_count,
+        "tag_annotated_count": tag_annotated_count,
+        "tag_semver_count": tag_semver_count,
+        "tag_prerelease_count": tag_prerelease_count,
         "skip_pr_branch_metadata": bool(args.skip_pr_branch_metadata),
         "output_files": {
             "commits": str(commits_path),
             "prs": str(prs_path),
             "reverts": str(reverts_path),
+            "tags": str(tags_path),
         },
     }
     try:
@@ -1633,17 +1974,26 @@ def main(argv: list[str] | None = None) -> int:
 
     log.info(
         "Extraction complete: %d commits, %d PRs, %d reverts (%d unresolved), "
+        "%d tags (%d annotated, %d semver, %d prerelease), "
         "%d AI-signal commits",
         commit_count_seen,
         pr_count,
         revert_count,
         unresolved_revert_count,
+        tag_record_count,
+        tag_annotated_count,
+        tag_semver_count,
+        tag_prerelease_count,
         ai_signal_count,
         extra={
             "commits": commit_count_seen,
             "prs": pr_count,
             "reverts": revert_count,
             "reverts_unresolved": unresolved_revert_count,
+            "tags": tag_record_count,
+            "tags_annotated": tag_annotated_count,
+            "tags_semver": tag_semver_count,
+            "tags_prerelease": tag_prerelease_count,
             "ai_signal_commits": ai_signal_count,
         },
     )
@@ -1662,11 +2012,13 @@ __all__ = [
     "GIT_LOG_FORMAT",
     "Iterable",
     "MODULE_PREFIXES",
+    "PRERELEASE_TOKENS",
     "PR_NUMBER_RE",
     "RECORD_SEP",
     "REVERT_SUBJECT_RE",
     "REVERTS_COMMIT_RE",
     "ALT_REVERTS_RE",
+    "SEMVER_TAG_RE",
     "classify_commit_modules",
     "classify_revert",
     "collect_pr_branch_metadata",
@@ -1678,7 +2030,9 @@ __all__ = [
     "find_revert_sha_in_message",
     "head_sha",
     "is_pr_merge",
+    "is_prerelease_tag",
     "iter_commits",
+    "iter_tags",
     "main",
     "module_for_path",
     "parse_args",

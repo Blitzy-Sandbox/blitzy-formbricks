@@ -10,7 +10,7 @@
 
   <!--
     AAP Rule 1 (Observability) — self-contained dashboard template.
-    External assets are limited to CDN-pinned libraries (Mermaid 11.4.0, Lucide 0.460.0)
+    External assets are limited to CDN-pinned libraries (Mermaid 11.15.0, Lucide 0.460.0)
     and Google Fonts (Inter, Space Grotesk, Fira Code). All CSS is inlined in the <style>
     block; the single <script> at the foot of <body> handles data fetch, rendering, and
     Mermaid/Lucide initialization. No local file dependencies beyond the two JSON inputs
@@ -406,7 +406,7 @@
 
     /* ============================================================
        Mermaid xychart-beta — Blitzy palette overrides.
-       Mermaid 11.4.0 does not reliably honor `plotColorPalette` for
+       Mermaid 11.15.0 does not reliably honor `plotColorPalette` for
        multi-series xychart-beta, so we apply CSS at the rendered-SVG
        level. The selectors target the structural classes Mermaid
        emits per series.
@@ -436,7 +436,7 @@
       fill: var(--brand-navy) !important;
       font-family: 'Inter', system-ui, sans-serif !important;
     }
-    /* Axis lines and tick marks. Mermaid 11.4.0 emits g.bottom-axis,
+    /* Axis lines and tick marks. Mermaid 11.15.0 emits g.bottom-axis,
        g.left-axis, plus child groups g.axis-line / g.axisl-line / g.ticks
        with white strokes that are invisible on the white background. */
     #phase-comparison pre.mermaid svg g.main g[class*="-axis"] line,
@@ -700,7 +700,7 @@
        CDN-pinned libraries (Mermaid, Lucide). Pinned versions
        mirror the executive deck per AAP §0.7.1 Rule 5.
        ============================================================ -->
-  <script src="https://cdn.jsdelivr.net/npm/mermaid@11.4.0/dist/mermaid.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/mermaid@11.15.0/dist/mermaid.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/lucide@0.460.0/dist/umd/lucide.min.js"></script>
 
   <script>
@@ -1190,7 +1190,7 @@
     //   - Baseline (bar)            anchored at 1.0× for every metric
     //   - Ramp-Up (line)            multiplier in first 6 windows post
     //   - Steady-State (line)       multiplier in windows 7+
-    // Bars + lines render correctly side-by-side in Mermaid 11.4.0's
+    // Bars + lines render correctly side-by-side in Mermaid 11.15.0's
     // xychart-beta (whereas multiple bar series overlap at the same x).
     // Metrics with Insufficient signal contribute (0, 0, 0) so the gap
     // is visible without misleading the viewer.
@@ -1254,7 +1254,7 @@
     }
 
     // -----------------------------------------------------------------
-    // Post-render Blitzy palette enforcement. Mermaid 11.4.0's
+    // Post-render Blitzy palette enforcement. Mermaid 11.15.0's
     // `plotColorPalette` does not reliably override the default
     // xychart-beta palette, so we walk the rendered SVG and remap the
     // three known default colors to the Blitzy palette positions
@@ -1263,7 +1263,7 @@
     function applyBlitzyPaletteToChart() {
       const svg = document.querySelector('#phase-comparison-mermaid svg');
       if (!svg) return;
-      // Color remap: keys are Mermaid 11.4.0 xychart-beta defaults observed
+      // Color remap: keys are Mermaid 11.15.0 xychart-beta defaults observed
       // empirically (cream / peach / salmon). Values are Blitzy palette.
       const remap = {
         '#FFF4DD': '#5B39F3',   // series 0 -> brand primary (Baseline bars)

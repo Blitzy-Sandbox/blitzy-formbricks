@@ -10,7 +10,7 @@
 
   <!--
     Self-contained reveal.js deck mandated by AAP Rule 5 (Executive Presentation).
-    External assets are limited to CDN-pinned libraries (reveal.js 5.1.0, Mermaid 11.4.0, Lucide 0.460.0)
+    External assets are limited to CDN-pinned libraries (reveal.js 5.1.0, Mermaid 11.15.0, Lucide 0.460.0)
     and Google Fonts (Inter, Space Grotesk, Fira Code). All CSS is inlined in the <style> block below;
     all JS is inlined at the foot of <body>. No local file dependencies — the deck opens from any
     file:// URL or local web server without needing the sibling acceleration/ artifacts.
@@ -487,7 +487,7 @@
       padding: 0 0.4em;
     }
 
-    /* Mermaid xychart-beta — Mermaid 11.4.0's default fill is white on white.
+    /* Mermaid xychart-beta — Mermaid 11.15.0's default fill is white on white.
        Force navy fill for all xychart text elements (title, axis labels, axis titles)
        so the chart is legible on the brand white slide background. ID-prefixed
        selectors win the specificity battle against Mermaid's per-instance ID rules. */
@@ -976,7 +976,7 @@ xychart-beta
   <!-- =====================================================================
        Reveal.js + Mermaid + Lucide — CDN-pinned per Rule 5
        ---------------------------------------------------------------------
-       Mermaid 11.4.0 is loaded via its ES Module entrypoint
+       Mermaid 11.15.0 is loaded via its ES Module entrypoint
        (`mermaid.esm.min.mjs`) — the canonical distribution for the v11+ line
        per the Mermaid release notes. The ESM module is imported in a
        `<script type="module">` block below, then exposed as `window.mermaid`
@@ -990,7 +990,7 @@ xychart-beta
     // AAP Rule 5). The default export is the Mermaid namespace; binding it
     // to `window.mermaid` preserves the global API surface relied upon by
     // the inline initialization script that follows.
-    import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11.4.0/dist/mermaid.esm.min.mjs';
+    import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11.15.0/dist/mermaid.esm.min.mjs';
     window.mermaid = mermaid;
     // Notify any code that may need to wait for the ESM module to finish
     // loading. The inline initialization script below defers Mermaid

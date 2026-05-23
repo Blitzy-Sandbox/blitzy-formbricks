@@ -1,6 +1,6 @@
 %% =============================================================================
 %% pipeline_architecture.mmd.tmpl
-%% Mermaid 11.4.0 flowchart LR template — Analysis Pipeline Architecture
+%% Mermaid 11.15.0 flowchart LR template — Analysis Pipeline Architecture
 %% =============================================================================
 %%
 %% AUTHORITY
@@ -26,8 +26,9 @@
 %%
 %% RENDERER
 %%   acceleration/scripts/render_report.py performs simple string
-%%   substitution of {{...}} placeholders (each one enumerated in the
-%%   TOKENS section below) with values pulled from:
+%%   substitution of the double-brace placeholders enumerated in the
+%%   TOKENS section below (and only those placeholders), with values
+%%   pulled from:
 %%     - acceleration/data/run_manifest.json (key: total_commits_on_main)
 %%     - acceleration/data/inflection.json   (keys: inflection_date, method)
 %%   The renderer wraps the substituted text in Markdown fenced code-block
@@ -52,27 +53,29 @@
 %%   {{COMMIT_COUNT}}      — Total commit count on main at HEAD with optional
 %%                           thousands separator. Read from
 %%                           run_manifest.json (captured by
-%%                           `git rev-list --count HEAD`). Example value:
-%%                           "5,178". Substituted at the Git node label
-%%                           inside the DataSources subgraph.
+%%                           `git rev-list --count HEAD`). Shape: an
+%%                           integer rendered with optional locale-style
+%%                           thousands separators (e.g., "N" or "N,NNN").
+%%                           Substituted at the Git node label inside the
+%%                           DataSources subgraph.
 %%   {{INFLECTION_DATE}}   — Detected inflection date as YYYY-MM-DD. Read
 %%                           from inflection.json (key: inflection_date).
-%%                           Example value: "2026-02-25". Substituted at
-%%                           the Detect node label inside the Extraction
-%%                           subgraph.
+%%                           Shape: ISO 8601 calendar date "YYYY-MM-DD".
+%%                           Substituted at the Detect node label inside
+%%                           the Extraction subgraph.
 %%   {{INFLECTION_METHOD}} — Detection method recorded by
 %%                           detect_inflection.py. Read from inflection.json
-%%                           (key: method). One of: convergent_evidence,
-%%                           single_signal, insufficient_signal. Example
-%%                           value: "convergent_evidence". Substituted at
-%%                           the Detect node label inside the Extraction
+%%                           (key: method). Shape: one of the literal
+%%                           strings "convergent_evidence", "single_signal",
+%%                           or "insufficient_signal". Substituted at the
+%%                           Detect node label inside the Extraction
 %%                           subgraph.
 %%   Fallback contract — if a runtime value is unavailable (for example,
 %%   inflection detection returned no candidate), the renderer MUST
 %%   substitute a neutral placeholder ("unknown" or "n/a") rather than
-%%   leaving the {{...}} literal. acceleration/scripts/verify_report.py
-%%   fails the run if any unsubstituted {{...}} token remains in the
-%%   rendered Markdown.
+%%   leaving an unsubstituted double-brace literal in the output.
+%%   acceleration/scripts/verify_report.py fails the run if any
+%%   unsubstituted double-brace token remains in the rendered Markdown.
 %%
 %% LEGEND
 %%   Data flows LEFT-TO-RIGHT from read-only data sources (the DataSources
@@ -115,7 +118,7 @@
 %%     Rendering   -> Output             (2)  RenderRep, RenderDeck
 %%     Computation -> Output             (1)  Compute -> Dashboard
 %%
-%% MERMAID 11.4.0 SYNTAX NOTES
+%% MERMAID 11.15.0 SYNTAX NOTES
 %%   - flowchart LR declares left-to-right direction.
 %%   - subgraph ID["Display Label"] supports quoted display labels
 %%     containing spaces and parentheses (required here for "Data Sources

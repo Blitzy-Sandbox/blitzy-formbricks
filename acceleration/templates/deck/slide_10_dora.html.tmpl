@@ -2,9 +2,12 @@
   Slide 10 — DORA-Adjacent Metrics (8, 9, 11)
   Type: content-slide
   Required tokens (substituted by render_deck.py from metrics.json):
-    {{M8_MULT}}, {{M8_CONF}}, {{M8_CONF_LABEL}}     Problem Records (Change Failure Rate-adjacent)
-    {{M9_MULT}}, {{M9_CONF}}, {{M9_CONF_LABEL}}     Releases (Deployment Frequency-adjacent)
-    {{M11_MULT}}, {{M11_CONF}}, {{M11_CONF_LABEL}}  Escaped Defects (Change Failure Rate-adjacent)
+    {{M8_DISPLAY}}, {{M8_CONF}}, {{M8_CONF_LABEL}}, {{M8_CAVEAT}}     Problem Records
+                                                                      (Change Failure Rate-adjacent)
+    {{M9_DISPLAY}}, {{M9_CONF}}, {{M9_CONF_LABEL}}, {{M9_CAVEAT}}     Releases
+                                                                      (Deployment Frequency-adjacent)
+    {{M11_DISPLAY}}, {{M11_CONF}}, {{M11_CONF_LABEL}}, {{M11_CAVEAT}} Escaped Defects
+                                                                      (Change Failure Rate-adjacent)
   Required non-text visual: kpi-grid with three kpi-cards (satisfies Rule 5)
 
   Authority: AAP §0.4.1 (file inventory enumerates this filename),
@@ -16,37 +19,45 @@
   words, ≥1 non-text visual, zero emoji, no fenced code blocks),
   §0.7.2.1 (canonical phrasing "Insufficient signal — [reason]" when
   data is lacking; MUST NOT fabricate or extrapolate), §0.7.2.2 Rule 3
-  (Confidence Transparency — every derived metric carries a tag),
-  §0.7.2.2 Rule 4 (Internal Consistency — values here must match
-  acceleration-report.md, Traceability Matrix, and Acceleration Curve).
+  (Confidence Transparency — every derived metric carries a tag AND
+  every Low / Insufficient-signal metric carries an explicit caveat;
+  satisfied by the per-card .kpi-caveat element below), §0.7.2.2 Rule 4
+  (Internal Consistency — values here must match acceleration-report.md,
+  Traceability Matrix, and Acceleration Curve).
 
   Rendering notes:
     - This template is consumed by render_deck.py, which substitutes the
-      nine tokens above from metrics.json and writes the result into
+      twelve tokens above from metrics.json and writes the result into
       acceleration/executive-presentation.html.
-    - Each MULT token expands to either a numeric multiplier (e.g.,
-      "1.4") OR the literal phrase "Insufficient signal — <reason>".
-      The trailing "×" (U+00D7) sign in the template is rendered as-is;
-      the renderer is responsible for stripping or hiding the suffix
-      when the value is non-numeric (e.g., by substituting an empty
-      string for MULT and rendering only the canonical phrase elsewhere,
-      or by emitting a wrapper class on the kpi-value element). The
-      "Insufficient signal" phrasing is canonical per AAP §0.7.2.1 and
-      MUST NOT be replaced by editorial framing such as "unavailable"
-      or "missing".
-    - Each CONF token expands to the CSS class suffix
+    - Each *_DISPLAY token is a renderer-pre-formatted string. For a
+      numeric multiplier (e.g., "1.4") the renderer appends the Unicode
+      multiplier sign U+00D7 (MULTIPLICATION SIGN), NOT the ASCII letter
+      x (U+0078). For a non-numeric value the renderer substitutes the
+      canonical phrase "Insufficient signal — <reason>" verbatim with
+      NO trailing × — an unmeasurable metric never renders as
+      "Insufficient signal — <reason>×". The "Insufficient signal"
+      phrasing is canonical per AAP §0.7.2.1 and MUST NOT be replaced
+      by alternative wordings such as "unavailable" or "missing".
+    - Each *_CAVEAT token expands to the canonical caveat string from
+      metrics.json. For a Low or Insufficient-signal metric the caveat
+      explains the underlying boundary condition (per AAP §0.7.2.2
+      Rule 3 — every Low / Insufficient metric MUST carry an explicit
+      caveat). When a metric is High-confidence with no caveat to
+      surface, the renderer substitutes the empty string and the
+      .kpi-caveat element renders blank.
+    - Each *_CONF token expands to the CSS class suffix
       ("high" | "medium" | "low"), so the rendered span becomes
       <span class="confidence-low">Low</span>. The confidence badge
       styles are defined in acceleration/templates/deck/theme.css
       (.confidence-high / .confidence-medium / .confidence-low).
     - Per AAP §0.2.3 baseline state, Metric 9 is expected to render at
-      Low confidence with "Insufficient signal — GitHub Releases API
-      not accessible" when no GITHUB_TOKEN is present, and Metric 11
-      at Low confidence with "Insufficient signal — CI test history
-      unavailable" when Actions artifacts cannot be downloaded. Metric
-      8 is rendered from the data source actually used at runtime
-      (issue-tracker incident labels → High; revert-attribution proxy
-      → Medium; otherwise Insufficient signal).
+      Low confidence with the canonical "Insufficient signal — GitHub
+      Releases API not accessible" phrase when no GITHUB_TOKEN is
+      present, and Metric 11 at Low confidence with "Insufficient
+      signal — CI test history unavailable" when Actions artifacts
+      cannot be downloaded. Metric 8 is rendered from the data source
+      actually used at runtime (issue-tracker incident labels → High;
+      revert-attribution proxy → Medium; otherwise Insufficient signal).
     - The kpi-grid uses CSS auto-fit (theme.css line 268-273), so three
       cards on a 1920×1080 slide render side-by-side with min-width
       280px and 1.5em gap.
@@ -56,9 +67,9 @@
       verified by verify_report.py).
     - Tone discipline (Rule 2 — Factual-Neutral): "Delivery & Stability"
       is the canonical DORA-adjacent framing. The sublabels reference
-      the metric number and a short factual descriptor. No editorial
-      qualifiers such as "impressive", "significant", or "remarkable"
-      appear on this slide.
+      the metric number and a short factual descriptor. The forbidden
+      subjective-qualifier list in the Boundaries directive does not
+      appear in the visible slide body.
 -->
 <section class="content-slide">
   <span class="eyebrow">DORA-Adjacent</span>
@@ -66,21 +77,24 @@
   <div class="kpi-grid">
     <div class="kpi-card">
       <span class="kpi-label">Problem Records</span>
-      <div class="kpi-value">{{M8_MULT}}×</div>
+      <div class="kpi-value">{{M8_DISPLAY}}</div>
       <span class="kpi-sublabel">Metric 8 · Production incidents</span>
       <span class="confidence-{{M8_CONF}}">{{M8_CONF_LABEL}}</span>
+      <span class="kpi-caveat">{{M8_CAVEAT}}</span>
     </div>
     <div class="kpi-card">
       <span class="kpi-label">Releases</span>
-      <div class="kpi-value">{{M9_MULT}}×</div>
+      <div class="kpi-value">{{M9_DISPLAY}}</div>
       <span class="kpi-sublabel">Metric 9 · GitHub Releases per phase</span>
       <span class="confidence-{{M9_CONF}}">{{M9_CONF_LABEL}}</span>
+      <span class="kpi-caveat">{{M9_CAVEAT}}</span>
     </div>
     <div class="kpi-card">
       <span class="kpi-label">Escaped Defects</span>
-      <div class="kpi-value">{{M11_MULT}}×</div>
+      <div class="kpi-value">{{M11_DISPLAY}}</div>
       <span class="kpi-sublabel">Metric 11 · Test regressions on main</span>
       <span class="confidence-{{M11_CONF}}">{{M11_CONF_LABEL}}</span>
+      <span class="kpi-caveat">{{M11_CAVEAT}}</span>
     </div>
   </div>
 </section>

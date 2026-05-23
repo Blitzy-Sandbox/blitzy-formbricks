@@ -2,11 +2,26 @@
   Slide 12 — Per-Engineer View
   Type: content-slide
   Required tokens (substituted by render_deck.py from metrics.json):
-    {{ENG_LABELS}}     Mermaid xychart-beta x-axis array string,
-                       e.g., '["Matti Nannt", "Dhruwang", "Johannes", "Piyush", "Blitzy Agent"]'
-    {{ENG_VALUES}}     Mermaid xychart-beta bar values array string,
-                       e.g., '[26, 19, 18, 12, 206]'
-    {{METRIC_LABEL}}   Metric display label, e.g., "Post-Period Commits (Metric 2)"
+    {{ENG_LABELS}}     Mermaid xychart-beta x-axis array string. Shape:
+                       a JSON array literal of double-quoted strings,
+                       e.g., '["<engineer-1>", "<engineer-2>", ...,
+                       "<engineer-N>", "Blitzy Agent"]'. Sourced from
+                       metrics.json:"per_engineer.labels". The Blitzy
+                       Agent row appears at the end of the array per AAP
+                       §0.8.1 (Engineering Actor Framing).
+    {{ENG_VALUES}}     Mermaid xychart-beta bar-values array string.
+                       Shape: a JSON array literal of integers or
+                       decimals, e.g., '[<v1>, <v2>, ..., <vN>,
+                       <vBlitzy>]'. Sourced from
+                       metrics.json:"per_engineer.values". Positional
+                       correspondence to {{ENG_LABELS}} is required:
+                       the Nth element of values pairs with the Nth
+                       element of labels.
+    {{METRIC_LABEL}}   Metric display label, e.g., "<metric-name>
+                       (Metric <N>)". Sourced from
+                       metrics.json:"per_engineer.metric_label". The
+                       per-engineer breakdown is defined for metrics 2,
+                       4, 5, 6, 10 per AAP §0.8.5.
   Required non-text visual: <pre class="mermaid"> xychart-beta
 
   Authority: AAP §0.4.1 (file inventory), §0.7.1 Rule 4 (Mermaid title + legend
@@ -15,7 +30,7 @@
   (Per-Engineer Views — real names for metrics 2, 4, 5, 6, 10).
 
   Rendering notes:
-    - xychart-beta is a Mermaid 11+ feature; the deck pins Mermaid 11.4.0
+    - xychart-beta is a Mermaid 11+ feature; the deck pins Mermaid 11.15.0
       via CDN per AAP §0.6.1, so this syntax is guaranteed to render.
     - Inside <pre class="mermaid">, "xychart-beta" must be at column 0;
       inner declarations are indented by four spaces. Whitespace is preserved.

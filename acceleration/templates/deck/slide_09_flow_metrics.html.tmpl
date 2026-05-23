@@ -2,14 +2,16 @@
   Slide 09 — Flow Metrics Snapshot (metrics 1-7)
   Type: content-slide
   Required tokens (substituted by render_deck.py from metrics.json):
-    {{M1_MULT}}, {{M1_CONF}}, {{M1_CONF_LABEL}}     Flow Load
-    {{M2_MULT}}, {{M2_CONF}}, {{M2_CONF_LABEL}}     Flow Velocity
-    {{M3_MULT}}, {{M3_CONF}}, {{M3_CONF_LABEL}}     Flow Predictability
-    {{M4_MULT}}, {{M4_CONF}}, {{M4_CONF_LABEL}}     Flow Active
-    {{M5_MULT}}, {{M5_CONF}}, {{M5_CONF_LABEL}}     Flow Efficiency
-    {{M6_MULT}}, {{M6_CONF}}, {{M6_CONF_LABEL}}     Flow Distribution (point-difference string,
-                                                    no trailing × — see Rendering notes)
-    {{M7_MULT}}, {{M7_CONF}}, {{M7_CONF_LABEL}}     Flow Time
+    {{M1_DISPLAY}}, {{M1_CONF}}, {{M1_CONF_LABEL}}, {{M1_CAVEAT}}   Flow Load
+    {{M2_DISPLAY}}, {{M2_CONF}}, {{M2_CONF_LABEL}}, {{M2_CAVEAT}}   Flow Velocity
+    {{M3_DISPLAY}}, {{M3_CONF}}, {{M3_CONF_LABEL}}, {{M3_CAVEAT}}   Flow Predictability
+    {{M4_DISPLAY}}, {{M4_CONF}}, {{M4_CONF_LABEL}}, {{M4_CAVEAT}}   Flow Active
+    {{M5_DISPLAY}}, {{M5_CONF}}, {{M5_CONF_LABEL}}, {{M5_CAVEAT}}   Flow Efficiency
+    {{M6_DISPLAY}}, {{M6_CONF}}, {{M6_CONF_LABEL}}, {{M6_CAVEAT}}   Flow Distribution
+                                                                    (point-difference string,
+                                                                    no trailing × — see
+                                                                    Rendering notes)
+    {{M7_DISPLAY}}, {{M7_CONF}}, {{M7_CONF_LABEL}}, {{M7_CAVEAT}}   Flow Time
   Required non-text visual: <table class="metric-table"> (satisfies Rule 5
   content-slide visual requirement; theme.css §Phase 9 styles this table).
 
@@ -20,30 +22,39 @@
   words, ≥1 non-text visual, zero emoji, no fenced code blocks),
   §0.7.2.1 (canonical phrasing "Insufficient signal — [reason]" when
   data is lacking; MUST NOT fabricate or extrapolate), §0.7.2.2 Rule 3
-  (Confidence Transparency — every derived metric carries a tag),
-  §0.7.2.2 Rule 4 (Internal Consistency — values here must match
-  acceleration-report.md, Traceability Matrix, and Acceleration Curve).
+  (Confidence Transparency — every derived metric carries a tag AND
+  every Low / Insufficient-signal metric carries an explicit caveat;
+  satisfied by the per-row Caveat column below), §0.7.2.2 Rule 4
+  (Internal Consistency — values here must match acceleration-report.md,
+  Traceability Matrix, and Acceleration Curve).
 
   Rendering notes:
     - This template is consumed by render_deck.py, which substitutes the
-      twenty-one tokens above from metrics.json and writes the result
+      twenty-eight tokens above from metrics.json and writes the result
       into acceleration/executive-presentation.html.
-    - Each MULT token expands to either a numeric multiplier (e.g.,
-      "3.2") OR the literal phrase "Insufficient signal — <reason>".
-      The trailing "×" (U+00D7, multiplication sign — NOT the ASCII
-      letter "x") in the template is rendered as-is for metrics 1, 2,
-      3, 4, 5, 7. The renderer is responsible for stripping or hiding
-      the suffix when the value is non-numeric (e.g., by substituting
-      an empty string for MULT and rendering only the canonical phrase
-      elsewhere). The "Insufficient signal" phrasing is canonical per
-      AAP §0.7.2.1 and MUST NOT be replaced by editorial framing such
-      as "unavailable" or "missing".
+    - Each *_DISPLAY token is a renderer-pre-formatted string. For a
+      numeric multiplier (e.g., "3.2") the renderer appends the Unicode
+      multiplier sign U+00D7 (MULTIPLICATION SIGN), NOT the ASCII letter
+      x (U+0078). For a non-numeric value the renderer substitutes the
+      canonical phrase "Insufficient signal — <reason>" verbatim with
+      NO trailing × — the hardcoded suffix anti-pattern is avoided by
+      construction so an unmeasurable metric never renders as
+      "Insufficient signal — <reason>×". The "Insufficient signal"
+      phrasing is canonical per AAP §0.7.2.1 and MUST NOT be replaced
+      by alternative wordings such as "unavailable" or "missing".
     - Metric 6 (Flow Distribution) is a work-type mix and is reported
-      as a point-difference string (e.g., "Δ feat +12pp, fix −8pp" or
-      "see Deep-Dive 6"), not a single scalar multiplier. The row for
-      Metric 6 therefore has NO trailing × after {{M6_MULT}} — note the
-      asymmetry below and AAP Phase 6 of the slide-9 spec.
-    - Each CONF token expands to the CSS class suffix
+      as a point-difference string (for example, a delta-prefixed list
+      of conventional-commit prefix shifts) or "see Deep-Dive 6", not
+      a single scalar multiplier. The renderer therefore emits
+      {{M6_DISPLAY}} without any × suffix regardless of the underlying
+      value's shape.
+    - Each *_CAVEAT token expands to the canonical caveat string from
+      metrics.json (per AAP §0.7.2.2 Rule 3 — every Low or
+      Insufficient-signal metric MUST carry an explicit caveat). When
+      a metric is High-confidence with no caveat to surface, the
+      renderer substitutes the empty string and the cell renders blank.
+      Sourced from metrics.json:"metrics.<name>.caveat".
+    - Each *_CONF token expands to the CSS class suffix
       ("high" | "medium" | "low"), so the rendered span becomes
       <span class="confidence-low">Low</span>. The confidence badge
       styles are defined in acceleration/templates/deck/theme.css
@@ -60,9 +71,9 @@
       verified by verify_report.py which parses both the rendered
       Markdown and this rendered HTML and asserts equality).
     - Tone discipline (Rule 2 — Factual-Neutral): the metric labels
-      are the canonical Flow Framework names — no editorial qualifiers
-      such as "impressive", "significant", or "remarkable" appear on
-      this slide.
+      are the canonical Flow Framework names — the forbidden
+      subjective-qualifier list in the Boundaries directive does not
+      appear in the visible slide body.
     - Body word count outside the <table>: "Flow Framework" +
       "Flow Metrics (1–7)" = 5 words, well under the Rule 5 cap of 40.
 -->
@@ -71,16 +82,16 @@
   <h3>Flow Metrics (1–7)</h3>
   <table class="metric-table">
     <thead>
-      <tr><th>#</th><th>Metric</th><th>Multiplier</th><th>Confidence</th></tr>
+      <tr><th>#</th><th>Metric</th><th>Multiplier</th><th>Confidence</th><th>Caveat</th></tr>
     </thead>
     <tbody>
-      <tr><td>1</td><td>Flow Load</td><td>{{M1_MULT}}×</td><td><span class="confidence-{{M1_CONF}}">{{M1_CONF_LABEL}}</span></td></tr>
-      <tr><td>2</td><td>Flow Velocity</td><td>{{M2_MULT}}×</td><td><span class="confidence-{{M2_CONF}}">{{M2_CONF_LABEL}}</span></td></tr>
-      <tr><td>3</td><td>Flow Predictability</td><td>{{M3_MULT}}×</td><td><span class="confidence-{{M3_CONF}}">{{M3_CONF_LABEL}}</span></td></tr>
-      <tr><td>4</td><td>Flow Active</td><td>{{M4_MULT}}×</td><td><span class="confidence-{{M4_CONF}}">{{M4_CONF_LABEL}}</span></td></tr>
-      <tr><td>5</td><td>Flow Efficiency</td><td>{{M5_MULT}}×</td><td><span class="confidence-{{M5_CONF}}">{{M5_CONF_LABEL}}</span></td></tr>
-      <tr><td>6</td><td>Flow Distribution</td><td>{{M6_MULT}}</td><td><span class="confidence-{{M6_CONF}}">{{M6_CONF_LABEL}}</span></td></tr>
-      <tr><td>7</td><td>Flow Time</td><td>{{M7_MULT}}×</td><td><span class="confidence-{{M7_CONF}}">{{M7_CONF_LABEL}}</span></td></tr>
+      <tr><td>1</td><td>Flow Load</td><td>{{M1_DISPLAY}}</td><td><span class="confidence-{{M1_CONF}}">{{M1_CONF_LABEL}}</span></td><td>{{M1_CAVEAT}}</td></tr>
+      <tr><td>2</td><td>Flow Velocity</td><td>{{M2_DISPLAY}}</td><td><span class="confidence-{{M2_CONF}}">{{M2_CONF_LABEL}}</span></td><td>{{M2_CAVEAT}}</td></tr>
+      <tr><td>3</td><td>Flow Predictability</td><td>{{M3_DISPLAY}}</td><td><span class="confidence-{{M3_CONF}}">{{M3_CONF_LABEL}}</span></td><td>{{M3_CAVEAT}}</td></tr>
+      <tr><td>4</td><td>Flow Active</td><td>{{M4_DISPLAY}}</td><td><span class="confidence-{{M4_CONF}}">{{M4_CONF_LABEL}}</span></td><td>{{M4_CAVEAT}}</td></tr>
+      <tr><td>5</td><td>Flow Efficiency</td><td>{{M5_DISPLAY}}</td><td><span class="confidence-{{M5_CONF}}">{{M5_CONF_LABEL}}</span></td><td>{{M5_CAVEAT}}</td></tr>
+      <tr><td>6</td><td>Flow Distribution</td><td>{{M6_DISPLAY}}</td><td><span class="confidence-{{M6_CONF}}">{{M6_CONF_LABEL}}</span></td><td>{{M6_CAVEAT}}</td></tr>
+      <tr><td>7</td><td>Flow Time</td><td>{{M7_DISPLAY}}</td><td><span class="confidence-{{M7_CONF}}">{{M7_CONF_LABEL}}</span></td><td>{{M7_CAVEAT}}</td></tr>
     </tbody>
   </table>
 </section>

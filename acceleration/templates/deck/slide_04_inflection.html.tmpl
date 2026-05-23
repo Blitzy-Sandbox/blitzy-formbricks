@@ -3,7 +3,7 @@
   Type: content-slide
   Required tokens (substituted by render_deck.py from
   acceleration/data/inflection.json and acceleration/data/metrics.json):
-    {{INFLECTION_DATE}}    Detected inflection date (ISO), e.g., "2026-02-25".
+    {{INFLECTION_DATE}}    Detected inflection date (ISO YYYY-MM-DD).
                            Sourced from inflection.json:"date".
     {{INFLECTION_METHOD}}  Detection method label, e.g., "convergent_evidence".
                            Sourced from inflection.json:"method". One of
@@ -49,7 +49,7 @@
     - This template is consumed by render_deck.py, which substitutes the six
       tokens above from inflection.json + metrics.json and writes the result
       into acceleration/executive-presentation.html.
-    - Mermaid runtime: the deck initializes Mermaid 11.4.0 with
+    - Mermaid runtime: the deck initializes Mermaid 11.15.0 with
       startOnLoad:false, theme:'base', and gantt:{useMaxWidth:true,fontSize:11};
       mermaid.run() is invoked on Reveal "ready" and "slidechanged" events,
       so the <pre class="mermaid"> block is transformed to inline <svg> at
@@ -64,7 +64,7 @@
       and "active" (Ramp-Up — current). The Steady-State row uses the
       three-field form (task_id, start position, end) with "after ramp" as
       the start position, meaning "starts immediately after the task with
-      id `ramp`". This three-field form is valid Mermaid 11.4.0 syntax.
+      id `ramp`". This three-field form is valid Mermaid 11.15.0 syntax.
     - Token-substituted dates conform to ISO YYYY-MM-DD, which matches the
       Gantt `dateFormat YYYY-MM-DD` directive.
     - Indentation inside <pre class="mermaid"> is preserved; the gantt
@@ -72,11 +72,11 @@
 
   Tone discipline (AAP §0.7.2.2 Rule 2 — Factual-Neutral): the section
   labels are technical terms ("Pre-AI Tool", "First 84 days", "90+ days")
-  with zero subjective qualifiers (no "impressive", "significant",
-  "excellent", "remarkable", "unfortunately"). "Detected:" and
-  "Method:" are neutral status descriptors. The method label
-  "convergent_evidence" is the technical name of the algorithm branch
-  per AAP §0.3.1.2, not editorial framing.
+  and the forbidden subjective-qualifier list in the Boundaries directive
+  does not appear in the visible slide body. "Detected:" and "Method:"
+  are neutral status descriptors. The method label "convergent_evidence"
+  is the technical name of the algorithm branch per AAP §0.3.1.2, not
+  editorial framing.
 
   Body word count outside <pre> (after token substitution):
     Eyebrow "Methodology" (1) + Heading "Inflection Date & Temporal
@@ -88,6 +88,10 @@
     - Zero emoji codepoints.
     - The only <pre> tag is class="mermaid" (no fenced code blocks).
     - At least one non-text visual (Mermaid block + Lucide icon).
+    - Exactly one <p class="diagram-legend"> element appears after the
+      Mermaid block, satisfying Rule 4 (Visual Architecture Documentation —
+      every diagram MUST have a descriptive title AND an explanatory
+      legend).
     - All six tokens {{INFLECTION_DATE}}, {{INFLECTION_METHOD}},
       {{BASELINE_START}}, {{BASELINE_END}}, {{RAMPUP_END}},
       {{STEADY_END}} appear unsubstituted in the template source and are
@@ -109,4 +113,5 @@ gantt
     section Steady State
     90+ days           :steady, after ramp, {{STEADY_END}}
   </pre>
+  <p class="diagram-legend"><i data-lucide="info"></i> Baseline = repository activity before the inflection date. Ramp-Up = the first 84 days after (six 2-week windows). Steady State = window seven onward.</p>
 </section>

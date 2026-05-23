@@ -252,7 +252,7 @@ The pipeline enforces several invariants from the Agent Action Plan. Violating a
 - **Do not selectively omit data that contradicts a pattern.** Every commit, PR, release, and issue in the resolved time range must be counted. The classifiers may flag a record as `unattributable`, `unreleased`, or `unknown work type`, but the record must remain in the dataset and be disclosed in the report's Limitations section.
 - **Do not use subjective qualifiers in the report.** `verify_report.py` greps the report body against a fixed allow-deny list of opinion-bearing adjectives and adverbs (the full list is defined as `SUBJECTIVE_TOKENS` at the top of `verify_report.py`). Any match fails the run. Replace such terms with numeric statements grounded in `data/metrics.json`.
 - **Do not bypass identical methodology.** The before-period and after-period extractors run the same code path with only the actor parameter substituted. Do not branch the extraction logic on the period; branch only on the actor identity passed in.
-- **Mind the Mermaid version floor.** The Acceleration Curve diagram uses `xychart-beta`, which requires Mermaid ≥ 11.0. The deck pins Mermaid `11.4.0` via CDN per Rule 5. Older Mermaid versions silently fail to render the chart.
+- **Mind the Mermaid version floor.** The Acceleration Curve diagram uses `xychart-beta`, which requires Mermaid ≥ 11.0. The deck pins Mermaid `11.15.0` via CDN per Rule 5. Older Mermaid versions silently fail to render the chart.
 - **Mind the `gh` vs `curl` precedence.** When `gh` CLI is installed, the extractors prefer it because it handles paginated responses automatically. If you want to force `curl`, unset `gh` on `PATH` for the run or pass `--http-client=curl` to the extractor scripts.
 
 ---

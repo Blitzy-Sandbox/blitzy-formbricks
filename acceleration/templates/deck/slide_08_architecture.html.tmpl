@@ -29,7 +29,7 @@
   Rendering notes:
     - No token substitution is required; the renderer may emit this
       template verbatim into acceleration/executive-presentation.html.
-    - Mermaid runtime: the deck initializes Mermaid 11.4.0 with
+    - Mermaid runtime: the deck initializes Mermaid 11.15.0 with
       startOnLoad:false and calls mermaid.run() on Reveal "ready" and
       "slidechanged" events, so the <pre class="mermaid"> block is
       transformed to inline <svg> at slide-enter time.
@@ -39,15 +39,15 @@
       forms.
     - Tone discipline (Rule 2 — Factual-Neutral): the legend states
       observable facts ("Read-only data flows left to right",
-      "metrics.json is the single source of truth"). No subjective
-      qualifiers ("impressive", "significant", "excellent", "remarkable",
-      "unfortunately", "dramatic", "surprising", "notable") appear.
+      "metrics.json is the single source of truth"). The forbidden
+      subjective-qualifier list in the Boundaries directive does not
+      appear in the visible slide body.
     - Body word count outside the <pre>: "Architecture" + "Analysis
       Pipeline" + legend ≈ 21 words, well under the Rule 5 cap of 40.
     - Mermaid syntax: flowchart LR with rectangular process nodes [],
       cylindrical store node [(…)] for metrics.json, and rhombus
       decision node {…} for the verifier outcome — all valid Mermaid
-      11.4.0 flowchart shapes.
+      11.15.0 flowchart shapes.
 -->
 <section class="content-slide">
   <span class="eyebrow">Architecture</span>

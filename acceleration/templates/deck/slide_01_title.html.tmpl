@@ -17,6 +17,13 @@
                               (earliest AI co-author trailer + sharpest
                               sustained velocity inflection). Example:
                               "2026-02-25".
+    {{INFLECTION_METHOD}}     Detection method recorded by
+                              detect_inflection.py. Sourced from
+                              inflection.json:"method". One of
+                              "convergent_evidence" | "single_signal" |
+                              "earliest_ai_trailer" | "insufficient_signal"
+                              per AAP §0.3.1.2. Example:
+                              "convergent_evidence".
     {{GENERATED_TIMESTAMP}}   Report generation timestamp in UTC, rendered
                               as "YYYY-MM-DD HH:MM UTC". Sourced from
                               metrics.json:"environment.extraction_timestamp"
@@ -39,12 +46,12 @@
       single self-contained reveal.js HTML file; ≥1 non-text visual per
       slide; zero emoji (Lucide SVG icons only); no fenced code blocks;
       Blitzy brand palette via CSS custom properties in theme.css;
-      reveal.js 5.1.0 / Mermaid 11.4.0 / Lucide 0.460.0 CDN-pinned;
+      reveal.js 5.1.0 / Mermaid 11.15.0 / Lucide 0.460.0 CDN-pinned;
       Inter / Space Grotesk / Fira Code typography.
-    - AAP §0.7.2.2 Rule 2 — Factual-Neutral Tone (no "impressive",
-      "significant", "excellent", "remarkable", "unfortunately",
-      "dramatic", "surprising", "notable" in the body). The title-slide
-      copy below uses only descriptive technical labels.
+    - AAP §0.7.2.2 Rule 2 — Factual-Neutral Tone (the forbidden
+      subjective-qualifier list in the Boundaries directive does not
+      appear in the body of this slide). The title-slide copy below
+      uses only descriptive technical labels.
     - AAP §0.7.2.2 Rule 6 — Environment First (the title slide surfaces
       the repository date range and inflection date up-front; the
       report's Environment Verification section carries the full
@@ -83,7 +90,9 @@
       .eyebrow, .title-meta. No inline style="…" attributes are used
       in this template — styling concerns stay in theme.css per the
       file-creation spec (Phase 5).
-    - Tokens are LITERAL strings using the {{TOKEN_NAME}} syntax. They
+    - Tokens are LITERAL strings using a double-brace UPPER_SNAKE_CASE
+      syntax (the four tokens enumerated in the Required tokens section
+      above are the only renderer-owned identifiers on this slide). They
       are NOT wrapped in any other markers (no <% %>, no ${ }, no
       jinja2 {% %}) — the renderer performs simple string replacement.
 
@@ -96,16 +105,17 @@
     - Subheading "Baseline vs Post-Introduction" names the two
       comparison periods defined in AAP §0.8.4 (Temporal Phases); it
       is a methodology label, not a value judgment.
-    - Metadata labels "Period:", "Inflection:", "Generated:" are
-      neutral status descriptors. No "faster", "better", "improved",
-      or other comparative qualifiers appear.
+    - Metadata labels "Period:", "Inflection:", "Method:", "Generated:"
+      are neutral status descriptors. No comparative qualifiers appear
+      in the rendered title-slide body.
 
   Body word count (excluding tokens):
     Eyebrow "Acceleration Analysis · Formbricks" (4)
     + Heading "Development Acceleration" (2)
     + Subheading "Baseline vs Post-Introduction" (3)
-    + Metadata labels "Period:" (1) + "Inflection:" (1) + "Generated:" (1)
-    ≈ 12 words. Title slides are exempt from the content-slide 40-word
+    + Metadata labels "Period:" (1) + "Inflection:" (1) + "Method:" (1)
+      + "Generated:" (1)
+    ≈ 13 words. Title slides are exempt from the content-slide 40-word
     body cap, but this slide stays well under it regardless.
 
   Verification (verify_report.py asserts):
@@ -117,11 +127,12 @@
       eyebrow and the U+2192 RIGHTWARDS ARROW in the
       {{DATE_RANGE_HUMAN}} substitution are math/punctuation
       codepoints outside all three emoji ranges.
-    - No <pre><code> fenced code blocks, no <script> tags, no <link>
-      tags, no <style> tags, no external href/src references.
-    - All three tokens ({{DATE_RANGE_HUMAN}}, {{INFLECTION_DATE}},
-      {{GENERATED_TIMESTAMP}}) appear unsubstituted in the template
-      source and substitute to non-empty strings in the rendered HTML.
+    - No HTML preformatted-code fenced blocks, no script tags, no link
+      tags, no inline style tags, no external href/src references.
+    - All four tokens ({{DATE_RANGE_HUMAN}}, {{INFLECTION_DATE}},
+      {{INFLECTION_METHOD}}, {{GENERATED_TIMESTAMP}}) appear unsubstituted
+      in the template source and substitute to non-empty strings in the
+      rendered HTML.
 -->
 <section class="title-slide">
   <span class="eyebrow">Acceleration Analysis · Formbricks</span>
@@ -129,7 +140,7 @@
   <h2>Baseline vs Post-Introduction</h2>
   <div class="title-meta">
     <p><i data-lucide="calendar"></i> Period: {{DATE_RANGE_HUMAN}}</p>
-    <p><i data-lucide="git-branch"></i> Inflection: {{INFLECTION_DATE}}</p>
+    <p><i data-lucide="git-branch"></i> Inflection: {{INFLECTION_DATE}} · Method: {{INFLECTION_METHOD}}</p>
     <p><i data-lucide="rocket"></i> Generated: {{GENERATED_TIMESTAMP}}</p>
   </div>
 </section>

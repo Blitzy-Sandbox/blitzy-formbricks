@@ -275,7 +275,7 @@ Single HTML5 file. On load it `fetch()`es `../data/metrics.json` and
 `./metrics.json` and renders twelve metric cards with multiplier values and
 confidence badges, a per-phase Mermaid bar chart, and a tail of the most
 recent run log lines from `../data/run_manifest.json`. CDN-pinned Mermaid
-`11.4.0` and Lucide `0.460.0` are loaded inline; the file has no local file
+`11.15.0` and Lucide `0.460.0` are loaded inline; the file has no local file
 dependencies beyond the two JSON inputs it expects to read alongside it.
 
 The Blitzy brand palette and typography are inlined as CSS custom properties

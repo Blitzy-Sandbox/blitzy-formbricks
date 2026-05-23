@@ -1,6 +1,6 @@
 %% =============================================================================
 %% acceleration_curve.mmd.tmpl
-%% Mermaid 11.4.0 xychart-beta template — Acceleration Curve
+%% Mermaid 11.15.0 xychart-beta template — Acceleration Curve
 %% =============================================================================
 %%
 %% AUTHORITY
@@ -26,7 +26,8 @@
 %%   AAP §0.7.2.2 Rule 1 (Data Provenance) — Every number plotted here is
 %%                  ultimately sourced from acceleration/data/metrics.json,
 %%                  which the renderer reads and substitutes into the
-%%                  {{...}} tokens below.
+%%                  double-brace tokens enumerated in the TOKENS section
+%%                  below.
 %%   AAP §0.7.2.2 Rule 4 (Internal Consistency) — The plotted multipliers
 %%                  MUST equal, byte-for-byte, the corresponding values in
 %%                  §1 Executive Summary, §5 Metric Deep-Dives, §6
@@ -44,8 +45,10 @@
 %%
 %% RENDERER
 %%   acceleration/scripts/render_report.py performs simple string
-%%   substitution of {{...}} placeholders with values pulled from
-%%   acceleration/data/metrics.json (the single source of truth) and writes
+%%   substitution of the double-brace placeholders enumerated in the
+%%   TOKENS section below (and only those placeholders), with values
+%%   pulled from acceleration/data/metrics.json (the single source of
+%%   truth) and writes
 %%   the substituted text into acceleration/acceleration-report.md §8.1
 %%   Graphical Representation. The renderer wraps the substituted text in
 %%   Markdown fenced code-block markers (the triple-backtick mermaid opener
@@ -91,10 +94,10 @@
 %%                                  (Metric 9). Example: 2.8. Source:
 %%                                  metrics.json[metric_9][steady_state][multiplier].
 %%   {{FLOW_TIME_RAMPUP}}         — Ramp-Up multiplier for Flow Time
-%%                                  (Metric 7). Lower-is-faster convention;
-%%                                  the renderer decides whether to invert
-%%                                  the ratio based on the report-wide
-%%                                  convention documented in
+%%                                  (Metric 7). Lower-value-preferred
+%%                                  convention; the renderer decides whether
+%%                                  to invert the ratio based on the
+%%                                  report-wide convention documented in
 %%                                  decision-log.md. Example: 0.6. Source:
 %%                                  metrics.json[metric_7][ramp_up][multiplier].
 %%   {{FLOW_TIME_STEADY}}         — Steady-State multiplier for Flow Time
@@ -132,7 +135,7 @@
 %%   (the Baseline-neutral multiplier) for the corresponding token in this
 %%   template. The line then stays flat at the reference value rather than
 %%   dropping to zero (which would be visually misleading) or leaving an
-%%   unsubstituted {{...}} literal (which would break Mermaid parsing).
+%%   unsubstituted double-brace literal (which would break Mermaid parsing).
 %%
 %%   The accompanying §5 Metric Deep-Dive section of acceleration-report.md
 %%   carries the full "Insufficient signal — [reason]" caveat per AAP
@@ -141,7 +144,8 @@
 %%   because it is unmeasurable under the runtime data sources available.
 %%
 %%   Fallback contract: acceleration/scripts/verify_report.py fails the
-%%   run if any unsubstituted {{...}} token remains in the rendered Markdown.
+%%   run if any unsubstituted double-brace token remains in the rendered
+%%   Markdown.
 %%
 %% LEGEND (line order in render output — DO NOT REORDER without updating the
 %% corresponding §8 table caption in acceleration-report.md, since the
@@ -173,10 +177,10 @@
 %%                         the reference value (multiplier convention is
 %%                         After / Before, so baseline ÷ baseline = 1).
 %%
-%% MERMAID 11.4.0 SYNTAX NOTES
+%% MERMAID 11.15.0 SYNTAX NOTES
 %%   - xychart-beta is a Mermaid 11+ feature (introduced as "beta" in
 %%     Mermaid 10.5 and stabilized in 11.x). The executive deck pins
-%%     Mermaid 11.4.0 (AAP §0.6.1) so this template is compatible.
+%%     Mermaid 11.15.0 (AAP §0.6.1) so this template is compatible.
 %%   - xychart-beta does NOT support per-line legend labels at runtime; the
 %%     LEGEND block above is the authoritative source for line identity.
 %%   - Mermaid xychart-beta y-axis range syntax is `0 --> {{Y_MAX}}` with

@@ -1,0 +1,1525 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Acceleration Analysis — Observability Dashboard</title>
+  <meta name="description" content="Self-contained dashboard for the Development Acceleration Analysis pipeline. Renders the 12 metric values, per-phase comparison, and run-log tail from acceleration/data/*.json.">
+  <meta name="author" content="Blitzy Agent">
+  <meta name="theme-color" content="#5B39F3">
+
+  <!--
+    AAP Rule 1 (Observability) — self-contained dashboard template.
+    External assets are limited to CDN-pinned libraries (Mermaid 11.4.0, Lucide 0.460.0)
+    and Google Fonts (Inter, Space Grotesk, Fira Code). All CSS is inlined in the <style>
+    block; the single <script> at the foot of <body> handles data fetch, rendering, and
+    Mermaid/Lucide initialization. No local file dependencies beyond the two JSON inputs
+    it expects to read alongside it at runtime:
+      - ./metrics.json                    (sibling static manifest in this folder)
+      - ../data/metrics.json              (runtime source of truth from compute_metrics.py)
+      - ../data/run_manifest.json         (orchestrator-emitted run metadata; optional)
+
+    Documented in:
+      - acceleration/observability/README.md §3.4
+      - acceleration/decision-log.md (static manifest in lieu of live /metrics endpoint)
+      - AAP §0.4.1, §0.4.2, §0.5.1, §0.7.1 Rule 1
+  -->
+
+  <!-- Google Fonts: Inter (body), Space Grotesk (display), Fira Code (monospace eyebrow) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
+
+  <style>
+    /* ============================================================
+       Blitzy brand palette and tokens
+       ============================================================
+       Mirrors the executive presentation deck for visual consistency
+       per AAP Rule 5 brand identity. */
+    :root {
+      --brand-primary:                 #5B39F3;
+      --brand-dark:                    #2D1C77;
+      --brand-teal:                    #94FAD5;
+      --brand-navy:                    #1A105F;
+
+      --neutral-0:                     #FFFFFF;
+      --neutral-50:                    #FAFAFA;
+      --neutral-100:                   #F4F4F5;
+      --neutral-200:                   #E4E4E7;
+      --neutral-300:                   #D4D4D8;
+      --neutral-500:                   #71717A;
+      --neutral-700:                   #3F3F46;
+      --neutral-900:                   #18181B;
+
+      --confidence-high-bg:            #94FAD5;
+      --confidence-high-fg:            #1A105F;
+      --confidence-medium-bg:          #FCD34D;
+      --confidence-medium-fg:          #1A105F;
+      --confidence-low-bg:             #FCA5A5;
+      --confidence-low-fg:             #18181B;
+      --confidence-insufficient-bg:    #D4D4D8;
+      --confidence-insufficient-fg:    #3F3F46;
+
+      --status-ok-bg:                  #94FAD5;
+      --status-ok-fg:                  #1A105F;
+      --status-fail-bg:                #FCA5A5;
+      --status-fail-fg:                #18181B;
+      --status-pending-bg:             #E4E4E7;
+      --status-pending-fg:             #18181B;
+
+      --gradient-primary:              linear-gradient(135deg, #5B39F3, #2D1C77);
+      --gradient-navy:                 linear-gradient(160deg, #1A105F, #0E0834);
+
+      --shadow-card:                   0 1px 2px rgba(24, 24, 27, 0.05),
+                                       0 2px 8px rgba(45, 28, 119, 0.04);
+
+      --radius-card:                   12px;
+      --radius-pill:                   999px;
+      --radius-badge:                  4px;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; }
+
+    html { color-scheme: light; }
+
+    body {
+      margin: 0;
+      font-family: 'Inter', system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+      color: var(--neutral-900);
+      background: var(--neutral-50);
+      line-height: 1.5;
+      font-weight: 400;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+
+    /* ============================================================
+       Header
+       ============================================================ */
+    header.app-header {
+      background: var(--gradient-primary);
+      color: var(--neutral-0);
+      padding: 2rem clamp(1.5rem, 4vw, 3rem);
+      border-bottom: 1px solid var(--brand-navy);
+    }
+
+    header.app-header .eyebrow {
+      font-family: 'Fira Code', 'SF Mono', Menlo, monospace;
+      font-size: 0.7rem;
+      font-weight: 500;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      opacity: 0.85;
+      margin: 0;
+    }
+
+    header.app-header h1 {
+      font-family: 'Space Grotesk', 'Inter', sans-serif;
+      font-weight: 700;
+      font-size: clamp(1.6rem, 3.2vw, 2.2rem);
+      letter-spacing: -0.02em;
+      line-height: 1.1;
+      margin: 0.4rem 0 0.75rem;
+    }
+
+    header.app-header .sub-title {
+      font-family: 'Fira Code', monospace;
+      font-size: 0.8rem;
+      margin: 0;
+      opacity: 0.92;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem 1rem;
+      align-items: center;
+    }
+
+    header.app-header .sub-title span.label {
+      opacity: 0.7;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      font-size: 0.65rem;
+      margin-right: 0.35rem;
+    }
+
+    /* ============================================================
+       Main + section layout
+       ============================================================ */
+    main {
+      padding: 2rem clamp(1.5rem, 4vw, 3rem) 4rem;
+      max-width: 1600px;
+      margin: 0 auto;
+    }
+
+    section {
+      margin-bottom: 3rem;
+    }
+
+    section header {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 0.5rem 1rem;
+      margin-bottom: 1rem;
+    }
+
+    section h2 {
+      font-family: 'Space Grotesk', 'Inter', sans-serif;
+      font-weight: 700;
+      font-size: 1.4rem;
+      letter-spacing: -0.015em;
+      line-height: 1.2;
+      color: var(--brand-navy);
+      margin: 0;
+    }
+
+    section .section-subtitle {
+      font-family: 'Fira Code', monospace;
+      font-size: 0.75rem;
+      color: var(--neutral-500);
+      margin: 0;
+    }
+
+    /* ============================================================
+       Status pill
+       ============================================================ */
+    .status-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      padding: 4px 12px;
+      border-radius: var(--radius-pill);
+      font-family: 'Fira Code', monospace;
+      font-size: 0.7rem;
+      font-weight: 500;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+    .status-pill.status-ok { background: var(--status-ok-bg); color: var(--status-ok-fg); }
+    .status-pill.status-fail { background: var(--status-fail-bg); color: var(--status-fail-fg); }
+    .status-pill.status-pending { background: var(--status-pending-bg); color: var(--status-pending-fg); }
+
+    .status-pill i[data-lucide] {
+      width: 14px;
+      height: 14px;
+    }
+
+    /* ============================================================
+       Metric grid
+       ============================================================ */
+    #metrics-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 1rem;
+    }
+
+    .metric-card {
+      background: var(--neutral-0);
+      border: 1px solid var(--neutral-200);
+      border-left: 6px solid var(--brand-primary);
+      border-radius: var(--radius-card);
+      padding: 1.25rem 1.25rem 1.1rem;
+      box-shadow: var(--shadow-card);
+      display: flex;
+      flex-direction: column;
+      gap: 0.4rem;
+      min-height: 220px;
+    }
+
+    .metric-card.insufficient {
+      border-left-color: var(--neutral-300);
+      background: var(--neutral-50);
+    }
+
+    .metric-card .card-head {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 0.5rem;
+    }
+
+    .metric-card .eyebrow {
+      font-family: 'Fira Code', 'SF Mono', Menlo, monospace;
+      font-size: 0.7rem;
+      font-weight: 500;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--neutral-500);
+      margin: 0;
+    }
+
+    .metric-card .icon {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 32px;
+      height: 32px;
+      border-radius: 8px;
+      background: var(--neutral-100);
+      color: var(--brand-primary);
+      flex-shrink: 0;
+    }
+
+    .metric-card.insufficient .icon {
+      color: var(--neutral-500);
+      background: var(--neutral-200);
+    }
+
+    .metric-card .icon i[data-lucide] {
+      width: 18px;
+      height: 18px;
+    }
+
+    .metric-card .name {
+      font-family: 'Space Grotesk', 'Inter', sans-serif;
+      font-weight: 600;
+      font-size: 1rem;
+      color: var(--brand-navy);
+      letter-spacing: -0.01em;
+      margin: 0;
+      line-height: 1.25;
+    }
+
+    .metric-card .value {
+      font-family: 'Space Grotesk', 'Inter', sans-serif;
+      font-size: 2rem;
+      font-weight: 700;
+      line-height: 1.05;
+      color: var(--brand-primary);
+      margin: 0.3rem 0 0.2rem;
+      letter-spacing: -0.02em;
+    }
+
+    .metric-card .value.insufficient {
+      font-size: 0.95rem;
+      font-weight: 500;
+      color: var(--neutral-500);
+      font-style: italic;
+      letter-spacing: 0;
+      line-height: 1.3;
+    }
+
+    .metric-card .phases {
+      font-family: 'Fira Code', monospace;
+      font-size: 0.72rem;
+      color: var(--neutral-700);
+      line-height: 1.5;
+      margin: 0;
+      word-break: break-word;
+    }
+
+    .metric-card .phases .phase-label {
+      color: var(--neutral-500);
+      margin-right: 0.25rem;
+    }
+
+    .metric-card .phases .phase-row + .phase-row {
+      margin-top: 1px;
+    }
+
+    .metric-card .unit {
+      font-family: 'Fira Code', monospace;
+      font-size: 0.65rem;
+      color: var(--neutral-500);
+      margin: 0.2rem 0 0;
+      letter-spacing: 0.02em;
+    }
+
+    .metric-card .badges {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.35rem;
+      margin-top: auto;
+      padding-top: 0.6rem;
+    }
+
+    .badge {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: var(--radius-badge);
+      font-family: 'Fira Code', monospace;
+      font-size: 0.65rem;
+      font-weight: 500;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      line-height: 1.4;
+      white-space: nowrap;
+    }
+    .badge.confidence-high { background: var(--confidence-high-bg); color: var(--confidence-high-fg); }
+    .badge.confidence-medium { background: var(--confidence-medium-bg); color: var(--confidence-medium-fg); }
+    .badge.confidence-low { background: var(--confidence-low-bg); color: var(--confidence-low-fg); }
+    .badge.confidence-insufficient { background: var(--confidence-insufficient-bg); color: var(--confidence-insufficient-fg); }
+
+    .badge.family {
+      background: var(--neutral-100);
+      color: var(--neutral-700);
+    }
+
+    /* ============================================================
+       Per-phase comparison
+       ============================================================ */
+    #phase-comparison .mermaid-frame {
+      background: var(--neutral-0);
+      padding: 1.25rem;
+      border: 1px solid var(--neutral-200);
+      border-radius: var(--radius-card);
+      box-shadow: var(--shadow-card);
+      overflow-x: auto;
+    }
+
+    #phase-comparison pre.mermaid {
+      background: var(--neutral-0);
+      color: var(--neutral-900);
+      margin: 0;
+      font-family: 'Fira Code', monospace;
+      font-size: 0.75rem;
+      line-height: 1.4;
+      min-height: 360px;
+      text-align: center;
+    }
+
+    #phase-comparison .legend {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.85rem;
+      margin-top: 0.85rem;
+      padding-top: 0.85rem;
+      border-top: 1px dashed var(--neutral-200);
+      font-family: 'Fira Code', monospace;
+      font-size: 0.7rem;
+      color: var(--neutral-700);
+    }
+
+    #phase-comparison .legend .swatch {
+      display: inline-block;
+      width: 12px;
+      height: 12px;
+      border-radius: 3px;
+      vertical-align: middle;
+      margin-right: 0.4rem;
+      border: 1px solid var(--neutral-200);
+    }
+
+    #phase-comparison .legend .swatch.baseline { background: var(--brand-primary); }
+    #phase-comparison .legend .swatch.ramp { background: var(--brand-teal); border-color: var(--brand-dark); }
+    #phase-comparison .legend .swatch.steady { background: var(--brand-dark); }
+
+    /* ============================================================
+       Mermaid xychart-beta — Blitzy palette overrides.
+       Mermaid 11.4.0 does not reliably honor `plotColorPalette` for
+       multi-series xychart-beta, so we apply CSS at the rendered-SVG
+       level. The selectors target the structural classes Mermaid
+       emits per series.
+       ============================================================ */
+    #phase-comparison pre.mermaid svg .background {
+      fill: var(--neutral-0);
+    }
+    /* Bar series (Baseline) — brand primary */
+    #phase-comparison pre.mermaid svg g.plot rect.bar,
+    #phase-comparison pre.mermaid svg g.plot path.bar {
+      fill: var(--brand-primary) !important;
+      stroke: var(--brand-dark) !important;
+      stroke-width: 1px !important;
+    }
+    /* Line series — applied colors are set per-line via the
+       post-render JavaScript color remap, since Mermaid colors them
+       sequentially from its default palette. */
+    #phase-comparison pre.mermaid svg .line-plot-0 path,
+    #phase-comparison pre.mermaid svg g.plot path:not(.bar):nth-of-type(2) { stroke: var(--brand-teal) !important; stroke-width: 3px !important; fill: none !important; }
+    #phase-comparison pre.mermaid svg .line-plot-1 path,
+    #phase-comparison pre.mermaid svg g.plot path:not(.bar):nth-of-type(3) { stroke: var(--brand-dark) !important; stroke-width: 3px !important; fill: none !important; }
+    /* Axis text and title in brand navy */
+    #phase-comparison pre.mermaid svg g.main g.title text,
+    #phase-comparison pre.mermaid svg g.main g[class*="-axis"] text,
+    #phase-comparison pre.mermaid svg g.main text,
+    #phase-comparison pre.mermaid svg text {
+      fill: var(--brand-navy) !important;
+      font-family: 'Inter', system-ui, sans-serif !important;
+    }
+    /* Axis lines and tick marks. Mermaid 11.4.0 emits g.bottom-axis,
+       g.left-axis, plus child groups g.axis-line / g.axisl-line / g.ticks
+       with white strokes that are invisible on the white background. */
+    #phase-comparison pre.mermaid svg g.main g[class*="-axis"] line,
+    #phase-comparison pre.mermaid svg g.main g[class*="-axis"] path,
+    #phase-comparison pre.mermaid svg g.main g.axis-line path,
+    #phase-comparison pre.mermaid svg g.main g.axisl-line path,
+    #phase-comparison pre.mermaid svg g.main g.ticks line,
+    #phase-comparison pre.mermaid svg g.main g.ticks path {
+      stroke: var(--brand-navy) !important;
+    }
+
+    /* ============================================================
+       Run log tail
+       ============================================================ */
+    #run-log .run-log-frame {
+      background: var(--neutral-900);
+      color: var(--neutral-50);
+      border-radius: var(--radius-card);
+      box-shadow: var(--shadow-card);
+      overflow: hidden;
+    }
+
+    #run-log .log-toolbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0.6rem 1rem;
+      background: rgba(255, 255, 255, 0.04);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+      font-family: 'Fira Code', monospace;
+      font-size: 0.7rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--neutral-300);
+    }
+
+    #run-log .log-toolbar .log-count {
+      color: var(--brand-teal);
+    }
+
+    #run-log pre.log {
+      margin: 0;
+      padding: 1rem;
+      font-family: 'Fira Code', 'SF Mono', Menlo, monospace;
+      font-size: 0.72rem;
+      line-height: 1.55;
+      max-height: 360px;
+      overflow-y: auto;
+      white-space: pre;
+      word-break: break-word;
+    }
+
+    #run-log .log-line { display: block; }
+    #run-log .log-ts { color: var(--neutral-300); }
+    #run-log .log-level-info { color: var(--brand-teal); }
+    #run-log .log-level-warn { color: #FCD34D; }
+    #run-log .log-level-error { color: #FCA5A5; }
+    #run-log .log-level-debug { color: #9CA3AF; }
+    #run-log .log-logger { color: #C4B5FD; }
+    #run-log .log-extra { color: #9CA3AF; opacity: 0.8; }
+
+    /* ============================================================
+       Empty state
+       ============================================================ */
+    .empty-state {
+      padding: 2.5rem 2rem;
+      text-align: center;
+      color: var(--neutral-500);
+      background: var(--neutral-0);
+      border: 1px dashed var(--neutral-300);
+      border-radius: var(--radius-card);
+      font-family: 'Inter', sans-serif;
+      font-size: 0.9rem;
+      line-height: 1.6;
+    }
+
+    .empty-state .empty-icon {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 48px;
+      height: 48px;
+      border-radius: 50%;
+      background: var(--neutral-100);
+      color: var(--brand-primary);
+      margin-bottom: 0.75rem;
+    }
+    .empty-state .empty-icon i[data-lucide] { width: 24px; height: 24px; }
+
+    .empty-state h3 {
+      font-family: 'Space Grotesk', sans-serif;
+      font-weight: 600;
+      font-size: 1.05rem;
+      color: var(--brand-navy);
+      margin: 0 0 0.4rem;
+    }
+
+    .empty-state p { margin: 0 auto 0.5rem; max-width: 60ch; }
+
+    .empty-state code,
+    .empty-state kbd {
+      background: var(--neutral-100);
+      color: var(--brand-navy);
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-family: 'Fira Code', monospace;
+      font-size: 0.85em;
+      border: 1px solid var(--neutral-200);
+    }
+
+    .empty-state .empty-detail {
+      font-family: 'Fira Code', monospace;
+      font-size: 0.7rem;
+      color: var(--neutral-500);
+      margin-top: 0.85rem;
+      padding-top: 0.85rem;
+      border-top: 1px dashed var(--neutral-200);
+      max-width: 70ch;
+      margin-left: auto;
+      margin-right: auto;
+      text-align: left;
+    }
+
+    /* ============================================================
+       Footer
+       ============================================================ */
+    footer.app-footer {
+      padding: 1.25rem clamp(1.5rem, 4vw, 3rem);
+      border-top: 1px solid var(--neutral-200);
+      background: var(--neutral-0);
+      color: var(--neutral-500);
+      font-family: 'Fira Code', monospace;
+      font-size: 0.72rem;
+      letter-spacing: 0.02em;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem 1.5rem;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    footer.app-footer .links {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.75rem 1.25rem;
+    }
+
+    footer.app-footer a {
+      color: var(--brand-primary);
+      text-decoration: none;
+      font-weight: 500;
+    }
+
+    footer.app-footer a:focus-visible,
+    footer.app-footer a:hover {
+      text-decoration: underline;
+      text-underline-offset: 3px;
+    }
+
+    /* ============================================================
+       Lucide icon defaults
+       ============================================================ */
+    i[data-lucide] {
+      width: 18px;
+      height: 18px;
+      vertical-align: middle;
+      display: inline-block;
+      stroke-width: 1.8;
+    }
+
+    /* ============================================================
+       Reduced motion
+       ============================================================ */
+    @media (prefers-reduced-motion: reduce) {
+      * { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; }
+    }
+  </style>
+</head>
+<body>
+  <header class="app-header">
+    <p class="eyebrow">Acceleration Analysis</p>
+    <h1>Observability Dashboard</h1>
+    <p class="sub-title">
+      <span><span class="label">Run ID</span><span id="run-id-value">pending</span></span>
+      <span><span class="label">Generated</span><span id="generated-at-value">pending</span></span>
+      <span id="status-pill-host"><span class="status-pill status-pending"><i data-lucide="loader"></i>Loading</span></span>
+    </p>
+  </header>
+
+  <main>
+    <!-- ============================================================
+         Section: 12-metric cards
+         ============================================================ -->
+    <section id="metrics-grid-section" aria-labelledby="metrics-grid-heading">
+      <header>
+        <h2 id="metrics-grid-heading">Twelve Metric Cards</h2>
+        <p class="section-subtitle">Multiplier = After / Before. Confidence per the rubric (High = direct counts; Medium = git-commit patterns; Low = indirect proxies).</p>
+      </header>
+      <div id="metrics-grid" role="list" aria-live="polite"></div>
+      <div id="metrics-empty" hidden></div>
+    </section>
+
+    <!-- ============================================================
+         Section: Per-phase comparison
+         ============================================================ -->
+    <section id="phase-comparison" aria-labelledby="phase-comparison-heading">
+      <header>
+        <h2 id="phase-comparison-heading">Per-Phase Comparison</h2>
+        <p class="section-subtitle">Baseline (1.0×) vs Ramp-Up vs Steady-State multipliers across the twelve metrics.</p>
+      </header>
+      <div class="mermaid-frame">
+        <pre class="mermaid" id="phase-comparison-mermaid"></pre>
+      </div>
+      <div class="legend">
+        <span><span class="swatch baseline"></span>Baseline (anchor = 1.0×)</span>
+        <span><span class="swatch ramp"></span>Ramp-Up (first 6 windows post-introduction)</span>
+        <span><span class="swatch steady"></span>Steady-State (windows 7+)</span>
+      </div>
+    </section>
+
+    <!-- ============================================================
+         Section: Run log tail
+         ============================================================ -->
+    <section id="run-log" aria-labelledby="run-log-heading">
+      <header>
+        <h2 id="run-log-heading">Run Log Tail</h2>
+        <p class="section-subtitle">Last 50 structured log lines from <code style="font-family:'Fira Code',monospace;font-size:0.72rem;color:var(--brand-navy);background:var(--neutral-100);padding:1px 5px;border-radius:3px;">../data/run_manifest.json</code>.</p>
+      </header>
+      <div class="run-log-frame">
+        <div class="log-toolbar">
+          <span>structured logs</span>
+          <span class="log-count" id="log-count">0 entries</span>
+        </div>
+        <pre class="log" id="run-log-pre" aria-live="polite"></pre>
+      </div>
+    </section>
+  </main>
+
+  <footer class="app-footer">
+    <div class="links">
+      <a href="../acceleration-report.md">acceleration-report.md</a>
+      <a href="../executive-presentation.html">executive-presentation.html</a>
+      <a href="./README.md">observability/README.md</a>
+      <a href="./metrics.json">observability/metrics.json (manifest)</a>
+    </div>
+    <div>
+      Dashboard template v1.0
+      <span style="margin: 0 0.4rem; opacity: 0.5;">·</span>
+      schema <span id="schema-version">unknown</span>
+    </div>
+  </footer>
+
+  <!-- ============================================================
+       CDN-pinned libraries (Mermaid, Lucide). Pinned versions
+       mirror the executive deck per AAP §0.7.1 Rule 5.
+       ============================================================ -->
+  <script src="https://cdn.jsdelivr.net/npm/mermaid@11.4.0/dist/mermaid.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/lucide@0.460.0/dist/umd/lucide.min.js"></script>
+
+  <script>
+    'use strict';
+
+    // -----------------------------------------------------------------
+    // Canonical metric order — must match acceleration/observability/metrics.json
+    // and the runtime acceleration/data/metrics.json. Per AAP §0.4.1.
+    // -----------------------------------------------------------------
+    const CANONICAL_ORDER = [
+      'flow_load',
+      'flow_velocity',
+      'flow_predictability',
+      'flow_active',
+      'flow_efficiency',
+      'flow_distribution',
+      'flow_time',
+      'problem_records',
+      'releases',
+      'approved_exceptions',
+      'escaped_defects',
+      'defects_out_of_sla'
+    ];
+
+    // -----------------------------------------------------------------
+    // Lucide icon mapping per AAP §0.4.2 Phase 8. Used when the static
+    // manifest is unavailable.
+    // -----------------------------------------------------------------
+    const ICON_MAP = {
+      flow_load:           'layers',
+      flow_velocity:       'gauge',
+      flow_predictability: 'target',
+      flow_active:         'activity',
+      flow_efficiency:     'zap',
+      flow_distribution:   'pie-chart',
+      flow_time:           'clock',
+      problem_records:     'alert-triangle',
+      releases:            'package',
+      approved_exceptions: 'shield',
+      escaped_defects:     'bug',
+      defects_out_of_sla:  'timer'
+    };
+
+    // -----------------------------------------------------------------
+    // Fallback display-name map (used when the static manifest fetch fails).
+    // Display names mirror metrics.json::metrics[*].display_name.
+    // -----------------------------------------------------------------
+    const FALLBACK_NAMES = {
+      flow_load:           'Flow Load',
+      flow_velocity:       'Flow Velocity',
+      flow_predictability: 'Flow Predictability',
+      flow_active:         'Flow Active',
+      flow_efficiency:     'Flow Efficiency',
+      flow_distribution:   'Flow Distribution',
+      flow_time:           'Flow Time',
+      problem_records:     'Problem Records',
+      releases:            'Releases',
+      approved_exceptions: 'Approved Exceptions',
+      escaped_defects:     'Escaped Defects',
+      defects_out_of_sla:  'Defects Out of SLA'
+    };
+
+    // -----------------------------------------------------------------
+    // Mermaid initialization — Blitzy palette + manual run() control.
+    // Matches the executive deck initialization so chart styling is
+    // consistent across both surfaces.
+    // -----------------------------------------------------------------
+    function initMermaid() {
+      if (typeof window.mermaid === 'undefined') return false;
+      window.mermaid.initialize({
+        startOnLoad: false,
+        theme: 'base',
+        securityLevel: 'loose',
+        fontFamily: 'Inter, system-ui, sans-serif',
+        themeVariables: {
+          primaryColor:        '#5B39F3',
+          primaryTextColor:    '#FFFFFF',
+          primaryBorderColor:  '#2D1C77',
+          lineColor:           '#1A105F',
+          secondaryColor:      '#94FAD5',
+          secondaryTextColor:  '#1A105F',
+          tertiaryColor:       '#FAFAFA',
+          tertiaryTextColor:   '#1A105F',
+          background:          '#FFFFFF'
+        },
+        xyChart: {
+          width: 980,
+          height: 420,
+          titleFontSize: 16,
+          titleFill: '#1A105F',
+          backgroundColor: '#FFFFFF',
+          plotColorPalette: '#5B39F3,#94FAD5,#2D1C77',
+          chartOrientation: 'vertical',
+          xAxis: { titleColor: '#1A105F', labelColor: '#1A105F', tickColor: '#E4E4E7', axisLineColor: '#1A105F' },
+          yAxis: { titleColor: '#1A105F', labelColor: '#1A105F', tickColor: '#E4E4E7', axisLineColor: '#1A105F' }
+        }
+      });
+      return true;
+    }
+
+    // -----------------------------------------------------------------
+    // Fetch a JSON document; on any failure return null. Never throws.
+    // -----------------------------------------------------------------
+    async function fetchJson(url) {
+      try {
+        const resp = await fetch(url, { credentials: 'omit', cache: 'no-store' });
+        if (!resp || !resp.ok) return null;
+        return await resp.json();
+      } catch (err) {
+        // Browsers commonly block fetch() against file:// URLs. This is
+        // documented in the empty-state below; the dashboard degrades to
+        // a textual instruction instead of throwing.
+        return null;
+      }
+    }
+
+    // -----------------------------------------------------------------
+    // Schema-tolerant accessors. The runtime metrics.json schema is not
+    // finalized at the time this template is written; the orchestrator
+    // (compute_metrics.py) emits per-(metric, phase, module, actor)
+    // entries keyed by metric_id. This helper recognises the common
+    // shapes the renderer may emit so the dashboard does not need a
+    // schema migration when minor field renames happen.
+    // -----------------------------------------------------------------
+    function getMetricEntry(runtime, metricId) {
+      if (!runtime || typeof runtime !== 'object') return null;
+      // Top-level dict keyed by metric_id
+      if (runtime[metricId]) return runtime[metricId];
+      // { metrics: { <metric_id>: ... } }
+      if (runtime.metrics && typeof runtime.metrics === 'object' && runtime.metrics[metricId]) {
+        return runtime.metrics[metricId];
+      }
+      // { metrics: [ { metric_id, ... }, ... ] }
+      if (Array.isArray(runtime.metrics)) {
+        const found = runtime.metrics.find((m) => m && (m.metric_id === metricId || m.id === metricId));
+        if (found) return found;
+      }
+      return null;
+    }
+
+    function pickPhaseValue(entry, candidates) {
+      if (!entry || typeof entry !== 'object') return undefined;
+      for (const k of candidates) {
+        if (Object.prototype.hasOwnProperty.call(entry, k)) return entry[k];
+      }
+      // Some renderers may emit a nested { phases: { baseline: ..., ramp_up: ... } } shape.
+      if (entry.phases && typeof entry.phases === 'object') {
+        for (const k of candidates) {
+          if (Object.prototype.hasOwnProperty.call(entry.phases, k)) return entry.phases[k];
+        }
+      }
+      return undefined;
+    }
+
+    function isInsufficientString(v) {
+      if (typeof v !== 'string') return false;
+      // Accept both ASCII '--' and Unicode em-dash variants.
+      const s = v.toLowerCase();
+      return s.startsWith('insufficient signal');
+    }
+
+    function extractInsufficientReason(v) {
+      if (typeof v !== 'string') return '';
+      const idx = v.search(/[—–-]/);
+      if (idx < 0) return '';
+      return v.slice(idx + 1).trim();
+    }
+
+    function getInsufficientReason(entry) {
+      if (entry == null) return 'Runtime entry not present.';
+      if (typeof entry === 'string') return extractInsufficientReason(entry) || entry;
+      if (typeof entry !== 'object') return String(entry);
+      // Common shapes: { insufficient_signal: { reason } }, { reason }, { value: 'Insufficient signal — ...' }
+      if (entry.insufficient_signal && entry.insufficient_signal.reason) return entry.insufficient_signal.reason;
+      if (typeof entry.value === 'string' && isInsufficientString(entry.value)) {
+        return extractInsufficientReason(entry.value) || entry.value;
+      }
+      if (typeof entry.reason === 'string') return entry.reason;
+      // If every phase value is an Insufficient string, surface the first non-empty one.
+      const phases = ['baseline', 'ramp_up', 'steady_state', 'post_introduction', 'post', 'after'];
+      for (const k of phases) {
+        const v = pickPhaseValue(entry, [k]);
+        if (typeof v === 'string' && isInsufficientString(v)) return extractInsufficientReason(v) || v;
+      }
+      return 'Insufficient signal — reason not provided by runtime.';
+    }
+
+    function entryIsInsufficient(entry) {
+      if (entry == null) return true;
+      if (typeof entry === 'string') return isInsufficientString(entry);
+      if (typeof entry !== 'object') return false;
+      if (typeof entry.value === 'string' && isInsufficientString(entry.value)) return true;
+      if (entry.insufficient_signal) return true;
+      if (typeof entry.confidence === 'string' && entry.confidence.toLowerCase() === 'insufficient') return true;
+      // If every phase is missing or marked insufficient, treat the whole entry as insufficient.
+      const phaseKeys = [
+        ['baseline', 'before'],
+        ['ramp_up', 'rampup'],
+        ['steady_state', 'steady', 'post_introduction', 'post', 'after']
+      ];
+      const phaseValues = phaseKeys.map((alts) => pickPhaseValue(entry, alts));
+      const anyDefined = phaseValues.some((v) => v !== undefined);
+      if (!anyDefined) return true;
+      const anyMeasured = phaseValues.some((v) => {
+        if (v === undefined || v === null) return false;
+        if (typeof v === 'string') return !isInsufficientString(v);
+        if (typeof v === 'number') return Number.isFinite(v);
+        if (typeof v === 'object') {
+          if (typeof v.value === 'number') return Number.isFinite(v.value);
+          if (typeof v.value === 'string') return !isInsufficientString(v.value);
+        }
+        return true;
+      });
+      return !anyMeasured;
+    }
+
+    function getPhaseScalar(entry, alts) {
+      const v = pickPhaseValue(entry, alts);
+      if (v === undefined || v === null) return null;
+      if (typeof v === 'number') return Number.isFinite(v) ? v : null;
+      if (typeof v === 'string') {
+        if (isInsufficientString(v)) return null;
+        // Tolerate values like "0.85", "0.85×", "46.89 commits/window"; pull the first numeric token.
+        const m = v.match(/-?\d+(?:\.\d+)?/);
+        return m ? Number(m[0]) : null;
+      }
+      if (typeof v === 'object') {
+        if (typeof v.value === 'number') return Number.isFinite(v.value) ? v.value : null;
+        if (typeof v.numeric === 'number') return Number.isFinite(v.numeric) ? v.numeric : null;
+        if (typeof v.value === 'string') {
+          const m = v.value.match(/-?\d+(?:\.\d+)?/);
+          return m ? Number(m[0]) : null;
+        }
+      }
+      return null;
+    }
+
+    function getMultiplier(entry) {
+      if (entry == null || typeof entry !== 'object') return null;
+      const direct = entry.multiplier;
+      if (typeof direct === 'number' && Number.isFinite(direct)) return direct;
+      if (typeof direct === 'string') {
+        const m = direct.match(/-?\d+(?:\.\d+)?/);
+        if (m) return Number(m[0]);
+      }
+      if (direct && typeof direct === 'object' && typeof direct.value === 'number') return direct.value;
+
+      // Derive multiplier from baseline + post phases if not provided.
+      const base = getPhaseScalar(entry, ['baseline', 'before']);
+      // Prefer steady_state; fall back to ramp_up; finally use post_introduction.
+      const steady = getPhaseScalar(entry, ['steady_state', 'steady']);
+      const ramp = getPhaseScalar(entry, ['ramp_up', 'rampup']);
+      const post = getPhaseScalar(entry, ['post_introduction', 'post', 'after']);
+      const after = steady != null ? steady : (ramp != null ? ramp : post);
+      if (base != null && after != null && base !== 0) {
+        return after / base;
+      }
+      return null;
+    }
+
+    function formatScalar(v, fallback) {
+      if (v == null) return fallback != null ? fallback : '—';
+      if (typeof v === 'number') {
+        if (!Number.isFinite(v)) return fallback != null ? fallback : '—';
+        const abs = Math.abs(v);
+        if (abs >= 1000) return v.toFixed(0);
+        if (abs >= 100) return v.toFixed(1);
+        if (abs >= 1) return v.toFixed(2);
+        if (abs >= 0.01) return v.toFixed(3);
+        return v.toExponential(2);
+      }
+      if (typeof v === 'string') {
+        if (!v.trim()) return fallback != null ? fallback : '—';
+        return v;
+      }
+      if (typeof v === 'object') {
+        if (typeof v.value === 'number') return formatScalar(v.value, fallback);
+        if (typeof v.value === 'string') return v.value;
+        if (typeof v.numeric === 'number') return formatScalar(v.numeric, fallback);
+      }
+      return String(v);
+    }
+
+    function formatPhase(entry, alts) {
+      const v = pickPhaseValue(entry, alts);
+      if (v == null) return '—';
+      if (typeof v === 'number') return formatScalar(v);
+      if (typeof v === 'string') {
+        if (isInsufficientString(v)) return 'Insufficient signal';
+        return v;
+      }
+      if (typeof v === 'object') {
+        if (typeof v.value === 'number') return formatScalar(v.value);
+        if (typeof v.value === 'string') {
+          if (isInsufficientString(v.value)) return 'Insufficient signal';
+          return v.value;
+        }
+        if (typeof v.numeric === 'number') return formatScalar(v.numeric);
+      }
+      return String(v);
+    }
+
+    function formatMultiplier(m) {
+      if (m == null) return '—';
+      if (!Number.isFinite(m)) return '—';
+      const abs = Math.abs(m);
+      if (abs >= 100) return m.toFixed(0) + '×';
+      if (abs >= 10) return m.toFixed(1) + '×';
+      if (abs >= 1) return m.toFixed(2) + '×';
+      return m.toFixed(3) + '×';
+    }
+
+    function classifyConfidence(entry, manifestEntry) {
+      const c = entry && typeof entry === 'object' ? entry.confidence : null;
+      const s = (typeof c === 'string' ? c : '').toLowerCase();
+      if (s === 'high' || s === 'medium' || s === 'low') return s;
+      // Fall back to the static manifest's primary-source confidence so the
+      // badge is never empty.
+      if (manifestEntry && typeof manifestEntry.confidence_when_primary_used === 'string') {
+        const m = manifestEntry.confidence_when_primary_used.toLowerCase();
+        if (m === 'high' || m === 'medium' || m === 'low') return m;
+      }
+      return 'insufficient';
+    }
+
+    // -----------------------------------------------------------------
+    // HTML escape helper. Always use when injecting strings derived from
+    // the fetched JSON into the DOM via innerHTML; avoids XSS even though
+    // the data is locally produced.
+    // -----------------------------------------------------------------
+    function escapeHtml(s) {
+      if (s == null) return '';
+      return String(s)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+    }
+
+    // -----------------------------------------------------------------
+    // Build a single metric card. Returns a detached DOM element.
+    // -----------------------------------------------------------------
+    function buildMetricCard({ metricId, manifest, runtime, idx }) {
+      const card = document.createElement('article');
+      card.className = 'metric-card';
+      card.setAttribute('role', 'listitem');
+      card.setAttribute('data-metric-id', metricId);
+
+      const manifestEntry = (manifest && manifest[metricId]) || null;
+      const displayName = manifestEntry ? manifestEntry.display_name : FALLBACK_NAMES[metricId];
+      const unit = manifestEntry && manifestEntry.unit ? manifestEntry.unit : '';
+      const family = manifestEntry && manifestEntry.family ? manifestEntry.family : '';
+      const iconName = ICON_MAP[metricId] || 'circle';
+      const numLabel = 'M' + String(idx + 1).padStart(2, '0');
+
+      const entry = getMetricEntry(runtime, metricId);
+      const insufficient = entryIsInsufficient(entry);
+      if (insufficient) card.classList.add('insufficient');
+
+      const head = document.createElement('div');
+      head.className = 'card-head';
+
+      const eyebrowWrap = document.createElement('div');
+      const eyebrow = document.createElement('p');
+      eyebrow.className = 'eyebrow';
+      eyebrow.textContent = numLabel + ' — ' + (displayName || metricId);
+      eyebrowWrap.appendChild(eyebrow);
+
+      const name = document.createElement('h3');
+      name.className = 'name';
+      name.textContent = displayName || metricId;
+      eyebrowWrap.appendChild(name);
+
+      const iconBox = document.createElement('span');
+      iconBox.className = 'icon';
+      iconBox.setAttribute('aria-hidden', 'true');
+      const iconEl = document.createElement('i');
+      iconEl.setAttribute('data-lucide', iconName);
+      iconBox.appendChild(iconEl);
+
+      head.appendChild(eyebrowWrap);
+      head.appendChild(iconBox);
+      card.appendChild(head);
+
+      const valueEl = document.createElement('p');
+      valueEl.className = 'value';
+      if (insufficient) {
+        valueEl.classList.add('insufficient');
+        valueEl.textContent = 'Insufficient signal — ' + getInsufficientReason(entry);
+      } else {
+        valueEl.textContent = formatMultiplier(getMultiplier(entry));
+      }
+      card.appendChild(valueEl);
+
+      if (!insufficient) {
+        const phasesEl = document.createElement('p');
+        phasesEl.className = 'phases';
+        const baseLabel = '<span class="phase-label">Baseline:</span>';
+        const rampLabel = '<span class="phase-label">Ramp-Up:</span>';
+        const steadyLabel = '<span class="phase-label">Steady:</span>';
+        const baseStr = escapeHtml(formatPhase(entry, ['baseline', 'before']));
+        const rampStr = escapeHtml(formatPhase(entry, ['ramp_up', 'rampup']));
+        const steadyStr = escapeHtml(formatPhase(entry, ['steady_state', 'steady', 'post_introduction', 'post', 'after']));
+        phasesEl.innerHTML =
+          '<span class="phase-row">' + baseLabel + ' ' + baseStr + '</span><br>' +
+          '<span class="phase-row">' + rampLabel + ' ' + rampStr + '</span><br>' +
+          '<span class="phase-row">' + steadyLabel + ' ' + steadyStr + '</span>';
+        card.appendChild(phasesEl);
+      }
+
+      if (unit) {
+        const unitEl = document.createElement('p');
+        unitEl.className = 'unit';
+        unitEl.textContent = 'Unit: ' + unit;
+        card.appendChild(unitEl);
+      }
+
+      const badges = document.createElement('div');
+      badges.className = 'badges';
+
+      const conf = insufficient ? 'insufficient' : classifyConfidence(entry, manifestEntry);
+      const confBadge = document.createElement('span');
+      confBadge.className = 'badge confidence-' + conf;
+      confBadge.textContent = conf === 'insufficient' ? 'No signal' : (conf.charAt(0).toUpperCase() + conf.slice(1)) + ' confidence';
+      badges.appendChild(confBadge);
+
+      if (family) {
+        const famBadge = document.createElement('span');
+        famBadge.className = 'badge family';
+        famBadge.textContent = family;
+        badges.appendChild(famBadge);
+      }
+
+      card.appendChild(badges);
+      return card;
+    }
+
+    // -----------------------------------------------------------------
+    // Render the metric grid OR the empty state when runtime data is
+    // unavailable.
+    // -----------------------------------------------------------------
+    function renderMetricGrid({ runtime, staticManifest }) {
+      const grid = document.getElementById('metrics-grid');
+      const emptyHost = document.getElementById('metrics-empty');
+      grid.innerHTML = '';
+
+      const manifestByMetricId = {};
+      if (staticManifest && Array.isArray(staticManifest.metrics)) {
+        for (const m of staticManifest.metrics) {
+          if (m && m.metric_id) manifestByMetricId[m.metric_id] = m;
+        }
+      }
+
+      const noRuntime = !runtime || (typeof runtime === 'object' && Object.keys(runtime).length === 0);
+
+      if (noRuntime) {
+        grid.hidden = true;
+        emptyHost.hidden = false;
+        emptyHost.innerHTML =
+          '<div class="empty-state">' +
+            '<span class="empty-icon" aria-hidden="true"><i data-lucide="database"></i></span>' +
+            '<h3>No metrics data found</h3>' +
+            '<p>Run <code>python3 acceleration/scripts/run_acceleration_analysis.py</code> from the repository root to produce <code>acceleration/data/metrics.json</code>, then reload this page.</p>' +
+            '<p class="empty-detail">If the file already exists, the browser may have blocked the relative <code>fetch()</code> call against a <code>file://</code> URL. Start a local server with <code>python3 -m http.server 8000</code> in the repository root and open <code>http://localhost:8000/acceleration/observability/dashboard.html</code>.</p>' +
+          '</div>';
+        return;
+      }
+
+      grid.hidden = false;
+      emptyHost.hidden = true;
+
+      CANONICAL_ORDER.forEach((metricId, idx) => {
+        const card = buildMetricCard({
+          metricId,
+          manifest: manifestByMetricId,
+          runtime,
+          idx
+        });
+        grid.appendChild(card);
+      });
+    }
+
+    // -----------------------------------------------------------------
+    // Build the Mermaid per-phase comparison xychart source. The chart
+    // shows three series:
+    //   - Baseline (bar)            anchored at 1.0× for every metric
+    //   - Ramp-Up (line)            multiplier in first 6 windows post
+    //   - Steady-State (line)       multiplier in windows 7+
+    // Bars + lines render correctly side-by-side in Mermaid 11.4.0's
+    // xychart-beta (whereas multiple bar series overlap at the same x).
+    // Metrics with Insufficient signal contribute (0, 0, 0) so the gap
+    // is visible without misleading the viewer.
+    // -----------------------------------------------------------------
+    function buildPhaseChartSource(runtime) {
+      const xLabels = [];
+      const baseline = [];
+      const ramp = [];
+      const steady = [];
+
+      CANONICAL_ORDER.forEach((id, idx) => {
+        const num = 'M' + String(idx + 1).padStart(2, '0');
+        xLabels.push('"' + num + '"');
+        const entry = getMetricEntry(runtime, id);
+        const insufficient = entryIsInsufficient(entry);
+        if (insufficient) {
+          baseline.push(0);
+          ramp.push(0);
+          steady.push(0);
+          return;
+        }
+        const base = getPhaseScalar(entry, ['baseline', 'before']);
+        const r = getPhaseScalar(entry, ['ramp_up', 'rampup']);
+        const s = getPhaseScalar(entry, ['steady_state', 'steady']);
+        const post = getPhaseScalar(entry, ['post_introduction', 'post', 'after']);
+
+        if (base == null || base === 0) {
+          baseline.push(0);
+          ramp.push(0);
+          steady.push(0);
+          return;
+        }
+        baseline.push(1);
+        ramp.push(r != null ? r / base : (post != null ? post / base : 0));
+        steady.push(s != null ? s / base : (post != null ? post / base : 0));
+      });
+
+      // Determine y-axis max with a sane upper bound for legibility.
+      const allValues = baseline.concat(ramp, steady).filter((v) => Number.isFinite(v) && v > 0);
+      const maxVal = allValues.length ? Math.max(...allValues) : 2;
+      const yMax = Math.max(2, Math.ceil(maxVal * 1.15));
+
+      const lines = [
+        '---',
+        'config:',
+        '    xyChart:',
+        '        width: 980',
+        '        height: 420',
+        '        chartOrientation: vertical',
+        '        plotColorPalette: "#5B39F3,#94FAD5,#2D1C77"',
+        '---',
+        'xychart-beta',
+        '    title "Per-Phase Multiplier (Baseline = 1.0×)"',
+        '    x-axis [' + xLabels.join(', ') + ']',
+        '    y-axis "Multiplier (After / Before)" 0 --> ' + yMax,
+        '    bar [' + baseline.map((v) => Number(v.toFixed(3))).join(', ') + ']',
+        '    line [' + ramp.map((v) => Number(v.toFixed(3))).join(', ') + ']',
+        '    line [' + steady.map((v) => Number(v.toFixed(3))).join(', ') + ']'
+      ];
+      return lines.join('\n');
+    }
+
+    // -----------------------------------------------------------------
+    // Post-render Blitzy palette enforcement. Mermaid 11.4.0's
+    // `plotColorPalette` does not reliably override the default
+    // xychart-beta palette, so we walk the rendered SVG and remap the
+    // three known default colors to the Blitzy palette positions
+    // (Baseline=#5B39F3, Ramp-Up=#94FAD5, Steady-State=#2D1C77).
+    // -----------------------------------------------------------------
+    function applyBlitzyPaletteToChart() {
+      const svg = document.querySelector('#phase-comparison-mermaid svg');
+      if (!svg) return;
+      // Color remap: keys are Mermaid 11.4.0 xychart-beta defaults observed
+      // empirically (cream / peach / salmon). Values are Blitzy palette.
+      const remap = {
+        '#FFF4DD': '#5B39F3',   // series 0 -> brand primary (Baseline bars)
+        '#FFD8B1': '#94FAD5',   // series 1 -> brand teal (Ramp-Up line)
+        '#FFA07A': '#2D1C77'    // series 2 -> brand dark (Steady-State line)
+      };
+      svg.querySelectorAll('rect, path, line, polyline, circle').forEach((el) => {
+        const fill = (el.getAttribute('fill') || '').toUpperCase();
+        if (fill && remap[fill]) {
+          el.setAttribute('fill', remap[fill]);
+          // Bars get a thin dark stroke; lines stay flat.
+          if (el.tagName.toLowerCase() === 'rect' && fill === '#FFF4DD') {
+            el.setAttribute('stroke', '#2D1C77');
+            el.setAttribute('stroke-width', '1');
+          }
+        }
+        const stroke = (el.getAttribute('stroke') || '').toUpperCase();
+        if (stroke && remap[stroke]) {
+          el.setAttribute('stroke', remap[stroke]);
+          if (el.tagName.toLowerCase() === 'path' && el.getAttribute('fill') === 'none') {
+            el.setAttribute('stroke-width', '3');
+          }
+        }
+      });
+    }
+
+    async function renderPhaseChart({ runtime }) {
+      const pre = document.getElementById('phase-comparison-mermaid');
+      if (!pre) return;
+      if (!runtime || (typeof runtime === 'object' && Object.keys(runtime).length === 0)) {
+        pre.outerHTML =
+          '<div class="empty-state" style="margin: 0;">' +
+            '<span class="empty-icon" aria-hidden="true"><i data-lucide="bar-chart-3"></i></span>' +
+            '<h3>No comparison data</h3>' +
+            '<p>The per-phase chart renders after <code>acceleration/data/metrics.json</code> is produced.</p>' +
+          '</div>';
+        return;
+      }
+      const source = buildPhaseChartSource(runtime);
+      pre.textContent = source;
+
+      if (typeof window.mermaid === 'undefined') return;
+      try {
+        await window.mermaid.run({ querySelector: '#phase-comparison-mermaid' });
+        applyBlitzyPaletteToChart();
+      } catch (err) {
+        pre.outerHTML =
+          '<div class="empty-state" style="margin: 0;">' +
+            '<span class="empty-icon" aria-hidden="true"><i data-lucide="alert-triangle"></i></span>' +
+            '<h3>Chart unavailable</h3>' +
+            '<p>Mermaid failed to render the per-phase comparison. Open the browser console for details.</p>' +
+            '<p class="empty-detail">' + escapeHtml(String(err && err.message ? err.message : err)) + '</p>' +
+          '</div>';
+      }
+    }
+
+    // -----------------------------------------------------------------
+    // Run-log tail. Tolerates both event-style and log-line-style
+    // run_manifest.json shapes:
+    //   { events: [ { ts, level, logger, msg, extra } ... ] }
+    //   { logs:   [ { ts, level, logger, msg, extra } ... ] }
+    //   { log_lines: [ "<JSON line>\n", ... ] }
+    // -----------------------------------------------------------------
+    function selectLogEntries(runManifest) {
+      if (!runManifest || typeof runManifest !== 'object') return [];
+      if (Array.isArray(runManifest.events)) return runManifest.events;
+      if (Array.isArray(runManifest.logs)) return runManifest.logs;
+      if (Array.isArray(runManifest.log_lines)) {
+        return runManifest.log_lines.map((line) => {
+          try { return JSON.parse(line); } catch (_e) { return { msg: line }; }
+        });
+      }
+      // Sometimes the orchestrator stores a single step's "steps" list with
+      // start/end/exit_code fields. Surface those as log entries too.
+      if (Array.isArray(runManifest.steps)) {
+        return runManifest.steps.flatMap((step) => {
+          const out = [];
+          if (step && step.start) {
+            out.push({ ts: step.start, level: 'INFO', logger: step.name || 'orchestrator', msg: 'step started' });
+          }
+          if (step && step.end) {
+            const lvl = (step.exit_code === 0 || step.exit_code == null) ? 'INFO' : 'ERROR';
+            out.push({ ts: step.end, level: lvl, logger: step.name || 'orchestrator', msg: 'step finished (exit_code=' + step.exit_code + ')' });
+          }
+          return out;
+        });
+      }
+      return [];
+    }
+
+    function formatLogEntry(entry) {
+      if (!entry || typeof entry !== 'object') return { html: escapeHtml(String(entry)) };
+      const ts = entry.ts || entry.timestamp || entry.time || '';
+      const level = String(entry.level || entry.lvl || 'INFO').toUpperCase();
+      const logger = entry.logger || entry.name || '';
+      const msg = entry.msg || entry.message || '';
+      const extraObj = (entry.extra && typeof entry.extra === 'object') ? entry.extra : null;
+      const levelCls = ({
+        DEBUG: 'log-level-debug',
+        INFO: 'log-level-info',
+        WARN: 'log-level-warn',
+        WARNING: 'log-level-warn',
+        ERROR: 'log-level-error',
+        CRITICAL: 'log-level-error'
+      })[level] || 'log-level-info';
+
+      let extraStr = '';
+      if (extraObj) {
+        const flat = Object.keys(extraObj)
+          .filter((k) => extraObj[k] !== null && extraObj[k] !== undefined)
+          .map((k) => k + '=' + (typeof extraObj[k] === 'object' ? JSON.stringify(extraObj[k]) : extraObj[k]))
+          .join(' ');
+        if (flat) extraStr = '  ' + flat;
+      }
+
+      const html =
+        '<span class="log-line">' +
+          '<span class="log-ts">' + escapeHtml(ts) + '</span> ' +
+          '<span class="' + levelCls + '">[' + escapeHtml(level) + ']</span> ' +
+          (logger ? '<span class="log-logger">' + escapeHtml(logger) + '</span>: ' : '') +
+          escapeHtml(String(msg)) +
+          (extraStr ? '<span class="log-extra">' + escapeHtml(extraStr) + '</span>' : '') +
+        '</span>';
+      return { html };
+    }
+
+    function renderRunLog(runManifest) {
+      const pre = document.getElementById('run-log-pre');
+      const countEl = document.getElementById('log-count');
+      if (!pre) return;
+
+      const entries = selectLogEntries(runManifest);
+      if (!entries.length) {
+        countEl.textContent = '0 entries';
+        pre.innerHTML =
+          '<span class="log-line"><span class="log-level-debug">[empty]</span> No run-log entries found. ' +
+          'After a pipeline run, <span class="log-logger">../data/run_manifest.json</span> populates ' +
+          '<code style="color:inherit;">events</code> / <code style="color:inherit;">logs</code> / ' +
+          '<code style="color:inherit;">log_lines</code>.</span>';
+        return;
+      }
+
+      // Tail of last 50 entries
+      const tail = entries.slice(-50);
+      countEl.textContent = tail.length + ' entries (of ' + entries.length + ')';
+      pre.innerHTML = tail.map(formatLogEntry).map((x) => x.html).join('\n');
+    }
+
+    function renderHeader(runManifest, staticManifest, runtime) {
+      const runIdEl = document.getElementById('run-id-value');
+      const genEl = document.getElementById('generated-at-value');
+      const statusHost = document.getElementById('status-pill-host');
+      const schemaEl = document.getElementById('schema-version');
+
+      const rid =
+        (runManifest && (runManifest.run_id || runManifest.runId)) ||
+        (runtime && (runtime.run_id || runtime.runId)) ||
+        '—';
+      const generated =
+        (runManifest && (runManifest.generated_at || runManifest.ended_at || runManifest.start_time || runManifest.timestamp)) ||
+        (runtime && (runtime.generated_at || runtime.timestamp)) ||
+        '—';
+
+      runIdEl.textContent = rid;
+      genEl.textContent = generated;
+
+      const schemaVersion =
+        (runtime && runtime.schema_version) ||
+        (staticManifest && staticManifest.schema_version) ||
+        'unknown';
+      schemaEl.textContent = schemaVersion;
+
+      let statusClass = 'status-pending';
+      let statusText = 'Pending';
+      let statusIcon = 'loader';
+
+      if (runManifest && typeof runManifest === 'object') {
+        const ec =
+          runManifest.exit_code != null ? runManifest.exit_code :
+          (runManifest.status === 'ok' ? 0 : (runManifest.status === 'fail' ? 1 : null));
+        if (ec === 0) {
+          statusClass = 'status-ok';
+          statusText = 'Run OK';
+          statusIcon = 'check-circle-2';
+        } else if (typeof ec === 'number' && ec !== 0) {
+          statusClass = 'status-fail';
+          statusText = 'Run FAILED (exit ' + ec + ')';
+          statusIcon = 'x-circle';
+        } else if (typeof runManifest.status === 'string') {
+          const s = runManifest.status.toLowerCase();
+          if (s === 'ok' || s === 'success' || s === 'pass') {
+            statusClass = 'status-ok';
+            statusText = 'Run OK';
+            statusIcon = 'check-circle-2';
+          } else if (s === 'fail' || s === 'failed' || s === 'error') {
+            statusClass = 'status-fail';
+            statusText = 'Run FAILED';
+            statusIcon = 'x-circle';
+          } else if (s === 'pending' || s === 'running') {
+            statusClass = 'status-pending';
+            statusText = 'Run in progress';
+            statusIcon = 'loader';
+          }
+        } else if (runtime) {
+          // Manifest present but no exit_code/status — runtime metrics exist → assume completed OK.
+          statusClass = 'status-ok';
+          statusText = 'Run OK';
+          statusIcon = 'check-circle-2';
+        }
+      } else if (runtime) {
+        // No run_manifest.json but metrics.json is present — pipeline has produced output.
+        statusClass = 'status-ok';
+        statusText = 'Metrics available';
+        statusIcon = 'check-circle-2';
+      } else {
+        statusClass = 'status-pending';
+        statusText = 'No data yet';
+        statusIcon = 'circle-dashed';
+      }
+
+      statusHost.innerHTML =
+        '<span class="status-pill ' + statusClass + '">' +
+          '<i data-lucide="' + statusIcon + '"></i>' +
+          escapeHtml(statusText) +
+        '</span>';
+    }
+
+    function refreshLucide() {
+      try {
+        if (window.lucide && typeof window.lucide.createIcons === 'function') {
+          window.lucide.createIcons();
+        }
+      } catch (_e) {
+        // Lucide failed to load; silently degrade — icons render as <i> tags.
+      }
+    }
+
+    // -----------------------------------------------------------------
+    // Boot
+    // -----------------------------------------------------------------
+    async function boot() {
+      initMermaid();
+
+      const [runtime, staticManifest, runManifest] = await Promise.all([
+        fetchJson('../data/metrics.json'),
+        fetchJson('./metrics.json'),
+        fetchJson('../data/run_manifest.json')
+      ]);
+
+      renderHeader(runManifest, staticManifest, runtime);
+      renderMetricGrid({ runtime, staticManifest });
+      await renderPhaseChart({ runtime });
+      renderRunLog(runManifest);
+      refreshLucide();
+    }
+
+    // Run on DOMContentLoaded so the inline scripts above have time to
+    // attach to the global scope.
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', () => { boot().catch((e) => console.error('dashboard boot failed', e)); });
+    } else {
+      boot().catch((e) => console.error('dashboard boot failed', e));
+    }
+  </script>
+</body>
+</html>

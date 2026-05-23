@@ -1,0 +1,40 @@
+<!--
+  Slide 12 — Per-Engineer View
+  Type: content-slide
+  Required tokens (substituted by render_deck.py from metrics.json):
+    {{ENG_LABELS}}     Mermaid xychart-beta x-axis array string,
+                       e.g., '["Matti Nannt", "Dhruwang", "Johannes", "Piyush", "Blitzy Agent"]'
+    {{ENG_VALUES}}     Mermaid xychart-beta bar values array string,
+                       e.g., '[26, 19, 18, 12, 206]'
+    {{METRIC_LABEL}}   Metric display label, e.g., "Post-Period Commits (Metric 2)"
+  Required non-text visual: <pre class="mermaid"> xychart-beta
+
+  Authority: AAP §0.4.1 (file inventory), §0.7.1 Rule 4 (Mermaid title + legend
+  required), §0.7.1 Rule 5 (content-slide constraints), §0.8.1 (Engineering
+  Actor Framing — Blitzy Agent is one row in the after period), §0.8.5
+  (Per-Engineer Views — real names for metrics 2, 4, 5, 6, 10).
+
+  Rendering notes:
+    - xychart-beta is a Mermaid 11+ feature; the deck pins Mermaid 11.4.0
+      via CDN per AAP §0.6.1, so this syntax is guaranteed to render.
+    - Inside <pre class="mermaid">, "xychart-beta" must be at column 0;
+      inner declarations are indented by four spaces. Whitespace is preserved.
+    - {{ENG_LABELS}} and {{ENG_VALUES}} are substituted as raw JSON arrays
+      (including surrounding [ and ]), which is also the literal x-axis and
+      bar array syntax of Mermaid xychart-beta.
+    - The renderer is the single source of truth (metrics.json); the engineer
+      ordering and bar values here must match the Per-Engineer Acceleration
+      table in acceleration-report.md (Rule 4 — Internal Consistency).
+-->
+<section class="content-slide">
+  <span class="eyebrow">Per-Engineer View</span>
+  <h3>Contributions by Engineer · After Period</h3>
+  <pre class="mermaid">
+xychart-beta
+    title "{{METRIC_LABEL}}"
+    x-axis {{ENG_LABELS}}
+    y-axis "Contribution"
+    bar {{ENG_VALUES}}
+  </pre>
+  <p class="diagram-legend"><i data-lucide="info"></i> Per AAP §0.8.1, Blitzy Agent appears as one row in the after period. Real names use the resolved aliases in actor_aliases.json.</p>
+</section>

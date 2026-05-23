@@ -1,0 +1,86 @@
+<!--
+  Slide 09 — Flow Metrics Snapshot (metrics 1-7)
+  Type: content-slide
+  Required tokens (substituted by render_deck.py from metrics.json):
+    {{M1_MULT}}, {{M1_CONF}}, {{M1_CONF_LABEL}}     Flow Load
+    {{M2_MULT}}, {{M2_CONF}}, {{M2_CONF_LABEL}}     Flow Velocity
+    {{M3_MULT}}, {{M3_CONF}}, {{M3_CONF_LABEL}}     Flow Predictability
+    {{M4_MULT}}, {{M4_CONF}}, {{M4_CONF_LABEL}}     Flow Active
+    {{M5_MULT}}, {{M5_CONF}}, {{M5_CONF_LABEL}}     Flow Efficiency
+    {{M6_MULT}}, {{M6_CONF}}, {{M6_CONF_LABEL}}     Flow Distribution (point-difference string,
+                                                    no trailing × — see Rendering notes)
+    {{M7_MULT}}, {{M7_CONF}}, {{M7_CONF_LABEL}}     Flow Time
+  Required non-text visual: <table class="metric-table"> (satisfies Rule 5
+  content-slide visual requirement; theme.css §Phase 9 styles this table).
+
+  Authority: AAP §0.4.1 (file inventory enumerates this filename),
+  §0.2.2 (Metrics 1-7 align with the Flow Framework — Flow Load,
+  Velocity, Predictability, Active, Efficiency, Distribution, Time),
+  §0.7.1 Rule 5 (content-slide constraints — max 4 bullets, ≤40 body
+  words, ≥1 non-text visual, zero emoji, no fenced code blocks),
+  §0.7.2.1 (canonical phrasing "Insufficient signal — [reason]" when
+  data is lacking; MUST NOT fabricate or extrapolate), §0.7.2.2 Rule 3
+  (Confidence Transparency — every derived metric carries a tag),
+  §0.7.2.2 Rule 4 (Internal Consistency — values here must match
+  acceleration-report.md, Traceability Matrix, and Acceleration Curve).
+
+  Rendering notes:
+    - This template is consumed by render_deck.py, which substitutes the
+      twenty-one tokens above from metrics.json and writes the result
+      into acceleration/executive-presentation.html.
+    - Each MULT token expands to either a numeric multiplier (e.g.,
+      "3.2") OR the literal phrase "Insufficient signal — <reason>".
+      The trailing "×" (U+00D7, multiplication sign — NOT the ASCII
+      letter "x") in the template is rendered as-is for metrics 1, 2,
+      3, 4, 5, 7. The renderer is responsible for stripping or hiding
+      the suffix when the value is non-numeric (e.g., by substituting
+      an empty string for MULT and rendering only the canonical phrase
+      elsewhere). The "Insufficient signal" phrasing is canonical per
+      AAP §0.7.2.1 and MUST NOT be replaced by editorial framing such
+      as "unavailable" or "missing".
+    - Metric 6 (Flow Distribution) is a work-type mix and is reported
+      as a point-difference string (e.g., "Δ feat +12pp, fix −8pp" or
+      "see Deep-Dive 6"), not a single scalar multiplier. The row for
+      Metric 6 therefore has NO trailing × after {{M6_MULT}} — note the
+      asymmetry below and AAP Phase 6 of the slide-9 spec.
+    - Each CONF token expands to the CSS class suffix
+      ("high" | "medium" | "low"), so the rendered span becomes
+      <span class="confidence-low">Low</span>. The confidence badge
+      styles are defined in acceleration/templates/deck/theme.css
+      (.confidence-high / .confidence-medium / .confidence-low).
+    - Per the AAP Confidence Rubric (§0.8.3): a metric derived from
+      direct issue-tracker counts is High; a metric approximated from
+      git commit patterns is Medium; a metric inferred from indirect
+      proxies is Low. Confidence is assigned by the extractor at
+      runtime based on the actual data source used — the template only
+      surfaces the resolved class and label.
+    - The renderer is the single source of truth (metrics.json); the
+      multipliers shown here MUST be identical to the values reported
+      in acceleration-report.md (Rule 4 — Internal Consistency,
+      verified by verify_report.py which parses both the rendered
+      Markdown and this rendered HTML and asserts equality).
+    - Tone discipline (Rule 2 — Factual-Neutral): the metric labels
+      are the canonical Flow Framework names — no editorial qualifiers
+      such as "impressive", "significant", or "remarkable" appear on
+      this slide.
+    - Body word count outside the <table>: "Flow Framework" +
+      "Flow Metrics (1–7)" = 5 words, well under the Rule 5 cap of 40.
+-->
+<section class="content-slide">
+  <span class="eyebrow">Flow Framework</span>
+  <h3>Flow Metrics (1–7)</h3>
+  <table class="metric-table">
+    <thead>
+      <tr><th>#</th><th>Metric</th><th>Multiplier</th><th>Confidence</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>1</td><td>Flow Load</td><td>{{M1_MULT}}×</td><td><span class="confidence-{{M1_CONF}}">{{M1_CONF_LABEL}}</span></td></tr>
+      <tr><td>2</td><td>Flow Velocity</td><td>{{M2_MULT}}×</td><td><span class="confidence-{{M2_CONF}}">{{M2_CONF_LABEL}}</span></td></tr>
+      <tr><td>3</td><td>Flow Predictability</td><td>{{M3_MULT}}×</td><td><span class="confidence-{{M3_CONF}}">{{M3_CONF_LABEL}}</span></td></tr>
+      <tr><td>4</td><td>Flow Active</td><td>{{M4_MULT}}×</td><td><span class="confidence-{{M4_CONF}}">{{M4_CONF_LABEL}}</span></td></tr>
+      <tr><td>5</td><td>Flow Efficiency</td><td>{{M5_MULT}}×</td><td><span class="confidence-{{M5_CONF}}">{{M5_CONF_LABEL}}</span></td></tr>
+      <tr><td>6</td><td>Flow Distribution</td><td>{{M6_MULT}}</td><td><span class="confidence-{{M6_CONF}}">{{M6_CONF_LABEL}}</span></td></tr>
+      <tr><td>7</td><td>Flow Time</td><td>{{M7_MULT}}×</td><td><span class="confidence-{{M7_CONF}}">{{M7_CONF_LABEL}}</span></td></tr>
+    </tbody>
+  </table>
+</section>

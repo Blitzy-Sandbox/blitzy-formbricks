@@ -1,0 +1,600 @@
+/* ============================================================================
+ * Blitzy Brand Theme — Executive Presentation (reveal.js 5.1.0)
+ * ----------------------------------------------------------------------------
+ * File:    acceleration/templates/deck/theme.css
+ * Authority: AAP §0.7.1 Rule 5 — Executive Presentation
+ *
+ * This stylesheet is INLINED verbatim into the <style> block of
+ * acceleration/executive-presentation.html by acceleration/scripts/render_deck.py.
+ * The rendered deck is fully self-contained except for the three CDN-pinned
+ * libraries (reveal.js 5.1.0, Mermaid 11.4.0, Lucide 0.460.0) and Google Fonts
+ * (Inter, Space Grotesk, Fira Code) which are loaded by the parent HTML.
+ *
+ * Visual contract:
+ *   - Blitzy brand palette: primary #5B39F3, dark #2D1C77, teal #94FAD5, navy #1A105F
+ *   - Typography stack: Inter (body), Space Grotesk (display), Fira Code (mono)
+ *   - Four slide types: title-slide, section-divider, content-slide, closing-slide
+ *   - Zero emoji — all icons rendered via Lucide <i data-lucide="..."> elements
+ *   - All sizing in viewport-relative em units for resolution-independent layout
+ *
+ * Compatibility: Chrome 120+, Firefox 122+, Safari 17+ (modern CSS only)
+ * ============================================================================
+ */
+
+/* ----------------------------------------------------------------------------
+ * Phase 1: Brand identity — CSS custom properties
+ *
+ * These four brand colors are the LITMUS TEST for theme compliance per
+ * AAP §0.7.1 Rule 5 and are verified verbatim by verify_report.py. Do not
+ * alter the hex values; downstream tooling greps for these exact strings.
+ * ----------------------------------------------------------------------------
+ */
+:root {
+  /* Blitzy brand palette — AAP Rule 5 verbatim */
+  --brand-primary: #5B39F3;
+  --brand-dark:    #2D1C77;
+  --brand-teal:    #94FAD5;
+  --brand-navy:    #1A105F;
+
+  /* Neutral palette (greys, white) */
+  --neutral-50:    #FAFAFA;
+  --neutral-100:   #F4F4F5;
+  --neutral-200:   #E4E4E7;
+  --neutral-300:   #D4D4D8;
+  --neutral-500:   #71717A;
+  --neutral-700:   #3F3F46;
+  --neutral-900:   #18181B;
+  --white:         #FFFFFF;
+
+  /* Semantic colors for confidence/severity badges */
+  --confidence-high-bg:   var(--brand-teal);
+  --confidence-high-fg:   var(--brand-navy);
+  --confidence-medium-bg: #FCD34D;
+  --confidence-medium-fg: var(--brand-navy);
+  --confidence-low-bg:    #FCA5A5;
+  --confidence-low-fg:    var(--neutral-900);
+
+  /* Gradient utilities */
+  --gradient-primary: linear-gradient(135deg, var(--brand-primary), var(--brand-dark));
+  --gradient-accent:  linear-gradient(135deg, var(--brand-teal), var(--brand-primary));
+  --gradient-navy:    linear-gradient(135deg, var(--brand-navy), var(--brand-dark));
+
+  /* Typography stacks */
+  --font-body:      'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-display:   'Space Grotesk', 'Inter', sans-serif;
+  --font-mono:      'Fira Code', 'SF Mono', 'Cascadia Mono', Consolas, monospace;
+}
+
+/* ----------------------------------------------------------------------------
+ * Phase 2: Base reveal.js overrides (typography & color)
+ * ----------------------------------------------------------------------------
+ */
+.reveal {
+  font-family: var(--font-body);
+  font-size: 28px;
+  color: var(--neutral-900);
+  background: var(--white);
+}
+
+.reveal h1,
+.reveal h2,
+.reveal h3,
+.reveal h4 {
+  font-family: var(--font-display);
+  font-weight: 700;
+  color: var(--brand-navy);
+  text-transform: none;
+  letter-spacing: -0.01em;
+  line-height: 1.15;
+  margin: 0 0 0.5em;
+}
+
+.reveal h1 { font-size: 3.2em; }
+.reveal h2 { font-size: 2.4em; }
+.reveal h3 { font-size: 1.6em; }
+
+.reveal p,
+.reveal li {
+  font-family: var(--font-body);
+  font-weight: 400;
+  line-height: 1.5;
+}
+
+/* Strong emphasis without all-caps shouting */
+.reveal strong {
+  font-weight: 600;
+  color: var(--brand-dark);
+}
+
+/* Hyperlinks adopt brand primary */
+.reveal a {
+  color: var(--brand-primary);
+  text-decoration: none;
+  border-bottom: 1px solid transparent;
+  transition: border-color 150ms ease-out;
+}
+
+.reveal a:hover {
+  border-bottom-color: var(--brand-primary);
+}
+
+/* ----------------------------------------------------------------------------
+ * Phase 3: Eyebrow label (Fira Code micro-label above headings)
+ *
+ * Used on title slides and content slides to label the section number /
+ * category in a compact monospaced rendering.
+ * ----------------------------------------------------------------------------
+ */
+.reveal .eyebrow {
+  display: inline-block;
+  font-family: var(--font-mono);
+  font-size: 0.7em;
+  font-weight: 500;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--brand-primary);
+  margin-bottom: 0.5em;
+}
+
+.reveal section.title-slide .eyebrow,
+.reveal section.section-divider .eyebrow,
+.reveal section.closing-slide .eyebrow {
+  color: var(--brand-teal);
+}
+
+/* ----------------------------------------------------------------------------
+ * Phase 4: Title slide
+ *
+ * Full-bleed gradient with left-aligned title and a meta footer of run
+ * metadata (commit, date, repo). The first and last slides of the deck use
+ * this variant.
+ * ----------------------------------------------------------------------------
+ */
+.reveal section.title-slide {
+  background: var(--gradient-primary);
+  color: var(--white);
+  text-align: left;
+  padding: 4em;
+}
+
+.reveal section.title-slide h1,
+.reveal section.title-slide h2 {
+  color: var(--white);
+}
+
+.reveal section.title-slide .title-meta {
+  margin-top: 2em;
+  font-family: var(--font-mono);
+  font-size: 0.9em;
+  color: var(--brand-teal);
+}
+
+.reveal section.title-slide .title-meta p {
+  margin: 0.5em 0;
+}
+
+/* ----------------------------------------------------------------------------
+ * Phase 5: Section divider
+ *
+ * Used between major topic groups (Inflection, Flow Metrics, DORA, Governance,
+ * Per-Engineer, Risks, Onboarding). Centered icon + oversized heading on a
+ * solid navy background.
+ * ----------------------------------------------------------------------------
+ */
+.reveal section.section-divider {
+  background: var(--brand-navy);
+  color: var(--white);
+  text-align: center;
+}
+
+.reveal section.section-divider h2 {
+  color: var(--brand-teal);
+  font-size: 4em;
+  margin-bottom: 0.5em;
+}
+
+.reveal section.section-divider i[data-lucide],
+.reveal section.section-divider svg[data-lucide] {
+  display: block;
+  margin: 0 auto;
+  width: 96px;
+  height: 96px;
+  color: var(--brand-teal);
+  stroke-width: 1.5;
+}
+
+/* ----------------------------------------------------------------------------
+ * Phase 6: Content slide
+ *
+ * The workhorse slide variant. Left-aligned with a primary-colored underline
+ * on the section heading, bulleted lists, and numbered step lists.
+ * ----------------------------------------------------------------------------
+ */
+.reveal section.content-slide {
+  text-align: left;
+  padding: 3em 4em;
+  background: var(--white);
+}
+
+.reveal section.content-slide h3 {
+  border-bottom: 4px solid var(--brand-primary);
+  padding-bottom: 0.3em;
+  margin-bottom: 1em;
+  display: inline-block;
+}
+
+.reveal section.content-slide ul,
+.reveal section.content-slide ol {
+  list-style: none;
+  padding-left: 0;
+  margin: 0;
+}
+
+.reveal section.content-slide .bullet-list li,
+.reveal section.content-slide .step-list li {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.8em;
+  margin-bottom: 0.8em;
+  font-size: 1.05em;
+}
+
+.reveal section.content-slide .step-list {
+  counter-reset: step;
+}
+
+.reveal section.content-slide .step-list li {
+  counter-increment: step;
+}
+
+.reveal section.content-slide .step-list li::before {
+  content: counter(step);
+  font-family: var(--font-display);
+  font-weight: 700;
+  color: var(--brand-primary);
+  min-width: 1.5em;
+}
+
+/* Two-column body for split content (e.g., text + diagram, KPIs + caption) */
+.reveal section.content-slide .two-column {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 2em;
+  align-items: start;
+}
+
+/* ----------------------------------------------------------------------------
+ * Phase 7: KPI grid & cards
+ *
+ * Used by the Headline KPIs slide and the per-section summary slides. Auto-fit
+ * grid keeps cards comfortably sized across viewport widths.
+ * ----------------------------------------------------------------------------
+ */
+.reveal .kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 1.5em;
+  margin-top: 1em;
+}
+
+.reveal .kpi-card {
+  background: var(--white);
+  border: 1px solid var(--neutral-200);
+  border-left: 6px solid var(--brand-primary);
+  border-radius: 8px;
+  padding: 1.5em;
+  text-align: left;
+  box-shadow: 0 2px 6px rgba(26, 16, 95, 0.05);
+}
+
+.reveal .kpi-card .kpi-label {
+  display: block;
+  font-family: var(--font-mono);
+  font-size: 0.7em;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--neutral-500);
+  margin-bottom: 0.5em;
+}
+
+.reveal .kpi-card .kpi-value {
+  font-family: var(--font-display);
+  font-size: 2.5em;
+  font-weight: 700;
+  color: var(--brand-primary);
+  line-height: 1;
+  margin-bottom: 0.3em;
+}
+
+.reveal .kpi-card .kpi-sublabel {
+  display: block;
+  font-family: var(--font-body);
+  font-size: 0.7em;
+  color: var(--neutral-500);
+  margin-bottom: 0.5em;
+}
+
+/* Variant: emphasize a single hero KPI */
+.reveal .kpi-card.kpi-hero {
+  border-left-color: var(--brand-teal);
+  background: linear-gradient(135deg, var(--white) 0%, var(--neutral-50) 100%);
+}
+
+.reveal .kpi-card.kpi-hero .kpi-value {
+  color: var(--brand-dark);
+  font-size: 3em;
+}
+
+/* ----------------------------------------------------------------------------
+ * Phase 8: Confidence / severity badges
+ *
+ * Inline pill badges attached to metric values. Three semantic tiers map to
+ * the High / Medium / Low confidence rubric from the report.
+ * ----------------------------------------------------------------------------
+ */
+.reveal .confidence-high,
+.reveal .confidence-medium,
+.reveal .confidence-low {
+  display: inline-block;
+  font-family: var(--font-mono);
+  font-size: 0.6em;
+  font-weight: 500;
+  padding: 4px 10px;
+  border-radius: 4px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  vertical-align: middle;
+}
+
+.reveal .confidence-high {
+  background: var(--confidence-high-bg);
+  color: var(--confidence-high-fg);
+}
+
+.reveal .confidence-medium {
+  background: var(--confidence-medium-bg);
+  color: var(--confidence-medium-fg);
+}
+
+.reveal .confidence-low {
+  background: var(--confidence-low-bg);
+  color: var(--confidence-low-fg);
+}
+
+/* ----------------------------------------------------------------------------
+ * Phase 9: Metric table (per-engineer & per-metric tabular slides)
+ * ----------------------------------------------------------------------------
+ */
+.reveal table.metric-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.7em;
+  font-family: var(--font-body);
+  margin-top: 1em;
+}
+
+.reveal table.metric-table thead th {
+  background: var(--brand-navy);
+  color: var(--white);
+  font-family: var(--font-display);
+  font-weight: 600;
+  padding: 0.8em 1em;
+  text-align: left;
+  letter-spacing: 0.02em;
+}
+
+.reveal table.metric-table tbody td {
+  padding: 0.7em 1em;
+  border-bottom: 1px solid var(--neutral-200);
+  vertical-align: middle;
+}
+
+.reveal table.metric-table tbody tr:nth-child(odd) {
+  background: var(--neutral-50);
+}
+
+.reveal table.metric-table tbody tr:hover {
+  background: var(--neutral-100);
+}
+
+.reveal table.metric-table td i[data-lucide],
+.reveal table.metric-table td svg[data-lucide] {
+  width: 20px;
+  height: 20px;
+  color: var(--brand-primary);
+  vertical-align: middle;
+}
+
+/* Numeric column right-alignment (use class on cell) */
+.reveal table.metric-table td.num,
+.reveal table.metric-table th.num {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ----------------------------------------------------------------------------
+ * Phase 10: Mermaid diagram container
+ *
+ * Mermaid is initialized with startOnLoad: false in the parent HTML and run
+ * after reveal.js ready / slidechanged events. This container guarantees a
+ * visible bounding box during the brief render window.
+ * ----------------------------------------------------------------------------
+ */
+.reveal .mermaid {
+  background: var(--white);
+  padding: 1.5em;
+  border-radius: 8px;
+  border: 1px solid var(--neutral-200);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 200px;
+  margin: 1em 0;
+  font-family: var(--font-body);
+}
+
+.reveal .mermaid svg {
+  max-width: 100% !important;
+  height: auto !important;
+}
+
+/* ----------------------------------------------------------------------------
+ * Phase 11: Lucide icon defaults
+ *
+ * Lucide icons start in source as <i data-lucide="name"></i>. After the deck
+ * calls lucide.createIcons() (post-`ready` and on each `slidechanged`), the
+ * <i> is REPLACED with an inline <svg data-lucide="name">. The selectors
+ * below therefore match BOTH the source <i> (briefly during initial paint)
+ * AND the rendered <svg> (the final, persistent element). Using only
+ * `i[data-lucide]` would leave the SVG unstyled at its 24px Lucide default.
+ * ----------------------------------------------------------------------------
+ */
+.reveal i[data-lucide],
+.reveal svg[data-lucide] {
+  display: inline-block;
+  width: 32px;
+  height: 32px;
+  color: var(--brand-primary);
+  vertical-align: middle;
+  stroke-width: 2;
+}
+
+.reveal section.content-slide .bullet-list i[data-lucide],
+.reveal section.content-slide .bullet-list svg[data-lucide],
+.reveal section.content-slide .step-list i[data-lucide],
+.reveal section.content-slide .step-list svg[data-lucide] {
+  width: 24px;
+  height: 24px;
+  flex-shrink: 0;
+}
+
+.reveal section.title-slide i[data-lucide],
+.reveal section.title-slide svg[data-lucide] {
+  color: var(--brand-teal);
+  width: 24px;
+  height: 24px;
+  margin-right: 0.4em;
+}
+
+/* ----------------------------------------------------------------------------
+ * Phase 12: Diagram legend
+ *
+ * Compact caption below Mermaid diagrams and tables that documents the
+ * diagram's interpretation (per Rule 4 — Visual Architecture Documentation).
+ * ----------------------------------------------------------------------------
+ */
+.reveal .diagram-legend {
+  font-family: var(--font-body);
+  font-size: 0.65em;
+  color: var(--neutral-500);
+  margin-top: 1em;
+  display: flex;
+  align-items: center;
+  gap: 0.5em;
+}
+
+.reveal .diagram-legend i[data-lucide],
+.reveal .diagram-legend svg[data-lucide] {
+  width: 18px;
+  height: 18px;
+  color: var(--neutral-500);
+}
+
+/* ----------------------------------------------------------------------------
+ * Phase 13: Inline code (file paths, commands in onboarding bullets)
+ *
+ * Used for short paths and shell commands shown inline within a slide.
+ * Fenced code blocks (```) are forbidden by Rule 5 — use this token instead.
+ * ----------------------------------------------------------------------------
+ */
+.reveal code.inline-cmd {
+  font-family: var(--font-mono);
+  font-size: 0.85em;
+  background: var(--neutral-100);
+  color: var(--brand-dark);
+  padding: 2px 8px;
+  border-radius: 4px;
+  border: 1px solid var(--neutral-200);
+  white-space: nowrap;
+}
+
+/* ----------------------------------------------------------------------------
+ * Phase 14: Closing slide
+ *
+ * The final slide. Dark gradient with a centered call-to-action box and
+ * brand-teal accents. Matches the visual rhythm of the title slide for
+ * deck-level symmetry.
+ * ----------------------------------------------------------------------------
+ */
+.reveal section.closing-slide {
+  background: var(--gradient-navy);
+  color: var(--white);
+  text-align: center;
+  padding: 4em;
+}
+
+.reveal section.closing-slide h2 {
+  color: var(--brand-teal);
+  font-size: 2.6em;
+  margin-bottom: 1em;
+}
+
+.reveal section.closing-slide .closing-tagline {
+  font-family: var(--font-mono);
+  font-size: 0.9em;
+  color: var(--neutral-300);
+  letter-spacing: 0.1em;
+  margin-bottom: 2em;
+}
+
+.reveal section.closing-slide .closing-meta {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6em;
+  padding: 0.8em 1.4em;
+  background: rgba(148, 250, 213, 0.1);
+  border: 1px solid var(--brand-teal);
+  border-radius: 8px;
+  font-size: 0.85em;
+  color: var(--white);
+}
+
+.reveal section.closing-slide .closing-meta i[data-lucide],
+.reveal section.closing-slide .closing-meta svg[data-lucide] {
+  color: var(--brand-teal);
+  width: 24px;
+  height: 24px;
+}
+
+.reveal section.closing-slide code.inline-cmd {
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--brand-teal);
+  border-color: rgba(148, 250, 213, 0.3);
+}
+
+/* ----------------------------------------------------------------------------
+ * Phase 15: Accessibility, focus rings, overflow protection
+ *
+ * High-contrast focus rings for keyboard navigation; per-section overflow
+ * containment so oversized content never bleeds across slide boundaries.
+ * ----------------------------------------------------------------------------
+ */
+.reveal a:focus,
+.reveal a:focus-visible,
+.reveal button:focus,
+.reveal button:focus-visible {
+  outline: 3px solid var(--brand-teal);
+  outline-offset: 3px;
+}
+
+/* Prevent text from overflowing the slide */
+.reveal section {
+  overflow: hidden;
+}
+
+/* Honor reduced-motion preference for hover transitions */
+@media (prefers-reduced-motion: reduce) {
+  .reveal a {
+    transition: none;
+  }
+}

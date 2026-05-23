@@ -1,0 +1,138 @@
+<!--
+  Slide 03 — Headline KPIs
+  Type: content-slide
+  Required tokens (substituted by render_deck.py from metrics.json):
+    {{REL_MULTIPLIER}}        Releases-per-window multiplier (After / Before),
+                              e.g., "3.2". Sourced from
+                              metrics.json:"metrics.releases.multiplier".
+                              Metric 9 (Releases) per AAP §0.0 metric table.
+    {{REL_CONF}}              Confidence class — one of "high" | "medium" | "low"
+                              (lowercase; substituted directly into the CSS class
+                              "confidence-{{REL_CONF}}"). Sourced from
+                              metrics.json:"metrics.releases.confidence" with
+                              .lower() applied by the renderer.
+    {{REL_CONF_LABEL}}        Confidence display label — "High" | "Medium" | "Low"
+                              (title-case; substituted into badge text).
+                              Sourced from
+                              metrics.json:"metrics.releases.confidence".
+    {{VEL_MULTIPLIER}}        Flow Velocity multiplier (After / Before).
+                              Metric 2 (Velocity) per AAP §0.0 metric table.
+                              Sourced from
+                              metrics.json:"metrics.velocity.multiplier".
+    {{VEL_CONF}}              Velocity confidence class (see {{REL_CONF}} above).
+                              Sourced from
+                              metrics.json:"metrics.velocity.confidence".lower().
+    {{VEL_CONF_LABEL}}        Velocity confidence display label.
+                              Sourced from
+                              metrics.json:"metrics.velocity.confidence".
+    {{TIME_MULTIPLIER}}       Flow Time multiplier (After / Before). Values < 1
+                              mean lead time decreased; values > 1 mean lead time
+                              increased. Metric 7 (Flow Time) per AAP §0.0.
+                              Sourced from
+                              metrics.json:"metrics.flow_time.multiplier".
+    {{TIME_CONF}}             Flow Time confidence class (see {{REL_CONF}} above).
+                              Sourced from
+                              metrics.json:"metrics.flow_time.confidence".lower().
+    {{TIME_CONF_LABEL}}       Flow Time confidence display label.
+                              Sourced from
+                              metrics.json:"metrics.flow_time.confidence".
+    {{ACTIVE_ENG}}            Active engineer count in the after period (integer).
+                              "Active" = engineers with ≥1 non-merge commit in the
+                              Ramp-Up or Steady-State phase, per AAP §0.8.5.
+                              Sourced from
+                              metrics.json:"environment.active_engineers_after".
+  Required non-text visual: a kpi-grid containing four kpi-card elements
+  (class="kpi-grid" / "kpi-card" / "kpi-label" / "kpi-value"). Per AAP §0.7.1
+  Rule 5 verification: every <section> must contain at least one of
+  <pre class="mermaid">, <i data-lucide=, <table>, or class="kpi-". The
+  kpi-grid + kpi-cards on this slide satisfy that requirement.
+
+  Authority:
+    - AAP §0.4.1 (file inventory enumerates slide_03_kpis.html.tmpl).
+    - AAP §0.4.2 (per-slide HTML templates for Title, Section Divider,
+      Content, Closing variants — this is a Content variant).
+    - AAP §0.7.1 Rule 5 (Executive Presentation — content-slide constraints:
+      max 4 bullets, ≤40 body words, ≥1 non-text visual, zero emoji, no
+      fenced code blocks; Blitzy brand palette via CSS custom properties in
+      theme.css; reveal.js 5.1.0 / Mermaid 11.4.0 / Lucide 0.460.0 CDN-pinned).
+    - AAP §0.7.2.2 Rule 2 — Factual-Neutral Tone (no "impressive",
+      "significant", "excellent", "remarkable", "unfortunately", "dramatic",
+      "surprising", "notable" in the body).
+    - AAP §0.7.2.2 Rule 3 — Confidence Transparency (every derived metric
+      carries a High / Medium / Low badge; this slide surfaces all four
+      headline KPIs with badges).
+    - AAP §0.7.2.2 Rule 4 — Internal Consistency (the same multiplier values
+      appear in the Executive Summary of acceleration-report.md, the
+      Acceleration Curve table, and the Traceability Matrix; render_deck.py
+      and render_report.py both read from the same metrics.json source-of-truth).
+    - theme.css §Phase 7 (.kpi-grid / .kpi-card / .kpi-label / .kpi-value
+      styles, with brand-primary left border and Space Grotesk display
+      typography on the value).
+    - theme.css §Phase 8 (.confidence-high / .confidence-medium /
+      .confidence-low badge styles, with Blitzy teal / amber / red backgrounds).
+
+  Rendering notes:
+    - This template is consumed by render_deck.py, which substitutes all ten
+      tokens above from metrics.json and writes the result into
+      acceleration/executive-presentation.html.
+    - The "×" character on each kpi-value line is the Unicode multiplier sign
+      U+00D7 (MULTIPLICATION SIGN), NOT the ASCII letter x (U+0078). This is
+      enforced by verify_report.py and aligns with the report's Executive
+      Summary which uses the same glyph for multipliers.
+    - The fourth KPI ("Active Engineers (After)") is a count, not a
+      multiplier, so it has no "×" suffix and a hard-coded
+      confidence-high badge — the active-engineer count is directly counted
+      from git log (per AAP §0.8.5), satisfying the High-confidence rubric.
+
+  Tone discipline (AAP §0.7.2.2 Rule 2 — Factual-Neutral):
+    - Eyebrow "Executive Summary" is a structural label, not editorial framing.
+    - Heading "Headline KPIs" describes the slide's role, not the result quality.
+    - KPI labels ("Releases / Window", "Flow Velocity", "Flow Time",
+      "Active Engineers (After)") are metric names, not value judgments.
+    - The "×" symbol denotes a multiplier; no "faster", "better", "improved",
+      or other editorial framing appears.
+    - Confidence badges display the rubric tier verbatim ("High" / "Medium" /
+      "Low"); they are descriptive, not evaluative.
+
+  Body word count outside tokens and pure-numeric values (verifier estimate):
+    Eyebrow "Executive Summary" (2) + Heading "Headline KPIs" (2)
+    + KPI labels (3+2+2+3 = 10) + Confidence badge labels (4)
+    ≈ 18 words, well under the Rule 5 cap of 40.
+
+  Verification (verify_report.py asserts):
+    - Exactly one top-level <section> with class="content-slide".
+    - Exactly four .kpi-card divs inside one .kpi-grid (the four headline KPIs).
+    - Each .kpi-card contains a .kpi-label, .kpi-value, and .confidence-* badge.
+    - Each multiplier value carries the U+00D7 "×" suffix.
+    - Zero emoji codepoints.
+    - No <pre><code> blocks, no <li> elements, no fenced code.
+    - All ten template tokens above appear unsubstituted in the template
+      source and substitute to non-empty strings in the rendered HTML.
+    - class="kpi-" substring present (satisfies the non-text visual gate).
+-->
+<section class="content-slide">
+  <span class="eyebrow">Executive Summary</span>
+  <h3>Headline KPIs</h3>
+  <div class="kpi-grid">
+    <div class="kpi-card">
+      <span class="kpi-label">Releases / Window</span>
+      <div class="kpi-value">{{REL_MULTIPLIER}}×</div>
+      <span class="confidence-{{REL_CONF}}">{{REL_CONF_LABEL}}</span>
+    </div>
+    <div class="kpi-card">
+      <span class="kpi-label">Flow Velocity</span>
+      <div class="kpi-value">{{VEL_MULTIPLIER}}×</div>
+      <span class="confidence-{{VEL_CONF}}">{{VEL_CONF_LABEL}}</span>
+    </div>
+    <div class="kpi-card">
+      <span class="kpi-label">Flow Time</span>
+      <div class="kpi-value">{{TIME_MULTIPLIER}}×</div>
+      <span class="confidence-{{TIME_CONF}}">{{TIME_CONF_LABEL}}</span>
+    </div>
+    <div class="kpi-card">
+      <span class="kpi-label">Active Engineers (After)</span>
+      <div class="kpi-value">{{ACTIVE_ENG}}</div>
+      <span class="confidence-high">High</span>
+    </div>
+  </div>
+</section>

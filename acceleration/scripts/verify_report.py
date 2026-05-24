@@ -1027,6 +1027,104 @@ def check_no_unsubstituted_tokens(markdown: str) -> RuleResult:
     return result
 
 
+def check_mermaid_block_syntax(markdown: str) -> RuleResult:
+    """Verify every ``\u0060\u0060\u0060mermaid`` fenced block uses parser-safe syntax.
+
+    This check closes the historical verifier blind spot in which the
+    verifier reported PASS even though one of the embedded Mermaid
+    diagrams would fail to render in Mermaid 11.15.0.
+
+    Anti-patterns detected:
+
+    1. **Bare ``%%`` comment lines** — a line containing exactly two
+       percent signs (after optional trailing whitespace stripping)
+       triggers a hard parse error in Mermaid 11.15.0's flowchart
+       lexer because the lexer concatenates the next directive token
+       onto the bare ``%%`` and rejects the result. The minimal
+       reproducer ``%%\\nflowchart LR\\n A --> B`` raises the verbatim
+       error ``Parse error on line 1: %%flowchart LR ^ Expecting
+       'NEWLINE', 'SPACE', 'GRAPH', got 'NODE_STRING'`` (upstream issue
+       `mermaid-js/mermaid#4137`). The ``xychart-beta`` parser tolerates
+       the same pattern in Mermaid 11.15.0, but parser tolerance is
+       undocumented and may regress; this check requires both
+       templates to remain free of bare ``%%`` lines so renderer
+       behaviour stays parser-agnostic.
+
+       The accepted comment forms — ``%% explanatory text``,
+       ``%% ---``, and any line whose ``%%`` prefix is followed by at
+       least one non-whitespace character — are preserved by the
+       check. Only the empty form is rejected.
+
+    Authority
+    ---------
+    AAP §0.7.1 Rule 4 — Visual Architecture Documentation. A rendered
+    Markdown report whose embedded Mermaid blocks fail to render in
+    the pinned Mermaid 11.15.0 violates the rule even though the
+    source text is present, because a documentation consumer cannot
+    see the diagram.
+
+    Parameters
+    ----------
+    markdown : str
+        Full Markdown document.
+
+    Returns
+    -------
+    RuleResult
+        ``rule_id="mermaid_syntax"``. Hard-fails on any bare ``%%``
+        comment line inside a fenced ``\u0060\u0060\u0060mermaid`` block.
+    """
+
+    result = RuleResult(
+        rule_id="mermaid_syntax",
+        rule_name="Mermaid Block Syntax (Rule 4)",
+        status="pass",
+    )
+
+    # Capture each fenced ```mermaid ... ``` block's body. The non-greedy
+    # match ensures we never span across separate Mermaid blocks even
+    # when several are embedded in the same Markdown file.
+    mermaid_blocks = re.findall(
+        r"```mermaid\n(.*?)\n```", markdown, flags=re.DOTALL
+    )
+    if not mermaid_blocks:
+        # No Mermaid blocks at all is unusual but not a Rule 4 violation
+        # per se — Rule 4's check is owned by ``check_deck`` and by the
+        # Visual Architecture Documentation requirement on the report,
+        # both of which surface their own findings.
+        return result
+
+    for block_index, body in enumerate(mermaid_blocks):
+        offending_lines: list[tuple[int, str]] = []
+        for line_no, line in enumerate(body.splitlines(), start=1):
+            # ``rstrip()`` accepts both ``"%%"`` and ``"%%   "`` as
+            # bare-comment forms — Mermaid strips trailing whitespace
+            # before lexing so both shapes trigger the same upstream
+            # bug. ``%% ---``, ``%% (text)`` and similar non-empty
+            # forms remain accepted.
+            if line.rstrip() == "%%":
+                offending_lines.append((line_no, line))
+        if offending_lines:
+            preview_line_nos = ", ".join(
+                str(ln) for ln, _ in offending_lines[:9]
+            )
+            if len(offending_lines) > 9:
+                preview_line_nos += f", … (+{len(offending_lines) - 9} more)"
+            result.fail(
+                f"Mermaid block #{block_index} contains "
+                f"{len(offending_lines)} bare '%%' empty-comment "
+                f"line(s) at block-relative line(s) {preview_line_nos}. "
+                f"Mermaid 11.15.0's flowchart parser rejects bare '%%' "
+                f"with 'Parse error: Expecting NEWLINE/SPACE/GRAPH, "
+                f"got NODE_STRING'. Replace each bare '%%' with "
+                f"'%% ---' (or any non-empty comment text) in the "
+                f"originating template under "
+                f"acceleration/templates/mermaid/."
+            )
+
+    return result
+
+
 def check_deck(html_path: Path) -> RuleResult:
     """Verify the executive presentation HTML against AAP §0.7.1 Rule 5.
 
@@ -1407,6 +1505,11 @@ def main(argv: list[str] | None = None) -> int:
     # Run every check. Each check is independent and surfaces its own
     # findings; ordering here matches the AAP rule numbering for
     # readability of the JSON summary and the log output.
+    #
+    # ``check_mermaid_block_syntax`` follows the token-substitution
+    # check because both checks operate on the rendered Markdown's
+    # embedded template output and surface text-level defects that
+    # would otherwise reach a documentation consumer silently.
     results: list[RuleResult] = [
         check_rule_1_data_provenance(markdown),
         check_rule_2_factual_neutral(markdown),
@@ -1415,6 +1518,7 @@ def main(argv: list[str] | None = None) -> int:
         check_rule_5_reproducibility(markdown),
         check_rule_6_environment_first(markdown),
         check_no_unsubstituted_tokens(markdown),
+        check_mermaid_block_syntax(markdown),
         check_deck(args.deck),
         check_quality_gates(metrics),
     ]

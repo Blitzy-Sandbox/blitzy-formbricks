@@ -1850,6 +1850,60 @@ def main(argv: list[str] | None = None) -> int:
         except OSError:
             reproduce_script = ""
 
+    # Pre-flight Mermaid template availability check. Missing-template is
+    # tolerated by the section renderers (they silently skip the diagram
+    # to keep the report producible even in degraded environments), but
+    # a missing templates directory or a missing template file means
+    # the rendered report will violate AAP §0.7.1 Rule 4 (Visual
+    # Architecture Documentation) by omitting a diagram. An operator
+    # who misconfigured ``--templates-dir`` (wrong CI path, broken
+    # symlink, etc.) MUST be loudly informed so the degradation is
+    # never silent. The check emits a single WARNING per missing
+    # artifact so the log stays scannable. Required templates are
+    # enumerated from the explicit ``templates_dir / filename`` paths
+    # used inside ``render_methodology`` and
+    # ``render_acceleration_curve``; this list is the authoritative
+    # contract between ``main`` and the section renderers.
+    required_template_names: tuple[str, ...] = (
+        "pipeline_architecture.mmd.tmpl",
+        "acceleration_curve.mmd.tmpl",
+    )
+    if not args.templates_dir.exists():
+        log.warning(
+            "Mermaid templates directory %s does not exist; "
+            "rendered report will omit the AAP §0.7.1 Rule 4 architecture "
+            "diagrams (Pipeline Architecture, Acceleration Curve). "
+            "Verify --templates-dir points to acceleration/templates/mermaid.",
+            args.templates_dir,
+            extra={
+                "templates_dir": str(args.templates_dir),
+                "required_templates": list(required_template_names),
+            },
+        )
+    elif not args.templates_dir.is_dir():
+        log.warning(
+            "Mermaid templates path %s exists but is not a directory; "
+            "rendered report will omit the AAP §0.7.1 Rule 4 architecture "
+            "diagrams.",
+            args.templates_dir,
+            extra={"templates_dir": str(args.templates_dir)},
+        )
+    else:
+        for tmpl_name in required_template_names:
+            tmpl_path = args.templates_dir / tmpl_name
+            if not tmpl_path.exists():
+                log.warning(
+                    "Required Mermaid template %s not found in templates "
+                    "directory %s; the corresponding diagram will be "
+                    "omitted from the rendered report.",
+                    tmpl_name,
+                    args.templates_dir,
+                    extra={
+                        "template_name": tmpl_name,
+                        "templates_dir": str(args.templates_dir),
+                    },
+                )
+
     # Build the report.
     markdown_text = compose_report(
         metrics=metrics,

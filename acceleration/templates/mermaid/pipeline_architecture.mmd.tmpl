@@ -2,7 +2,7 @@
 %% pipeline_architecture.mmd.tmpl
 %% Mermaid 11.15.0 flowchart LR template — Analysis Pipeline Architecture
 %% =============================================================================
-%%
+%% ---
 %% AUTHORITY
 %%   AAP §0.3.1.1 — Analysis Pipeline Architecture Diagram. This template is
 %%                  the canonical implementation of that diagram and MUST
@@ -23,7 +23,7 @@
 %%                  inline SVG because it is text-based, diff-friendly,
 %%                  stdlib-only, and removes any compile-time dependency
 %%                  on matplotlib or a headless browser.
-%%
+%% ---
 %% RENDERER
 %%   acceleration/scripts/render_report.py performs simple string
 %%   substitution of the double-brace placeholders enumerated in the
@@ -37,7 +37,7 @@
 %%   those fence markers; the renderer adds them. Embedding triple-backtick
 %%   characters anywhere in this file — including comments — would close
 %%   the fenced block prematurely and break the diagram.
-%%
+%% ---
 %% CONSUMERS
 %%   Two Markdown files embed this template after substitution:
 %%     1. acceleration/acceleration-report.md — Methodology / Analysis
@@ -48,7 +48,7 @@
 %%   on slide 08 of the deck (templates/deck/slide_08_architecture.html.tmpl);
 %%   the deck slide is hand-authored at a coarser granularity for the
 %%   1920x1080 viewport and is NOT rendered from this template.
-%%
+%% ---
 %% TOKENS (UPPER_SNAKE_CASE; renderer substitutes each occurrence below)
 %%   {{COMMIT_COUNT}}      — Total commit count on main at HEAD with optional
 %%                           thousands separator. Read from
@@ -76,24 +76,24 @@
 %%   leaving an unsubstituted double-brace literal in the output.
 %%   acceleration/scripts/verify_report.py fails the run if any
 %%   unsubstituted double-brace token remains in the rendered Markdown.
-%%
+%% ---
 %% LEGEND
 %%   Data flows LEFT-TO-RIGHT from read-only data sources (the DataSources
 %%   subgraph) through extraction, normalization, classification &
 %%   computation, and finally rendering and deliverables.
-%%
+%% ---
 %%   The metrics.json node (cylinder shape SoT) is the SINGLE SOURCE OF TRUTH
 %%   that satisfies Rule 4 (Internal Consistency): every renderer reads
 %%   from this file and none recompute metric values. The Compute -->
 %%   Dashboard edge is the one place where the Computation layer writes
 %%   directly to the Output layer; the dashboard is generated alongside
 %%   metrics.json and shares its data shape.
-%%
+%% ---
 %%   All inbound edges from the DataSources subgraph are READ-ONLY — no
 %%   arrow points back into a data source. The pipeline performs no writes
 %%   outside the acceleration/ directory (AAP §0.7.2.1 Boundaries &
 %%   Preservation, "Read-only operations only").
-%%
+%% ---
 %% INVENTORY (24 nodes, 25 edges)
 %%   Subgraphs:
 %%     1. DataSources  — 4 nodes: Git, GHAPI, GHActions, GHIssues
@@ -117,7 +117,7 @@
 %%     SoT         -> Rendering          (3)
 %%     Rendering   -> Output             (2)  RenderRep, RenderDeck
 %%     Computation -> Output             (1)  Compute -> Dashboard
-%%
+%% ---
 %% MERMAID 11.15.0 SYNTAX NOTES
 %%   - flowchart LR declares left-to-right direction.
 %%   - subgraph ID["Display Label"] supports quoted display labels

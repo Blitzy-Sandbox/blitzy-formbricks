@@ -2,7 +2,7 @@
 %% acceleration_curve.mmd.tmpl
 %% Mermaid 11.15.0 xychart-beta template — Acceleration Curve
 %% =============================================================================
-%%
+%% ---
 %% AUTHORITY
 %%   AAP §0.3.4   — "Acceleration Curve graphic — A Mermaid line/bar diagram
 %%                  rendered inline in acceleration-report.md showing each
@@ -42,7 +42,7 @@
 %%                  to a Baseline-vs-Post-Introduction schema with a
 %%                  different chart shape; that fallback is owned by the
 %%                  renderer, not by this template.
-%%
+%% ---
 %% RENDERER
 %%   acceleration/scripts/render_report.py performs simple string
 %%   substitution of the double-brace placeholders enumerated in the
@@ -57,7 +57,7 @@
 %%   Embedding triple-backtick characters anywhere in this file — including
 %%   comments — would close the fenced block prematurely and break the
 %%   diagram.
-%%
+%% ---
 %% CONSUMERS
 %%   Exactly one Markdown file embeds this template after substitution:
 %%     1. acceleration/acceleration-report.md — §8.1 Graphical Representation
@@ -68,7 +68,7 @@
 %%   multiplier values but in a different visual layout. Consistency between
 %%   the deck and this chart is enforced by both consumers reading from
 %%   metrics.json (Rule 4).
-%%
+%% ---
 %% TOKENS (UPPER_SNAKE_CASE; renderer substitutes each occurrence below)
 %%   {{TITLE_SUFFIX}}             — Optional suffix appended to the chart
 %%                                  title. May be the empty string. Example:
@@ -128,7 +128,7 @@
 %%   {{ESCAPED_DEFECTS_STEADY}}   — Steady-State multiplier for Escaped
 %%                                  Defects (Metric 11). Example: 0.9. Source:
 %%                                  metrics.json[metric_11][steady_state][multiplier].
-%%
+%% ---
 %% INSUFFICIENT-SIGNAL HANDLING (AAP §0.7.2.1 Boundaries & Preservation)
 %%   When a metric's underlying value is "Insufficient signal — [reason]"
 %%   in metrics.json, the renderer MUST substitute the literal string "1"
@@ -136,17 +136,17 @@
 %%   template. The line then stays flat at the reference value rather than
 %%   dropping to zero (which would be visually misleading) or leaving an
 %%   unsubstituted double-brace literal (which would break Mermaid parsing).
-%%
+%% ---
 %%   The accompanying §5 Metric Deep-Dive section of acceleration-report.md
 %%   carries the full "Insufficient signal — [reason]" caveat per AAP
 %%   §0.7.2.1; readers should consult that section to distinguish a metric
 %%   that is genuinely 1.0× from a metric that is reported as 1.0 here only
 %%   because it is unmeasurable under the runtime data sources available.
-%%
+%% ---
 %%   Fallback contract: acceleration/scripts/verify_report.py fails the
 %%   run if any unsubstituted double-brace token remains in the rendered
 %%   Markdown.
-%%
+%% ---
 %% LEGEND (line order in render output — DO NOT REORDER without updating the
 %% corresponding §8 table caption in acceleration-report.md, since the
 %% xychart-beta block does not emit per-line labels at runtime and readers
@@ -159,7 +159,7 @@
 %%   line 5  Flow Efficiency    (Metric 5)
 %%   line 6  Problem Records    (Metric 8)
 %%   line 7  Escaped Defects    (Metric 11)
-%%
+%% ---
 %% OMITTED (reported in the accompanying §8 table, not on this chart —
 %% reasons recorded so a reviewer can verify scope coverage at a glance)
 %%   Metric 3  Flow Predictability  — CoV ratio, not a multiplier
@@ -167,7 +167,7 @@
 %%   Metric 6  Flow Distribution    — work-type mix, not a single value
 %%   Metric 10 Approved Exceptions  — Low-confidence governance metric
 %%   Metric 12 Defects Out of SLA   — Insufficient signal (no SLA source)
-%%
+%% ---
 %% INVENTORY (1 title, 1 x-axis, 1 y-axis, 7 line directives)
 %%   - title             — descriptive title with optional TITLE_SUFFIX
 %%   - x-axis            — exactly ["Baseline", "Ramp-Up", "Steady State"]
@@ -176,7 +176,7 @@
 %%                         where the leading 1 normalizes the baseline to
 %%                         the reference value (multiplier convention is
 %%                         After / Before, so baseline ÷ baseline = 1).
-%%
+%% ---
 %% MERMAID 11.15.0 SYNTAX NOTES
 %%   - xychart-beta is a Mermaid 11+ feature (introduced as "beta" in
 %%     Mermaid 10.5 and stabilized in 11.x). The executive deck pins

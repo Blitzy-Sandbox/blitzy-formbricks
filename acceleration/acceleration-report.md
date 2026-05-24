@@ -1,6 +1,6 @@
 # Development Acceleration Analysis — formbricks/formbricks
 
-_Generated 2026-05-23T22:21:10Z_
+_Generated 2026-05-23T23:54:44Z_
 
 ## Executive Summary
 
@@ -31,7 +31,7 @@ The fields below are captured at pipeline start by the orchestrator (``accelerat
 |-------|-------|
 | Repository URL | n/a |
 | Repository owner/name | formbricks/formbricks |
-| HEAD SHA | 58b4ee1efc7550652027265c110a95f2ca062a37 |
+| HEAD SHA | a5aa7453127da400400c15bb4f4850bb18498334 |
 | Default branch | main |
 | First commit date | n/a |
 | Latest commit date | n/a |
@@ -41,7 +41,7 @@ The fields below are captured at pipeline start by the orchestrator (``accelerat
 | Git version | git version 2.51.0 |
 | Python version | 3.13.7 |
 | Node engine (.nvmrc) | n/a |
-| Extraction timestamp UTC | 2026-05-23T22:21:10Z |
+| Extraction timestamp UTC | 2026-05-23T23:54:44Z |
 
 ## Data Source Inventory
 
@@ -61,14 +61,14 @@ The fields below are captured at pipeline start by the orchestrator (``accelerat
 
 ## Methodology
 
-The analysis pipeline runs in batch mode against the cloned repository at HEAD `58b4ee1efc7550652027265c110a95f2ca062a37`. Per AAP §0.8.4, the inflection date `2026-01-29` divides every metric into Baseline, Ramp-Up (first 6 windows = 84 days), and Steady State (windows 7+) using Monday-aligned 2-week UTC windows. When fewer than six post-introduction windows exist, the renderer falls back to a Baseline vs Post-Introduction schema and the Acceleration Curve table column labels record that fallback in place of Ramp-Up / Steady State.
+The analysis pipeline runs in batch mode against the cloned repository at HEAD `a5aa7453127da400400c15bb4f4850bb18498334`. Per AAP §0.8.4, the inflection date `2026-01-29` divides every metric into Baseline, Ramp-Up (first 6 windows = 84 days), and Steady State (windows 7+) using Monday-aligned 2-week UTC windows. When fewer than six post-introduction windows exist, the renderer falls back to a Baseline vs Post-Introduction schema and the Acceleration Curve table column labels record that fallback in place of Ramp-Up / Steady State.
 
 ```mermaid
 %% =============================================================================
 %% pipeline_architecture.mmd.tmpl
 %% Mermaid 11.15.0 flowchart LR template — Analysis Pipeline Architecture
 %% =============================================================================
-%%
+%% ---
 %% AUTHORITY
 %%   AAP §0.3.1.1 — Analysis Pipeline Architecture Diagram. This template is
 %%                  the canonical implementation of that diagram and MUST
@@ -89,7 +89,7 @@ The analysis pipeline runs in batch mode against the cloned repository at HEAD `
 %%                  inline SVG because it is text-based, diff-friendly,
 %%                  stdlib-only, and removes any compile-time dependency
 %%                  on matplotlib or a headless browser.
-%%
+%% ---
 %% RENDERER
 %%   acceleration/scripts/render_report.py performs simple string
 %%   substitution of the double-brace placeholders enumerated in the
@@ -103,7 +103,7 @@ The analysis pipeline runs in batch mode against the cloned repository at HEAD `
 %%   those fence markers; the renderer adds them. Embedding triple-backtick
 %%   characters anywhere in this file — including comments — would close
 %%   the fenced block prematurely and break the diagram.
-%%
+%% ---
 %% CONSUMERS
 %%   Two Markdown files embed this template after substitution:
 %%     1. acceleration/acceleration-report.md — Methodology / Analysis
@@ -114,7 +114,7 @@ The analysis pipeline runs in batch mode against the cloned repository at HEAD `
 %%   on slide 08 of the deck (templates/deck/slide_08_architecture.html.tmpl);
 %%   the deck slide is hand-authored at a coarser granularity for the
 %%   1920x1080 viewport and is NOT rendered from this template.
-%%
+%% ---
 %% TOKENS (UPPER_SNAKE_CASE; renderer substitutes each occurrence below)
 %%   n/a      — Total commit count on main at HEAD with optional
 %%                           thousands separator. Read from
@@ -142,24 +142,24 @@ The analysis pipeline runs in batch mode against the cloned repository at HEAD `
 %%   leaving an unsubstituted double-brace literal in the output.
 %%   acceleration/scripts/verify_report.py fails the run if any
 %%   unsubstituted double-brace token remains in the rendered Markdown.
-%%
+%% ---
 %% LEGEND
 %%   Data flows LEFT-TO-RIGHT from read-only data sources (the DataSources
 %%   subgraph) through extraction, normalization, classification &
 %%   computation, and finally rendering and deliverables.
-%%
+%% ---
 %%   The metrics.json node (cylinder shape SoT) is the SINGLE SOURCE OF TRUTH
 %%   that satisfies Rule 4 (Internal Consistency): every renderer reads
 %%   from this file and none recompute metric values. The Compute -->
 %%   Dashboard edge is the one place where the Computation layer writes
 %%   directly to the Output layer; the dashboard is generated alongside
 %%   metrics.json and shares its data shape.
-%%
+%% ---
 %%   All inbound edges from the DataSources subgraph are READ-ONLY — no
 %%   arrow points back into a data source. The pipeline performs no writes
 %%   outside the acceleration/ directory (AAP §0.7.2.1 Boundaries &
 %%   Preservation, "Read-only operations only").
-%%
+%% ---
 %% INVENTORY (24 nodes, 25 edges)
 %%   Subgraphs:
 %%     1. DataSources  — 4 nodes: Git, GHAPI, GHActions, GHIssues
@@ -183,7 +183,7 @@ The analysis pipeline runs in batch mode against the cloned repository at HEAD `
 %%     SoT         -> Rendering          (3)
 %%     Rendering   -> Output             (2)  RenderRep, RenderDeck
 %%     Computation -> Output             (1)  Compute -> Dashboard
-%%
+%% ---
 %% MERMAID 11.15.0 SYNTAX NOTES
 %%   - flowchart LR declares left-to-right direction.
 %%   - subgraph ID["Display Label"] supports quoted display labels
@@ -816,7 +816,7 @@ Each metric's value is normalised against its Baseline (so Baseline = 1.0). Lowe
 %% acceleration_curve.mmd.tmpl
 %% Mermaid 11.15.0 xychart-beta template — Acceleration Curve
 %% =============================================================================
-%%
+%% ---
 %% AUTHORITY
 %%   AAP §0.3.4   — "Acceleration Curve graphic — A Mermaid line/bar diagram
 %%                  rendered inline in acceleration-report.md showing each
@@ -856,7 +856,7 @@ Each metric's value is normalised against its Baseline (so Baseline = 1.0). Lowe
 %%                  to a Baseline-vs-Post-Introduction schema with a
 %%                  different chart shape; that fallback is owned by the
 %%                  renderer, not by this template.
-%%
+%% ---
 %% RENDERER
 %%   acceleration/scripts/render_report.py performs simple string
 %%   substitution of the double-brace placeholders enumerated in the
@@ -871,7 +871,7 @@ Each metric's value is normalised against its Baseline (so Baseline = 1.0). Lowe
 %%   Embedding triple-backtick characters anywhere in this file — including
 %%   comments — would close the fenced block prematurely and break the
 %%   diagram.
-%%
+%% ---
 %% CONSUMERS
 %%   Exactly one Markdown file embeds this template after substitution:
 %%     1. acceleration/acceleration-report.md — §8.1 Graphical Representation
@@ -882,7 +882,7 @@ Each metric's value is normalised against its Baseline (so Baseline = 1.0). Lowe
 %%   multiplier values but in a different visual layout. Consistency between
 %%   the deck and this chart is enforced by both consumers reading from
 %%   metrics.json (Rule 4).
-%%
+%% ---
 %% TOKENS (UPPER_SNAKE_CASE; renderer substitutes each occurrence below)
 %%                — Optional suffix appended to the chart
 %%                                  title. May be the empty string. Example:
@@ -942,7 +942,7 @@ Each metric's value is normalised against its Baseline (so Baseline = 1.0). Lowe
 %%   1   — Steady-State multiplier for Escaped
 %%                                  Defects (Metric 11). Example: 0.9. Source:
 %%                                  metrics.json[metric_11][steady_state][multiplier].
-%%
+%% ---
 %% INSUFFICIENT-SIGNAL HANDLING (AAP §0.7.2.1 Boundaries & Preservation)
 %%   When a metric's underlying value is "Insufficient signal — [reason]"
 %%   in metrics.json, the renderer MUST substitute the literal string "1"
@@ -950,17 +950,17 @@ Each metric's value is normalised against its Baseline (so Baseline = 1.0). Lowe
 %%   template. The line then stays flat at the reference value rather than
 %%   dropping to zero (which would be visually misleading) or leaving an
 %%   unsubstituted double-brace literal (which would break Mermaid parsing).
-%%
+%% ---
 %%   The accompanying §5 Metric Deep-Dive section of acceleration-report.md
 %%   carries the full "Insufficient signal — [reason]" caveat per AAP
 %%   §0.7.2.1; readers should consult that section to distinguish a metric
 %%   that is genuinely 1.0× from a metric that is reported as 1.0 here only
 %%   because it is unmeasurable under the runtime data sources available.
-%%
+%% ---
 %%   Fallback contract: acceleration/scripts/verify_report.py fails the
 %%   run if any unsubstituted double-brace token remains in the rendered
 %%   Markdown.
-%%
+%% ---
 %% LEGEND (line order in render output — DO NOT REORDER without updating the
 %% corresponding §8 table caption in acceleration-report.md, since the
 %% xychart-beta block does not emit per-line labels at runtime and readers
@@ -973,7 +973,7 @@ Each metric's value is normalised against its Baseline (so Baseline = 1.0). Lowe
 %%   line 5  Flow Efficiency    (Metric 5)
 %%   line 6  Problem Records    (Metric 8)
 %%   line 7  Escaped Defects    (Metric 11)
-%%
+%% ---
 %% OMITTED (reported in the accompanying §8 table, not on this chart —
 %% reasons recorded so a reviewer can verify scope coverage at a glance)
 %%   Metric 3  Flow Predictability  — CoV ratio, not a multiplier
@@ -981,7 +981,7 @@ Each metric's value is normalised against its Baseline (so Baseline = 1.0). Lowe
 %%   Metric 6  Flow Distribution    — work-type mix, not a single value
 %%   Metric 10 Approved Exceptions  — Low-confidence governance metric
 %%   Metric 12 Defects Out of SLA   — Insufficient signal (no SLA source)
-%%
+%% ---
 %% INVENTORY (1 title, 1 x-axis, 1 y-axis, 7 line directives)
 %%   - title             — descriptive title with optional TITLE_SUFFIX
 %%   - x-axis            — exactly ["Baseline", "Ramp-Up", "Steady State"]
@@ -990,7 +990,7 @@ Each metric's value is normalised against its Baseline (so Baseline = 1.0). Lowe
 %%                         where the leading 1 normalizes the baseline to
 %%                         the reference value (multiplier convention is
 %%                         After / Before, so baseline ÷ baseline = 1).
-%%
+%% ---
 %% MERMAID 11.15.0 SYNTAX NOTES
 %%   - xychart-beta is a Mermaid 11+ feature (introduced as "beta" in
 %%     Mermaid 10.5 and stabilized in 11.x). The executive deck pins
@@ -1077,7 +1077,7 @@ git --version
 python3 --version
 
 # 2. Pin to the analysed revision.
-git fetch origin && git checkout 58b4ee1efc7550652027265c110a95f2ca062a37
+git fetch origin && git checkout a5aa7453127da400400c15bb4f4850bb18498334
 
 # 3. (Optional) export GITHUB_TOKEN for full API access.
 # export GITHUB_TOKEN=ghp_...

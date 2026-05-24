@@ -1,0 +1,1439 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Development Acceleration Analysis &mdash; Formbricks</title>
+<meta name="viewport" content="width=1920, initial-scale=1.0">
+<meta name="generator" content="acceleration/scripts/render_deck.py">
+<meta name="theme-color" content="#5B39F3">
+<!-- Inline favicon — QA finding D-3 (parity with dashboard.html). Suppresses
+     the auto-issued /favicon.ico 404 when the deck is HTTP-served. -->
+<link rel="icon" href="data:,">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&family=Fira+Code:wght@400;500&display=swap">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/dist/reveal.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/dist/theme/white.css" id="theme">
+<style>
+/* ============================================================================
+ * Blitzy Brand Theme — Executive Presentation (reveal.js 5.1.0)
+ * ----------------------------------------------------------------------------
+ * File:    acceleration/templates/deck/theme.css
+ * Authority: AAP §0.7.1 Rule 5 — Executive Presentation
+ *
+ * This stylesheet is INLINED verbatim into the <style> block of
+ * acceleration/executive-presentation.html by acceleration/scripts/render_deck.py.
+ * The rendered deck is fully self-contained except for the three CDN-pinned
+ * libraries (reveal.js 5.1.0, Mermaid 11.15.0, Lucide 0.460.0).
+ *
+ * Font loading: this stylesheet contains NO `@import` directives so that the
+ * inlined theme remains self-contained per the QA checkpoint requirement. The
+ * parent HTML is responsible for loading the three required Google Fonts via
+ * `<link rel="stylesheet">` tags in its `<head>` block; see decision-log.md
+ * entry D-015. Required font families and weights are:
+ *   - Inter 400/500/600/700      (body, table headers, emphasis)
+ *   - Space Grotesk 500/600/700  (display headings, section titles)
+ *   - Fira Code 400/500          (monospace eyebrow, inline code)
+ *
+ * Visual contract:
+ *   - Blitzy brand palette: primary #5B39F3, dark #2D1C77, teal #94FAD5, navy #1A105F
+ *   - Typography stack: Inter (body), Space Grotesk (display), Fira Code (mono)
+ *   - Four slide types: title-slide, section-divider, content-slide, closing-slide
+ *   - Zero emoji — all icons rendered via Lucide <i data-lucide="..."> elements
+ *   - All sizing in viewport-relative em units for resolution-independent layout
+ *
+ * Compatibility: Chrome 120+, Firefox 122+, Safari 17+ (modern CSS only)
+ * ============================================================================
+ */
+
+/* ----------------------------------------------------------------------------
+ * Phase 1: Brand identity — CSS custom properties
+ *
+ * These four brand colors are the LITMUS TEST for theme compliance per
+ * AAP §0.7.1 Rule 5 and are verified verbatim by verify_report.py. Do not
+ * alter the hex values; downstream tooling greps for these exact strings.
+ * ----------------------------------------------------------------------------
+ */
+:root {
+  /* Blitzy brand palette — AAP Rule 5 verbatim */
+  --brand-primary: #5B39F3;
+  --brand-dark:    #2D1C77;
+  --brand-teal:    #94FAD5;
+  --brand-navy:    #1A105F;
+
+  /* Neutral palette (Tailwind-aligned greys, white). The full
+   * 50/100/200/300/500/700/900 scale is declared so every neutral
+   * referenced elsewhere in this stylesheet resolves to a concrete
+   * value — see QA finding F-8a (a stray var(--neutral-700) reference
+   * that previously resolved to the CSS initial value). */
+  --neutral-50:    #FAFAFA;
+  --neutral-100:   #F4F4F5;
+  --neutral-200:   #E4E4E7;
+  --neutral-300:   #D4D4D8;
+  --neutral-500:   #71717A;
+  --neutral-700:   #3F3F46;
+  --neutral-900:   #18181B;
+  --white:         #FFFFFF;
+
+  /* Semantic colors for confidence/severity badges. Four tiers map to
+   * the High / Medium / Low / Insufficient confidence rubric. The
+   * dedicated Insufficient pair (QA finding F-8b) uses a neutral grey
+   * pair so users can visually distinguish "Low confidence with a
+   * computed value" from "Insufficient signal — no data measured". */
+  --confidence-high-bg:         var(--brand-teal);
+  --confidence-high-fg:         var(--brand-navy);
+  --confidence-medium-bg:       #FCD34D;
+  --confidence-medium-fg:       var(--brand-navy);
+  --confidence-low-bg:          #FCA5A5;
+  --confidence-low-fg:          var(--neutral-900);
+  --confidence-insufficient-bg: var(--neutral-200);
+  --confidence-insufficient-fg: var(--neutral-700);
+
+  /* Gradient utilities. Three gradients cover the deck variants:
+   *   --gradient-primary : Title slide (purple)
+   *   --gradient-navy    : Closing slide (navy)
+   *   --gradient-teal    : Accent surfaces (hero KPI, teal callouts)
+   * The third gradient (QA finding F-8c) was added so every
+   * brand-aligned background surface resolves to a declared token. */
+  --gradient-primary: linear-gradient(135deg, var(--brand-primary), var(--brand-dark));
+  --gradient-navy:    linear-gradient(135deg, var(--brand-navy), var(--brand-dark));
+  --gradient-teal:    linear-gradient(135deg, var(--brand-teal), var(--brand-primary));
+
+  /* Typography stacks */
+  --font-body:      'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-display:   'Space Grotesk', 'Inter', sans-serif;
+  --font-mono:      'Fira Code', 'SF Mono', 'Cascadia Mono', Consolas, monospace;
+}
+
+/* ----------------------------------------------------------------------------
+ * Phase 2: Base reveal.js overrides (typography & color)
+ * ----------------------------------------------------------------------------
+ */
+.reveal {
+  font-family: var(--font-body);
+  font-size: 28px;
+  color: var(--neutral-900);
+  background: var(--white);
+}
+
+/* QA finding F-2 (Slide 03 KPI overflow) and F-5 (table overflow) root-cause
+ * remediation: reveal.js's default ``.reveal .slides section`` uses
+ * ``box-sizing: content-box`` so the configured 1920px width is the CONTENT
+ * width and any padding (e.g., ``padding: 3em 4em`` => 84px / 112px at the
+ * configured 28px base font-size) inflates the actual section element to
+ * 2144px. Reveal then scales the slides down by 0.96 to compensate, which
+ * (a) makes content render smaller than designed, and (b) still allows the
+ * outermost content (e.g., the 4th KPI card or the rightmost table column)
+ * to extend past the 1920px viewport edge. Forcing border-box keeps padding
+ * inside the configured viewport, eliminating the horizontal overflow without
+ * altering any other layout dimensions. */
+.reveal .slides section,
+.reveal section {
+  box-sizing: border-box;
+}
+
+.reveal h1,
+.reveal h2,
+.reveal h3,
+.reveal h4 {
+  font-family: var(--font-display);
+  font-weight: 700;
+  color: var(--brand-navy);
+  text-transform: none;
+  letter-spacing: -0.01em;
+  line-height: 1.15;
+  margin: 0 0 0.5em;
+}
+
+.reveal h1 { font-size: 3.2em; }
+.reveal h2 { font-size: 2.4em; }
+.reveal h3 { font-size: 1.6em; }
+
+.reveal p,
+.reveal li {
+  font-family: var(--font-body);
+  font-weight: 400;
+  line-height: 1.5;
+}
+
+/* Strong emphasis without all-caps shouting */
+.reveal strong {
+  font-weight: 600;
+  color: var(--brand-dark);
+}
+
+/* Hyperlinks adopt brand primary */
+.reveal a {
+  color: var(--brand-primary);
+  text-decoration: none;
+  border-bottom: 1px solid transparent;
+  transition: border-color 150ms ease-out;
+}
+
+.reveal a:hover {
+  border-bottom-color: var(--brand-primary);
+}
+
+/* ----------------------------------------------------------------------------
+ * Phase 3: Eyebrow label — Fira Code micro-label above headings (section number / category).
+ * ----------------------------------------------------------------------------
+ */
+.reveal .eyebrow {
+  display: inline-block;
+  font-family: var(--font-mono);
+  font-size: 0.7em;
+  font-weight: 500;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--brand-primary);
+  margin-bottom: 0.5em;
+}
+
+.reveal section.title-slide .eyebrow,
+.reveal section.section-divider .eyebrow,
+.reveal section.closing-slide .eyebrow {
+  color: var(--brand-teal);
+}
+
+/* ----------------------------------------------------------------------------
+ * Phase 4: Title slide — full-bleed gradient, left-aligned title, meta footer.
+ * ----------------------------------------------------------------------------
+ */
+.reveal section.title-slide {
+  background: var(--gradient-primary);
+  color: var(--white);
+  text-align: left;
+  padding: 4em;
+}
+
+.reveal section.title-slide h1,
+.reveal section.title-slide h2 {
+  color: var(--white);
+}
+
+.reveal section.title-slide .title-meta {
+  margin-top: 2em;
+  font-family: var(--font-mono);
+  font-size: 0.9em;
+  color: var(--brand-teal);
+}
+
+.reveal section.title-slide .title-meta p {
+  margin: 0.5em 0;
+}
+
+/* ----------------------------------------------------------------------------
+ * Phase 5: Section divider — solid navy background, centered icon + oversized heading.
+ * ----------------------------------------------------------------------------
+ */
+.reveal section.section-divider {
+  background: var(--brand-navy);
+  color: var(--white);
+  text-align: center;
+}
+
+.reveal section.section-divider h2 {
+  color: var(--brand-teal);
+  font-size: 4em;
+  margin-bottom: 0.5em;
+}
+
+.reveal section.section-divider i[data-lucide],
+.reveal section.section-divider svg[data-lucide] {
+  display: block;
+  margin: 0 auto;
+  width: 96px;
+  height: 96px;
+  color: var(--brand-teal);
+  stroke-width: 1.5;
+}
+
+/* ----------------------------------------------------------------------------
+ * Phase 6: Content slide
+ *
+ * The workhorse slide variant. Left-aligned with a primary-colored underline
+ * on the section heading, bulleted lists, and numbered step lists.
+ * ----------------------------------------------------------------------------
+ */
+.reveal section.content-slide {
+  text-align: left;
+  padding: 3em 4em;
+  background: var(--white);
+}
+
+.reveal section.content-slide h3 {
+  border-bottom: 4px solid var(--brand-primary);
+  padding-bottom: 0.3em;
+  margin-bottom: 1em;
+  display: inline-block;
+}
+
+.reveal section.content-slide ul,
+.reveal section.content-slide ol {
+  list-style: none;
+  padding-left: 0;
+  margin: 0;
+}
+
+.reveal section.content-slide .bullet-list li,
+.reveal section.content-slide .step-list li {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.8em;
+  margin-bottom: 0.8em;
+  font-size: 1.05em;
+}
+
+.reveal section.content-slide .step-list {
+  counter-reset: step;
+}
+
+.reveal section.content-slide .step-list li {
+  counter-increment: step;
+}
+
+.reveal section.content-slide .step-list li::before {
+  content: counter(step);
+  font-family: var(--font-display);
+  font-weight: 700;
+  color: var(--brand-primary);
+  min-width: 1.5em;
+}
+
+/* Two-column body for split content (e.g., text + diagram, KPIs + caption) */
+.reveal section.content-slide .two-column {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 2em;
+  align-items: start;
+}
+
+/* QA finding UX-2 — vertical-centering modifier for two-column layouts
+ * whose left and right columns differ in height (e.g., a single eyebrow
+ * + h3 paired with a 4-bullet list). When the left column is shorter
+ * than the right column, ``align-items: center`` puts the vertical
+ * centres of both columns on the same line; the resulting layout
+ * reads as visually balanced rather than top-heavy. Used by slide 06
+ * (``Why Measure Acceleration``); other slides that use two-column
+ * without ``align-center`` retain the default ``align-items: start``
+ * which is preferable for taller diagrams. */
+.reveal section.content-slide .two-column.align-center {
+  align-items: center;
+}
+
+/* ----------------------------------------------------------------------------
+ * Phase 7: KPI grid & cards
+ *
+ * Used by the Headline KPIs slide and the per-section summary slides. Auto-fit
+ * grid keeps cards comfortably sized across viewport widths.
+ * ----------------------------------------------------------------------------
+ */
+.reveal .kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 1.5em;
+  margin-top: 1em;
+}
+
+.reveal .kpi-card {
+  background: var(--white);
+  border: 1px solid var(--neutral-200);
+  border-left: 6px solid var(--brand-primary);
+  border-radius: 8px;
+  padding: 1.5em;
+  text-align: left;
+  box-shadow: 0 2px 6px rgba(26, 16, 95, 0.05);
+  /* QA finding UX-4: add an interactive-state affordance so the
+   * card-shaped surface communicates that it is responsive to the
+   * pointer. The card is not strictly clickable, but the subtle
+   * elevation on hover matches contemporary UX expectations for
+   * card-like surfaces in executive presentations. The transition
+   * is short enough (180ms) to feel responsive without distracting
+   * from slide content. */
+  transition:
+    transform 180ms ease,
+    box-shadow 180ms ease,
+    border-left-color 180ms ease;
+}
+
+.reveal .kpi-card:hover,
+.reveal .kpi-card:focus-within {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(91, 57, 243, 0.18);
+  border-left-color: var(--brand-dark);
+}
+
+.reveal .kpi-card .kpi-label {
+  display: block;
+  font-family: var(--font-mono);
+  font-size: 0.7em;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--neutral-500);
+  margin-bottom: 0.5em;
+}
+
+.reveal .kpi-card .kpi-value {
+  font-family: var(--font-display);
+  font-size: 2.5em;
+  font-weight: 700;
+  color: var(--brand-primary);
+  line-height: 1;
+  margin-bottom: 0.3em;
+  /* QA finding F-2: the kpi-value slot is dimensioned for short
+   * numeric multipliers ("3.2×") or the short placeholder
+   * "Insufficient". Hard-limit text overflow inside this slot so a
+   * surprisingly-long string from upstream data cannot push the card
+   * past its grid track and clip neighbouring cards off-viewport. The
+   * full Insufficient-signal reason is moved into the .kpi-caveat
+   * element below the badge. */
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  word-break: break-word;
+}
+
+/* Short-form variant used by render_deck.py when the metric's
+ * underlying value is a non-numeric Insufficient-signal phrase. The
+ * font-size is reduced relative to the numeric form so the
+ * placeholder still fits comfortably in the card without dominating
+ * the layout. The full caveat appears in the .kpi-caveat element. */
+.reveal .kpi-card .kpi-value.kpi-value-insufficient {
+  font-size: 1.4em;
+  color: var(--neutral-700);
+  font-weight: 600;
+}
+
+.reveal .kpi-card .kpi-sublabel {
+  display: block;
+  font-family: var(--font-body);
+  font-size: 0.7em;
+  color: var(--neutral-500);
+  margin-bottom: 0.5em;
+}
+
+/* Caveat surface for Low and Insufficient-signal metrics — Rule 3 mandates
+ * that every Low or Insufficient-signal metric carries an explicit caveat
+ * (AAP §0.7.2.2 Rule 3). The renderer substitutes the empty string when no
+ * caveat is required (for High-confidence metrics), so the element renders
+ * blank in that case without an empty visual gap. */
+.reveal .kpi-card .kpi-caveat {
+  display: block;
+  font-family: var(--font-body);
+  font-size: 0.65em;
+  font-style: italic;
+  color: var(--neutral-700);
+  margin-top: 0.5em;
+  line-height: 1.3;
+}
+
+.reveal .kpi-card .kpi-caveat:empty {
+  display: none;
+}
+
+/* Variant: emphasize a single hero KPI */
+.reveal .kpi-card.kpi-hero {
+  border-left-color: var(--brand-teal);
+  background: linear-gradient(135deg, var(--white) 0%, var(--neutral-50) 100%);
+}
+
+.reveal .kpi-card.kpi-hero .kpi-value {
+  color: var(--brand-dark);
+  font-size: 3em;
+}
+
+/* ----------------------------------------------------------------------------
+ * Phase 8: Confidence / severity badges
+ *
+ * Inline pill badges attached to metric values. Three semantic tiers map to
+ * the High / Medium / Low confidence rubric from the report.
+ * ----------------------------------------------------------------------------
+ */
+.reveal .confidence-high,
+.reveal .confidence-medium,
+.reveal .confidence-low,
+.reveal .confidence-insufficient {
+  display: inline-block;
+  font-family: var(--font-mono);
+  font-size: 0.6em;
+  font-weight: 500;
+  padding: 4px 10px;
+  border-radius: 4px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  vertical-align: middle;
+}
+
+.reveal .confidence-high {
+  background: var(--confidence-high-bg);
+  color: var(--confidence-high-fg);
+}
+
+.reveal .confidence-medium {
+  background: var(--confidence-medium-bg);
+  color: var(--confidence-medium-fg);
+}
+
+.reveal .confidence-low {
+  background: var(--confidence-low-bg);
+  color: var(--confidence-low-fg);
+}
+
+/* "Insufficient signal" badge — neutral grey to distinguish from Low
+ * confidence (rose-pink). Per QA finding F-8b, an Insufficient-signal
+ * metric (no data extracted) should be visually distinguishable from a
+ * Low-confidence metric (data extracted via indirect proxy). */
+.reveal .confidence-insufficient {
+  background: var(--confidence-insufficient-bg);
+  color: var(--confidence-insufficient-fg);
+  border: 1px solid var(--neutral-300);
+}
+
+/* ----------------------------------------------------------------------------
+ * Phase 9: Metric table (per-engineer & per-metric tabular slides)
+ * ----------------------------------------------------------------------------
+ */
+.reveal table.metric-table {
+  /* QA finding F-5: tables previously rendered with table-layout:auto
+   * widened past the 1920px viewport on slides 09, 11, and 14 because
+   * the Caveat column carried long boundary-condition text. Switching
+   * to ``table-layout: fixed`` constrains each column to its declared
+   * width and lets ``word-break: break-word`` wrap long strings within
+   * the cell. ``max-width: 100%`` plus ``box-sizing: border-box``
+   * guarantees the rendered table never exceeds its slide's content
+   * area regardless of caveat length. */
+  width: 100%;
+  max-width: 100%;
+  table-layout: fixed;
+  box-sizing: border-box;
+  border-collapse: collapse;
+  font-size: 0.7em;
+  font-family: var(--font-body);
+  margin-top: 1em;
+  word-break: break-word;
+  overflow-wrap: break-word;
+}
+
+.reveal table.metric-table thead th {
+  background: var(--brand-navy);
+  color: var(--white);
+  font-family: var(--font-display);
+  font-weight: 600;
+  padding: 0.8em 1em;
+  text-align: left;
+  letter-spacing: 0.02em;
+  word-break: break-word;
+}
+
+.reveal table.metric-table tbody td {
+  padding: 0.7em 1em;
+  border-bottom: 1px solid var(--neutral-200);
+  vertical-align: middle;
+  word-break: break-word;
+  overflow-wrap: break-word;
+  hyphens: auto;
+}
+
+.reveal table.metric-table tbody tr:nth-child(odd) {
+  background: var(--neutral-50);
+}
+
+.reveal table.metric-table tbody tr:hover {
+  background: var(--neutral-100);
+}
+
+.reveal table.metric-table td i[data-lucide],
+.reveal table.metric-table td svg[data-lucide] {
+  width: 20px;
+  height: 20px;
+  color: var(--brand-primary);
+  vertical-align: middle;
+}
+
+/* Numeric column right-alignment (use class on cell) */
+.reveal table.metric-table td.num,
+.reveal table.metric-table th.num {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Column-width hints for the per-metric tables on slides 09/11/14.
+ * The narrow first three columns (index, metric, multiplier or severity)
+ * leave the remaining width for the Confidence + Caveat columns. The
+ * percent widths are interpreted by ``table-layout: fixed`` above. */
+.reveal table.metric-table col.col-index    { width:  4%; }
+.reveal table.metric-table col.col-metric   { width: 18%; }
+.reveal table.metric-table col.col-value    { width: 12%; }
+.reveal table.metric-table col.col-conf     { width: 12%; }
+.reveal table.metric-table col.col-caveat   { width: 54%; }
+.reveal table.metric-table col.col-risk     { width: 78%; }
+.reveal table.metric-table col.col-severity { width: 14%; }
+.reveal table.metric-table col.col-icon     { width:  6%; }
+
+/* QA finding UX-5: per-engineer "name reference" table beneath the
+ * Mermaid xychart-beta on slide 12. The Mermaid x-axis renders the
+ * short labels (first name / first name + initial) computed by
+ * compute_metrics._compose_short_labels, and this table maps each
+ * short label to the engineer's full display name so the executive
+ * reader can resolve any ambiguity. The table is intentionally
+ * compact and constrained to keep slide 12 within the 1920×1080
+ * viewport even when 8 engineers are listed. The eng-slide modifier
+ * on the parent <section> tightens the gantt-style mermaid container
+ * cap so the chart + table fit together. */
+.reveal section.content-slide.eng-slide .mermaid {
+  max-height: 38vh;
+  margin: 0.4em 0;
+  padding: 0.8em;
+}
+.reveal section.content-slide.eng-slide .mermaid svg {
+  max-height: 36vh !important;
+}
+.reveal table.eng-name-table {
+  width: 100%;
+  max-width: 100%;
+  table-layout: fixed;
+  box-sizing: border-box;
+  border-collapse: collapse;
+  font-size: 0.55em;
+  font-family: var(--font-body);
+  margin-top: 0.6em;
+  word-break: break-word;
+  overflow-wrap: break-word;
+}
+.reveal table.eng-name-table thead th {
+  background: var(--brand-navy);
+  color: var(--white);
+  font-family: var(--font-display);
+  font-weight: 600;
+  padding: 0.4em 0.8em;
+  text-align: left;
+  letter-spacing: 0.02em;
+}
+.reveal table.eng-name-table tbody td {
+  padding: 0.35em 0.8em;
+  border-bottom: 1px solid var(--neutral-200);
+  vertical-align: middle;
+}
+.reveal table.eng-name-table tbody tr:nth-child(odd) {
+  background: var(--neutral-50);
+}
+.reveal table.eng-name-table th:nth-child(1),
+.reveal table.eng-name-table td:nth-child(1) { width: 22%; }
+.reveal table.eng-name-table th:nth-child(2),
+.reveal table.eng-name-table td:nth-child(2) { width: 58%; }
+.reveal table.eng-name-table th:nth-child(3),
+.reveal table.eng-name-table td:nth-child(3) {
+  width: 20%;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ----------------------------------------------------------------------------
+ * Phase 10: Mermaid diagram container
+ *
+ * Mermaid is initialized with startOnLoad: false in the parent HTML and run
+ * after reveal.js ready / slidechanged events. This container guarantees a
+ * visible bounding box during the brief render window.
+ * ----------------------------------------------------------------------------
+ */
+.reveal .mermaid {
+  background: var(--white);
+  padding: 1.5em;
+  border-radius: 8px;
+  border: 1px solid var(--neutral-200);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 200px;
+  max-height: 60vh;
+  margin: 1em 0;
+  font-family: var(--font-body);
+  overflow: hidden;
+}
+
+/* QA finding F-3b: Mermaid by default renders SVGs at ``width: 100%`` with
+ * height computed from the viewBox aspect ratio, so a gantt with viewBox
+ * ``0 0 300 190`` rendered into a 1465px-wide container balloons to 928px
+ * tall — overflowing the ``max-height: 60vh`` constraint of the wrapper.
+ * ``max-height`` on the SVG must be expressed in absolute units (vh)
+ * because percentage max-height requires the parent to have a fixed
+ * (not a max-) height to compute against. */
+.reveal .mermaid svg {
+  max-width: 100% !important;
+  max-height: 56vh !important;
+  width: auto !important;
+  height: auto !important;
+}
+
+/* QA finding F-3b: the Gantt chart title was previously rendered far
+ * larger than the available chart area, clipping at left and forcing
+ * the diagram bars into the lower-right corner. SVG font-size is
+ * expressed in user-coordinate units (i.e., viewBox space), and Mermaid's
+ * gantt viewBox spans only 300 units of width. The ``text.titleText``
+ * font-size therefore must be expressed at a value proportional to the
+ * 300-unit canvas — 10px in SVG units yields a readable header without
+ * clipping the title text. Bars and section labels share the same
+ * coordinate space and are tuned in tandem. */
+.reveal .mermaid svg .titleText,
+.reveal .mermaid svg text.titleText {
+  font-size: 10px !important;
+  font-family: var(--font-display) !important;
+  font-weight: 600 !important;
+  fill: var(--brand-navy) !important;
+}
+
+/* Gantt body text: section labels (Baseline / Ramp-Up / Steady State),
+ * task labels (Pre-AI Tool / First 84 days / 90+ days), and tick labels
+ * (2022-07 ...). Constrain to a readable proportion of the 300-unit
+ * canvas. */
+.reveal .mermaid svg .sectionTitle,
+.reveal .mermaid svg .taskText,
+.reveal .mermaid svg .taskTextOutsideRight,
+.reveal .mermaid svg .taskTextOutsideLeft,
+.reveal .mermaid svg .taskTextOutsideRight1,
+.reveal .mermaid svg .grid .tick text {
+  font-size: 8px !important;
+  font-family: var(--font-body) !important;
+  fill: var(--brand-navy) !important;
+}
+
+/* QA finding F-6: ensure xychart-beta titles and axis labels render in
+ * brand colors at readable sizes. The Mermaid xychart-beta renderer's
+ * default white-on-white text rendering is mitigated here as a
+ * secondary defense to the themeVariables injected in the parent
+ * HTML's mermaid.initialize() block — if the library's internal
+ * palette ever drifts, these CSS overrides still guarantee readable
+ * text on the slide. */
+.reveal .mermaid svg .xychart-title,
+.reveal .mermaid svg .xychart-axis-label,
+.reveal .mermaid svg .xychart-axis-tick-label,
+.reveal .mermaid svg .xychart-x-axis text,
+.reveal .mermaid svg .xychart-y-axis text {
+  fill: var(--brand-navy) !important;
+  font-family: var(--font-body) !important;
+  font-weight: 500 !important;
+}
+
+.reveal .mermaid svg .xychart-plot rect,
+.reveal .mermaid svg .xychart-plot path {
+  fill: var(--brand-primary) !important;
+}
+
+/* QA finding UX-3 (chk11): Mermaid flowchart node-label clipping. The
+ * Mermaid 11.15.0 flowchart renderer measures text width with the default
+ * font (sans-serif fallback) BEFORE Inter has loaded; the foreignObject
+ * width set at measurement time is then 1–3px narrower than the
+ * actually-rendered Inter text needs. Result: the last 1–2 characters of
+ * every node label are clipped by the right edge of the foreignObject's
+ * bounding box. Fix: switch the slide_08 flowchart to ``htmlLabels:false``
+ * (so labels are SVG <text> elements measured against the actual font),
+ * and harden the CSS so that any future htmlLabel-based diagram still
+ * displays full labels by allowing the foreignObject and its inner div to
+ * overflow visibly. The diagram remains horizontally bounded by the
+ * parent ``max-width:100%`` rule on .reveal .mermaid svg above. */
+.reveal .mermaid svg foreignObject {
+  overflow: visible !important;
+}
+.reveal .mermaid svg foreignObject > div,
+.reveal .mermaid svg .nodeLabel,
+.reveal .mermaid svg .label,
+.reveal .mermaid svg foreignObject span.nodeLabel {
+  overflow: visible !important;
+  white-space: nowrap !important;
+}
+
+/* Flowchart node SVG text — when htmlLabels:false is selected (slide 08),
+ * the node labels are <text> elements with class .nodeLabel rendered
+ * inside the node group. Apply consistent Blitzy typography so labels
+ * match the rest of the deck. */
+.reveal .mermaid svg .flowchart-label text,
+.reveal .mermaid svg g.node text,
+.reveal .mermaid svg g.node .nodeLabel {
+  font-family: var(--font-body) !important;
+  font-weight: 500 !important;
+  fill: #FFFFFF !important;
+}
+
+/* Edge labels (if any) on flowcharts: keep them brand-navy on a
+ * neutral background for readability. */
+.reveal .mermaid svg .edgeLabel,
+.reveal .mermaid svg .edgeLabel rect {
+  fill: var(--brand-navy) !important;
+}
+
+/* ----------------------------------------------------------------------------
+ * Phase 11: Lucide icon defaults — selectors match BOTH <i data-lucide="..."> (source)
+ * AND <svg data-lucide="..."> (after lucide.createIcons() replaces the <i>).
+ * ----------------------------------------------------------------------------
+ */
+.reveal i[data-lucide],
+.reveal svg[data-lucide] {
+  display: inline-block;
+  width: 32px;
+  height: 32px;
+  color: var(--brand-primary);
+  vertical-align: middle;
+  stroke-width: 2;
+}
+
+.reveal section.content-slide .bullet-list i[data-lucide],
+.reveal section.content-slide .bullet-list svg[data-lucide],
+.reveal section.content-slide .step-list i[data-lucide],
+.reveal section.content-slide .step-list svg[data-lucide] {
+  width: 24px;
+  height: 24px;
+  flex-shrink: 0;
+}
+
+.reveal section.title-slide i[data-lucide],
+.reveal section.title-slide svg[data-lucide] {
+  color: var(--brand-teal);
+  width: 24px;
+  height: 24px;
+  margin-right: 0.4em;
+}
+
+/* ----------------------------------------------------------------------------
+ * Phase 12: Diagram legend
+ *
+ * Compact caption below Mermaid diagrams and tables that documents the
+ * diagram's interpretation (per Rule 4 — Visual Architecture Documentation).
+ * ----------------------------------------------------------------------------
+ */
+.reveal .diagram-legend {
+  font-family: var(--font-body);
+  font-size: 0.65em;
+  color: var(--neutral-500);
+  margin-top: 1em;
+  display: flex;
+  align-items: center;
+  gap: 0.5em;
+}
+
+.reveal .diagram-legend i[data-lucide],
+.reveal .diagram-legend svg[data-lucide] {
+  width: 18px;
+  height: 18px;
+  color: var(--neutral-500);
+}
+
+/* ----------------------------------------------------------------------------
+ * Phase 13: Inline code (file paths, commands in onboarding bullets)
+ *
+ * Used for short paths and shell commands shown inline within a slide.
+ * Fenced code blocks (```) are forbidden by Rule 5 — use this token instead.
+ * ----------------------------------------------------------------------------
+ */
+.reveal code.inline-cmd {
+  font-family: var(--font-mono);
+  font-size: 0.85em;
+  background: var(--neutral-100);
+  color: var(--brand-dark);
+  padding: 2px 8px;
+  border-radius: 4px;
+  border: 1px solid var(--neutral-200);
+  white-space: nowrap;
+}
+
+/* ----------------------------------------------------------------------------
+ * Phase 14: Closing slide
+ *
+ * The final slide. Dark gradient with a centered call-to-action box and
+ * brand-teal accents. Matches the visual rhythm of the title slide for
+ * deck-level symmetry.
+ * ----------------------------------------------------------------------------
+ */
+.reveal section.closing-slide {
+  background: var(--gradient-navy);
+  color: var(--white);
+  text-align: center;
+  padding: 4em;
+}
+
+.reveal section.closing-slide h2 {
+  color: var(--brand-teal);
+  font-size: 2.6em;
+  margin-bottom: 1em;
+}
+
+.reveal section.closing-slide .closing-tagline {
+  font-family: var(--font-mono);
+  font-size: 0.9em;
+  color: var(--neutral-300);
+  letter-spacing: 0.1em;
+  margin-bottom: 2em;
+}
+
+.reveal section.closing-slide .closing-meta {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6em;
+  padding: 0.8em 1.4em;
+  background: rgba(148, 250, 213, 0.1);
+  border: 1px solid var(--brand-teal);
+  border-radius: 8px;
+  font-size: 0.85em;
+  color: var(--white);
+}
+
+.reveal section.closing-slide .closing-meta i[data-lucide],
+.reveal section.closing-slide .closing-meta svg[data-lucide] {
+  color: var(--brand-teal);
+  width: 24px;
+  height: 24px;
+}
+
+.reveal section.closing-slide code.inline-cmd {
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--brand-teal);
+  border-color: rgba(148, 250, 213, 0.3);
+}
+
+/* ----------------------------------------------------------------------------
+ * Phase 15: Accessibility, focus rings, overflow protection
+ *
+ * High-contrast focus rings for keyboard navigation; per-section overflow
+ * containment so oversized content never bleeds across slide boundaries.
+ * ----------------------------------------------------------------------------
+ */
+.reveal a:focus,
+.reveal a:focus-visible,
+.reveal button:focus,
+.reveal button:focus-visible {
+  outline: 3px solid var(--brand-teal);
+  outline-offset: 3px;
+}
+
+/* Prevent text from overflowing the slide */
+.reveal section {
+  overflow: hidden;
+}
+
+/* Honor reduced-motion preference for hover transitions */
+@media (prefers-reduced-motion: reduce) {
+  .reveal a {
+    transition: none;
+  }
+}
+
+</style>
+</head>
+<body>
+<div class="reveal">
+<div class="slides">
+<section class="title-slide">
+  <span class="eyebrow">Acceleration Analysis · Formbricks</span>
+  <h1>Development Acceleration</h1>
+  <h2>Baseline vs Post-Introduction</h2>
+  <div class="title-meta">
+    <p><i data-lucide="calendar" aria-hidden="true"></i> Period: 2022-06-06 → 2026-05-15</p>
+    <p><i data-lucide="git-branch" aria-hidden="true"></i> Inflection: 2026-01-29 · Method: single_signal</p>
+    <p><i data-lucide="rocket" aria-hidden="true"></i> Generated: 2026-05-24 03:42 UTC</p>
+  </div>
+</section>
+
+
+<section class="section-divider">
+  <span class="eyebrow">Section 01</span>
+  <h2>What Was Done</h2>
+  <i data-lucide="search-check" aria-hidden="true"></i>
+</section>
+
+
+<section class="content-slide">
+  <span class="eyebrow">Executive Summary</span>
+  <h3>Headline KPIs</h3>
+  <div class="kpi-grid">
+    <div class="kpi-card">
+      <span class="kpi-label">Releases / Window</span>
+      <div class="kpi-value kpi-value-insufficient">Insufficient</div>
+      <span class="confidence-insufficient">Insufficient</span>
+      <span class="kpi-caveat">no release source available — GitHub Releases API not accessible (no token / skip-network), no annotated git tags present, and no CI/CD deployment events available</span>
+    </div>
+    <div class="kpi-card">
+      <span class="kpi-label">Flow Velocity</span>
+      <div class="kpi-value">0.9×</div>
+      <span class="confidence-medium">Medium</span>
+      <span class="kpi-caveat">Rate computed per Monday-aligned 2-week window in each phase; windows with zero merges are still counted. The ``phases`` block holds the team-level rate; the ``phases_per_active_engineer`` block divides by the count of distinct authors with ≥1 non-merge commit in the phase per AAP §0.8.5.</span>
+    </div>
+    <div class="kpi-card">
+      <span class="kpi-label">Flow Time</span>
+      <div class="kpi-value">n/a</div>
+      <span class="confidence-medium">Medium</span>
+      <span class="kpi-caveat">Excluded 3460/3465 merged PRs lacking branch-history timestamps or producing a non-positive interval.</span>
+    </div>
+    <div class="kpi-card">
+      <span class="kpi-label">Active Engineers (After)</span>
+      <div class="kpi-value">17</div>
+      <span class="confidence-high">High</span>
+      <span class="kpi-caveat"></span>
+    </div>
+  </div>
+</section>
+
+
+<section class="content-slide">
+  <span class="eyebrow">Methodology</span>
+  <h3>Inflection Date &amp; Temporal Phases</h3>
+  <p><i data-lucide="git-branch" aria-hidden="true"></i> Detected: <strong>2026-01-29</strong> · Method: single_signal</p>
+  <pre class="mermaid">
+timeline
+    title Temporal Phases (Monday-aligned 2-week windows)
+    section Baseline
+        2022-06-06 : Pre-AI baseline begins
+        2026-01-28 : 95 windows recorded
+    section Ramp-Up (84 days)
+        2026-01-29 : Inflection - AI tool introduced
+        2026-04-23 : End of Ramp-Up phase
+    section Steady State
+        2026-05-15 : Latest commit (window 7 onward)
+  </pre>
+  <p class="diagram-legend"><i data-lucide="info" aria-hidden="true"></i> Baseline = repository activity before the inflection date (≈2022-06-06 → 2026-01-28). Ramp-Up = the first 84 days after (six 2-week windows). Steady State = window seven onward, through 2026-05-15.</p>
+</section>
+
+
+<section class="section-divider">
+  <span class="eyebrow">Section 02</span>
+  <h2>Why</h2>
+  <i data-lucide="help-circle" aria-hidden="true"></i>
+</section>
+
+
+<section class="content-slide">
+  
+  <div class="two-column align-center">
+    <div>
+      <span class="eyebrow">Context</span>
+      <h3>Why Measure Acceleration</h3>
+    </div>
+    <ul class="bullet-list">
+      <li><i data-lucide="bar-chart-3" aria-hidden="true"></i> Quantify engineering output before and after AI tool introduction.</li>
+      <li><i data-lucide="users" aria-hidden="true"></i> Distinguish actor contributions: humans and Blitzy Agent.</li>
+      <li><i data-lucide="shield-check" aria-hidden="true"></i> Preserve governance: identical methodology across periods.</li>
+      <li><i data-lucide="repeat" aria-hidden="true"></i> Reproducible from a clean clone via documented commands.</li>
+    </ul>
+  </div>
+</section>
+
+
+<section class="section-divider">
+  <span class="eyebrow">Section 03</span>
+  <h2>Architectural Change</h2>
+  <i data-lucide="network" aria-hidden="true"></i>
+</section>
+
+
+<section class="content-slide">
+  <span class="eyebrow">Architecture</span>
+  <h3>Analysis Pipeline</h3>
+  <pre class="mermaid">
+%%{init: {"flowchart": {"htmlLabels": false, "padding": 18, "nodeSpacing": 35, "rankSpacing": 60, "curve": "linear", "useMaxWidth": true}}}%%
+flowchart LR
+    G["Git History"] --> E1["Extractors"]
+    GH["GitHub API"] --> E1
+    CI["CI Artifacts"] --> E1
+    E1 --> JL["Normalized JSONL"]
+    JL --> C["Classifier + Computer"]
+    C --> SoT[("metrics.json")]
+    SoT --> R["Report Renderer"]
+    SoT --> D["Deck Renderer"]
+    SoT --> V["Verifier"]
+    R --> Report["acceleration-report.md"]
+    D --> Deck["executive-presentation.html"]
+    V --> Pass{"Rules 1-6 Pass?"}
+  </pre>
+  <p class="diagram-legend"><i data-lucide="info" aria-hidden="true"></i> Read-only data flows left to right. metrics.json is the single source of truth consumed by every renderer.</p>
+</section>
+
+
+<section class="content-slide">
+  <span class="eyebrow">Flow Framework</span>
+  <h3>Flow Metrics (1–7)</h3>
+  <table class="metric-table">
+    <colgroup>
+      <col class="col-index">
+      <col class="col-metric">
+      <col class="col-value">
+      <col class="col-conf">
+      <col class="col-caveat">
+    </colgroup>
+    <thead>
+      <tr><th>#</th><th>Metric</th><th>Multiplier</th><th>Confidence</th><th>Caveat</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>1</td><td>Flow Load</td><td>n/a</td><td><span class="confidence-medium">Medium</span></td><td>In-progress = PR open or draft AND not merged AND not closed-without-merge. Bot PRs excluded unless head_ref starts with &#x27;blitzy-&#x27; (AAP §0.7.1 user example).</td></tr>
+      <tr><td>2</td><td>Flow Velocity</td><td>0.9×</td><td><span class="confidence-medium">Medium</span></td><td>Rate computed per Monday-aligned 2-week window in each phase; windows with zero merges are still counted. The ``phases`` block holds the team-level rate; the ``phases_per_active_engineer`` block divides by the count of distinct authors with ≥1 non-merge commit in the phase per AAP §0.8.5.</td></tr>
+      <tr><td>3</td><td>Flow Predictability</td><td>1.9×</td><td><span class="confidence-medium">Medium</span></td><td>Predictability score = 1 / CoV; CoV = pstdev(velocity) / mean(velocity). Phases with a single window report a CoV of zero and a score of 1.0.</td></tr>
+      <tr><td>4</td><td>Flow Active</td><td>n/a</td><td><span class="confidence-medium">Medium</span></td><td>Excluded 3460/3465 merged PRs lacking the timing data required for any computation path. Computation methods used: branch_life_proxy=5. The branch_life_proxy method overstates active time because it includes review-wait intervals; subsequent runs with reviews.jsonl populated migrate those PRs to ready_for_review_refinement.</td></tr>
+      <tr><td>5</td><td>Flow Efficiency</td><td>n/a</td><td><span class="confidence-medium">Medium</span></td><td>Excluded 3460/3465 merged PRs lacking first_commit_at or producing a non-positive flow-time. Computation methods used: branch_life_proxy=5. When the branch_life_proxy is the only available method the active span equals flow time and the ratio is pinned to 1.0 (treat as &#x27;reviews data unavailable&#x27;, not as &#x27;perfect efficiency&#x27;).</td></tr>
+      <tr><td>6</td><td>Flow Distribution</td><td>0.3×</td><td><span class="confidence-medium">Medium</span></td><td>Unknown rate per phase: {&#x27;ramp_up&#x27;: 0.0, &#x27;baseline&#x27;: 0.0571}. Multiplier is the sum of absolute per-bucket differences vs baseline (0 = identical, 2 = complete reshuffle).</td></tr>
+      <tr><td>7</td><td>Flow Time</td><td>n/a</td><td><span class="confidence-medium">Medium</span></td><td>Excluded 3460/3465 merged PRs lacking branch-history timestamps or producing a non-positive interval.</td></tr>
+    </tbody>
+  </table>
+</section>
+
+
+<section class="content-slide">
+  <span class="eyebrow">DORA-Adjacent</span>
+  <h3>Delivery &amp; Stability (8, 9, 11)</h3>
+  <div class="kpi-grid">
+    <div class="kpi-card">
+      <span class="kpi-label">Problem Records</span>
+      <div class="kpi-value">0.0×</div>
+      <span class="kpi-sublabel">Metric 8 · Production incidents</span>
+      <span class="confidence-medium">Medium</span>
+      <span class="kpi-caveat">Revert commits are a proxy for production incidents per AAP §0.3.4. Counted only reverts with a resolved original commit (explicit message reference or tree-match). Excluded 4/6 unattributable reverts (per-phase: baseline=4); these would otherwise inflate the count with revert-of-revert noise and revert commits whose original commit cannot be identified.</span>
+    </div>
+    <div class="kpi-card">
+      <span class="kpi-label">Releases</span>
+      <div class="kpi-value kpi-value-insufficient">Insufficient</div>
+      <span class="kpi-sublabel">Metric 9 · GitHub Releases per phase</span>
+      <span class="confidence-insufficient">Insufficient</span>
+      <span class="kpi-caveat">no release source available — GitHub Releases API not accessible (no token / skip-network), no annotated git tags present, and no CI/CD deployment events available</span>
+    </div>
+    <div class="kpi-card">
+      <span class="kpi-label">Escaped Defects</span>
+      <div class="kpi-value kpi-value-insufficient">Insufficient</div>
+      <span class="kpi-sublabel">Metric 11 · Test regressions on main</span>
+      <span class="confidence-insufficient">Insufficient</span>
+      <span class="kpi-caveat">CI test history unavailable</span>
+    </div>
+  </div>
+</section>
+
+
+<section class="content-slide">
+  <span class="eyebrow">Governance</span>
+  <h3>Exceptions &amp; SLA (10, 12)</h3>
+  <table class="metric-table">
+    <colgroup>
+      <col class="col-icon">
+      <col class="col-metric">
+      <col class="col-value">
+      <col class="col-conf">
+      <col class="col-caveat">
+    </colgroup>
+    <thead>
+      <tr><th></th><th>Metric</th><th>Result</th><th>Confidence</th><th>Caveat</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><i data-lucide="shield-alert" aria-hidden="true"></i></td>
+        <td>10 · Approved Exceptions</td>
+        <td>Insufficient</td>
+        <td><span class="confidence-insufficient">Insufficient</span></td>
+        <td>no admin audit-log access and no exception/waiver/override labels found</td>
+      </tr>
+      <tr>
+        <td><i data-lucide="clock-alert" aria-hidden="true"></i></td>
+        <td>12 · Defects Out of SLA</td>
+        <td>Insufficient</td>
+        <td><span class="confidence-insufficient">Insufficient</span></td>
+        <td>no SLA source found in repository or issue tracker</td>
+      </tr>
+    </tbody>
+  </table>
+</section>
+
+
+<section class="content-slide eng-slide">
+  <span class="eyebrow">Per-Engineer View</span>
+  <h3>Contributions by Engineer · After Period</h3>
+  <pre class="mermaid">
+%%{init: {"theme":"base","themeVariables":{"xyChart":{"backgroundColor":"#FFFFFF","titleColor":"#1A105F","xAxisLabelColor":"#1A105F","xAxisTitleColor":"#1A105F","xAxisTickColor":"#1A105F","xAxisLineColor":"#1A105F","yAxisLabelColor":"#1A105F","yAxisTitleColor":"#1A105F","yAxisTickColor":"#1A105F","yAxisLineColor":"#1A105F","plotColorPalette":"#5B39F3,#94FAD5,#2D1C77,#1A105F"}}}}%%
+xychart-beta
+    title "Post-introduction Flow Velocity (Metric 2)"
+    x-axis ["Dhruwang", "Theodór", "Anshuman", "Bhagya", "Matthias", "Balázs", "Chowdhury", "Harsh"]
+    y-axis "Contribution"
+    bar [10.0, 6.0, 5.5, 3.5, 3.0, 2.0, 1.0, 1.0]
+  </pre>
+  <table class="eng-name-table" aria-label="Engineer name reference">
+    <thead>
+      <tr><th>Chart label</th><th>Full name</th><th>Value</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>Dhruwang</td><td>Dhruwang Jariwala</td><td>10.0</td></tr>
+      <tr><td>Theodór</td><td>Theodór Tómas</td><td>6.0</td></tr>
+      <tr><td>Anshuman</td><td>Anshuman Pandey</td><td>5.5</td></tr>
+      <tr><td>Bhagya</td><td>Bhagya Amarasinghe</td><td>3.5</td></tr>
+      <tr><td>Matthias</td><td>Matthias Nannt</td><td>3.0</td></tr>
+      <tr><td>Balázs</td><td>Balázs Úr</td><td>2.0</td></tr>
+      <tr><td>Chowdhury</td><td>Chowdhury Tafsir Ahmed Siddiki</td><td>1.0</td></tr>
+      <tr><td>Harsh</td><td>Harsh Shrikant Bhat</td><td>1.0</td></tr>
+    </tbody>
+  </table>
+  <p class="diagram-legend"><i data-lucide="info" aria-hidden="true"></i> Chart x-axis uses short labels for readability; the table maps each short label to the engineer's full display name (per AAP §0.8.1, Blitzy Agent appears as one row in the after period; real names use resolved aliases in actor_aliases.json).</p>
+</section>
+
+
+<section class="section-divider">
+  <span class="eyebrow">Section 04</span>
+  <h2>Risks</h2>
+  <i data-lucide="alert-triangle" aria-hidden="true"></i>
+</section>
+
+
+<section class="content-slide">
+  <span class="eyebrow">Risk Assessment</span>
+  <h3>Known Risks &amp; Confounders</h3>
+  <table class="metric-table">
+    <colgroup>
+      <col class="col-icon">
+      <col class="col-risk">
+      <col class="col-severity">
+    </colgroup>
+    <thead>
+      <tr><th></th><th>Risk</th><th>Severity</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><i data-lucide="alert-triangle" aria-hidden="true"></i></td>
+        <td>Metric releases: Insufficient signal — no release source available — GitHub Releases API not accessible (no token / skip-network), no annotated git tags present, and no CI/CD deployment events available</td>
+        <td><span class="confidence-medium">Medium</span></td>
+      </tr>
+      <tr>
+        <td><i data-lucide="alert-triangle" aria-hidden="true"></i></td>
+        <td>Metric approved_exceptions: Insufficient signal — no admin audit-log access and no exception/waiver/override labels found</td>
+        <td><span class="confidence-high">High</span></td>
+      </tr>
+      <tr>
+        <td><i data-lucide="alert-triangle" aria-hidden="true"></i></td>
+        <td>Metric escaped_defects: Insufficient signal — CI test history unavailable</td>
+        <td><span class="confidence-medium">Medium</span></td>
+      </tr>
+      <tr>
+        <td><i data-lucide="alert-triangle" aria-hidden="true"></i></td>
+        <td>Metric defects_out_of_sla: Insufficient signal — no SLA source found in repository or issue tracker</td>
+        <td><span class="confidence-high">High</span></td>
+      </tr>
+    </tbody>
+  </table>
+</section>
+
+
+<section class="section-divider">
+  <span class="eyebrow">Section 05</span>
+  <h2>Onboarding</h2>
+  <i data-lucide="book-open" aria-hidden="true"></i>
+</section>
+
+
+<section class="content-slide">
+  <span class="eyebrow">Onboarding</span>
+  <h3>From Clean Clone to Report</h3>
+  <ol class="step-list">
+    <li><i data-lucide="git-fork" aria-hidden="true"></i> Clone the Formbricks repository and read <code class="inline-cmd">acceleration/README.md</code> for setup, troubleshooting, and extension guidance.</li>
+    <li><i data-lucide="terminal" aria-hidden="true"></i> Run <code class="inline-cmd">python3 acceleration/scripts/run_acceleration_analysis.py</code>.</li>
+    <li><i data-lucide="file-text" aria-hidden="true"></i> Open <code class="inline-cmd">acceleration/acceleration-report.md</code>.</li>
+    <li><i data-lucide="presentation" aria-hidden="true"></i> Share <code class="inline-cmd">acceleration/executive-presentation.html</code>.</li>
+  </ol>
+</section>
+
+
+<section class="closing-slide">
+  <span class="eyebrow">End of Deck</span>
+  <h2>12 Metrics · 1 Source of Truth · Reproducible</h2>
+  <p class="closing-tagline">5,178 commits analyzed · HEAD bf6be73</p>
+  <div class="closing-meta">
+    <i data-lucide="check-circle-2" aria-hidden="true"></i>
+    <span>See <code class="inline-cmd">acceleration/acceleration-report.md</code> for the full report.</span>
+  </div>
+</section>
+
+</div>
+</div>
+<script type="module">
+import Reveal from "https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/dist/reveal.esm.js";
+import mermaid from "https://cdn.jsdelivr.net/npm/mermaid@11.15.0/dist/mermaid.esm.min.mjs";
+
+// Mermaid initialisation — AAP §0.7.1 Rule 5 requires startOnLoad:false
+// with explicit mermaid.run() invocation after each slidechanged event
+// so that diagrams inside hidden slides render on first display.
+//
+// Theme variables map the Blitzy brand palette onto Mermaid's default
+// theme. The top-level entries (primaryColor, mainBkg, etc.) govern
+// flowcharts and Gantt diagrams. The xyChart sub-object is required
+// for Mermaid 11.x xychart-beta — that renderer ignores the top-level
+// theme variables (QA finding F-6: prior runs rendered cream bars and
+// white-on-white text because no xyChart variables were declared).
+mermaid.initialize({
+  startOnLoad: false,
+  theme: "base",
+  themeVariables: {
+    primaryColor: "#5B39F3",
+    primaryTextColor: "#FFFFFF",
+    primaryBorderColor: "#2D1C77",
+    lineColor: "#1A105F",
+    secondaryColor: "#94FAD5",
+    tertiaryColor: "#FAFAFA",
+    background: "#FFFFFF",
+    mainBkg: "#5B39F3",
+    secondBkg: "#94FAD5",
+    fontFamily: "Inter, system-ui, sans-serif",
+    titleColor: "#1A105F",
+    // xychart-beta carries its own palette — explicit overrides force
+    // the chart bars, axis ticks, title, and labels into the Blitzy
+    // brand palette and make the chart readable. The
+    // plotColorPalette is a comma-separated string of hex values.
+    xyChart: {
+      backgroundColor: "#FFFFFF",
+      titleColor: "#1A105F",
+      xAxisLabelColor: "#1A105F",
+      xAxisTitleColor: "#1A105F",
+      xAxisTickColor: "#1A105F",
+      xAxisLineColor: "#1A105F",
+      yAxisLabelColor: "#1A105F",
+      yAxisTitleColor: "#1A105F",
+      yAxisTickColor: "#1A105F",
+      yAxisLineColor: "#1A105F",
+      plotColorPalette: "#5B39F3,#94FAD5,#2D1C77,#1A105F"
+    }
+  },
+  gantt: {
+    useMaxWidth: true,
+    fontSize: 11,
+    leftPadding: 75,
+    rightPadding: 20,
+    barHeight: 24,
+    barGap: 6
+  },
+  flowchart: {
+    useMaxWidth: true,
+    htmlLabels: true,
+    curve: "basis"
+  }
+});
+
+const deck = new Reveal({"hash": true, "transition": "slide", "controlsTutorial": false, "width": 1920, "height": 1080});
+
+// QA finding F-3 / F-4 — Mermaid race condition. The original code
+// called ``mermaid.run()`` without a ``nodes`` argument, which causes
+// Mermaid to walk every ``<pre class="mermaid">`` block in the
+// document and render it. At deck-init time only the first slide is
+// visible; hidden slides have ``offsetWidth === 0`` because
+// reveal.js positions them off-canvas, and Mermaid's flowchart and
+// Gantt renderers produce a degenerate SVG (``viewBox="0 0 0 0"`` and
+// negative-width rects) when invoked against a zero-width container.
+// Once a block carries ``data-processed="true"`` Mermaid refuses to
+// re-render it on revisit, so the broken state is permanent for the
+// page lifetime.
+//
+// Fix: render only the Mermaid blocks that live inside the currently
+// visible slide and force a re-render on each ``slidechanged`` event.
+// Blocks already rendered correctly retain their SVG; blocks that
+// were never rendered (or were rendered with width=0) are reset via
+// ``removeAttribute('data-processed')`` and re-processed against
+// their now-visible (non-zero-width) container.
+function renderMermaidIn(slideEl) {
+  if (!slideEl) return;
+  const blocks = slideEl.querySelectorAll('pre.mermaid');
+  if (blocks.length === 0) return;
+  blocks.forEach((el) => {
+    // Detect blocks whose first render produced a malformed SVG
+    // (viewBox width = 0 OR negative-width rects). When detected,
+    // strip the rendered children and the ``data-processed`` marker
+    // so Mermaid re-renders the source from scratch.
+    const svg = el.querySelector('svg');
+    let needsRerender = !svg;
+    if (svg) {
+      const viewBox = svg.getAttribute('viewBox') || '';
+      const parts = viewBox.trim().split(/\s+/);
+      const width = parts.length === 4 ? parseFloat(parts[2]) : NaN;
+      if (!isFinite(width) || width <= 1) {
+        needsRerender = true;
+      } else {
+        const negativeRect = svg.querySelector(
+          'rect[width^="-"], path[d*="L -"], path[d*=" -"]'
+        );
+        if (negativeRect) {
+          needsRerender = true;
+        }
+      }
+    }
+    if (needsRerender) {
+      // Mermaid stores the original DSL source in ``data-original-code``
+      // when present (set by Mermaid 11.x); otherwise restore the
+      // original text from a ``data-source`` attribute the renderer
+      // sets the first time the block is processed.
+      const original =
+        el.getAttribute('data-original-code')
+        || el.getAttribute('data-source');
+      if (original) {
+        el.textContent = original;
+      } else if (svg) {
+        // No stored source — at minimum, clear the broken SVG so
+        // Mermaid does not append a sibling SVG next to it. The
+        // text node restored by removing the SVG is the original
+        // DSL source (Mermaid preserves it in the text node until
+        // first processing).
+        // Walk DOM children in reverse and remove any non-text
+        // descendant. The remaining text content is the source.
+        const childNodes = Array.from(el.childNodes);
+        for (const node of childNodes) {
+          if (node.nodeType !== Node.TEXT_NODE) {
+            el.removeChild(node);
+          }
+        }
+      }
+      el.removeAttribute('data-processed');
+    }
+  });
+  try {
+    mermaid.run({nodes: Array.from(blocks)});
+  } catch (err) {
+    console.warn("Mermaid render failed:", err);
+  }
+}
+
+function renderVisuals() {
+  // Render Lucide icons whenever the UMD bundle has loaded. The
+  // <i data-lucide=…> elements are replaced in-place with <svg> so
+  // re-invocation on each slide is idempotent.
+  if (window.lucide && typeof window.lucide.createIcons === "function") {
+    window.lucide.createIcons();
+  }
+  // Render Mermaid for the currently visible slide only. Hidden
+  // slides will render lazily on first visit via the slidechanged
+  // handler below.
+  const current = document.querySelector('section.present');
+  renderMermaidIn(current);
+}
+
+// Capture each Mermaid block's source text at module-load time so the
+// race-condition recovery (in ``renderMermaidIn``) can restore it
+// when Mermaid wrote a malformed SVG over the source on first render.
+// Mermaid 11.x stores the original code under ``data-original-code``
+// once it has processed a block; this loop captures the source BEFORE
+// Mermaid processes anything so a re-render can recover the DSL.
+(function captureMermaidSources() {
+  const blocks = document.querySelectorAll('pre.mermaid');
+  blocks.forEach((el) => {
+    if (!el.hasAttribute('data-source')) {
+      el.setAttribute('data-source', el.textContent);
+    }
+  });
+})();
+
+deck.initialize().then(() => {
+  renderVisuals();
+});
+
+deck.on("slidechanged", () => {
+  renderVisuals();
+});
+
+// Mermaid Gantt and flowchart diagrams sometimes need a second render
+// pass after the slide's layout has settled (the initial paint can
+// still report a transient zero-width on the very first frame). A
+// short retry verifies the SVG dimensions and re-renders if the
+// initial pass produced a malformed result.
+deck.on("ready", () => {
+  window.setTimeout(() => {
+    const current = document.querySelector('section.present');
+    renderMermaidIn(current);
+  }, 250);
+});
+</script>
+<script src="https://cdn.jsdelivr.net/npm/lucide@0.460.0/dist/umd/lucide.min.js"></script>
+</body>
+</html>

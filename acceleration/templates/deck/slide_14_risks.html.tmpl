@@ -1,0 +1,56 @@
+<!--
+  Slide 14 — Risk Assessment
+  Type: content-slide
+  Required tokens (substituted by render_deck.py from metrics.json):
+    {{RISK_1_TEXT}}        Risk 1 description (concise sentence)
+    {{RISK_1_SEVERITY}}    Risk 1 severity label — "High" | "Medium" | "Low"
+    {{RISK_1_CONF_CLASS}}  Risk 1 CSS confidence class — "high" | "medium" | "low"
+    {{RISK_2_TEXT}}        Risk 2 description (concise sentence)
+    {{RISK_2_SEVERITY}}    Risk 2 severity label — "High" | "Medium" | "Low"
+    {{RISK_2_CONF_CLASS}}  Risk 2 CSS confidence class — "high" | "medium" | "low"
+    {{RISK_3_TEXT}}        Risk 3 description (concise sentence)
+    {{RISK_3_SEVERITY}}    Risk 3 severity label — "High" | "Medium" | "Low"
+    {{RISK_3_CONF_CLASS}}  Risk 3 CSS confidence class — "high" | "medium" | "low"
+    {{RISK_4_TEXT}}        Risk 4 description (concise sentence)
+    {{RISK_4_SEVERITY}}    Risk 4 severity label — "High" | "Medium" | "Low"
+    {{RISK_4_CONF_CLASS}}  Risk 4 CSS confidence class — "high" | "medium" | "low"
+  All twelve tokens above are the only renderer-owned identifiers on this
+  slide. No additional double-brace placeholders appear in this file.
+  Required non-text visual: Lucide icons + table
+-->
+<section class="content-slide">
+  <span class="eyebrow">Risk Assessment</span>
+  <h3>Known Risks &amp; Confounders</h3>
+  <table class="metric-table">
+    <colgroup>
+      <col class="col-icon">
+      <col class="col-risk">
+      <col class="col-severity">
+    </colgroup>
+    <thead>
+      <tr><th></th><th>Risk</th><th>Severity</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><i data-lucide="alert-triangle" aria-hidden="true"></i></td>
+        <td>{{RISK_1_TEXT}}</td>
+        <td><span class="confidence-{{RISK_1_CONF_CLASS}}">{{RISK_1_SEVERITY}}</span></td>
+      </tr>
+      <tr>
+        <td><i data-lucide="alert-triangle" aria-hidden="true"></i></td>
+        <td>{{RISK_2_TEXT}}</td>
+        <td><span class="confidence-{{RISK_2_CONF_CLASS}}">{{RISK_2_SEVERITY}}</span></td>
+      </tr>
+      <tr>
+        <td><i data-lucide="alert-triangle" aria-hidden="true"></i></td>
+        <td>{{RISK_3_TEXT}}</td>
+        <td><span class="confidence-{{RISK_3_CONF_CLASS}}">{{RISK_3_SEVERITY}}</span></td>
+      </tr>
+      <tr>
+        <td><i data-lucide="alert-triangle" aria-hidden="true"></i></td>
+        <td>{{RISK_4_TEXT}}</td>
+        <td><span class="confidence-{{RISK_4_CONF_CLASS}}">{{RISK_4_SEVERITY}}</span></td>
+      </tr>
+    </tbody>
+  </table>
+</section>

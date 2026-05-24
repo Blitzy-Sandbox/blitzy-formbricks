@@ -1,0 +1,34 @@
+<!--
+  Slide 16 — Onboarding & Next Steps
+  Type: content-slide
+  Required tokens: (none — content is static narrative steps)
+  Required non-text visual: Lucide icons (one per step)
+  Lucide icons (verbatim per QA Checkpoint 3 Phase 2 expectation):
+    git-fork, terminal, file-text, presentation
+
+  Authority:
+    - AAP §0.7.1 Rule 2 (Onboarding & Continued Development — every
+      contributing deliverable MUST include up-to-date onboarding
+      documentation that enables a new developer to go from a clean
+      machine to a running, modifiable application without asking
+      questions; the canonical onboarding artifact for this project is
+      acceleration/README.md, which this slide explicitly cross-references
+      from the clone step so a new developer is pointed at the setup
+      guide in the same step where they obtain the code).
+    - AAP §0.4.1 (file inventory enumerates slide_16_onboarding.html.tmpl
+      and acceleration/README.md as the two required artifacts for the
+      Rule 2 mandate).
+    - AAP §0.7.1 Rule 5 (Executive Presentation — content-slide max 4
+      bullets; this slide renders exactly 4 ordered steps that take a
+      new developer end-to-end: clone → run → read report → share deck).
+-->
+<section class="content-slide">
+  <span class="eyebrow">Onboarding</span>
+  <h3>From Clean Clone to Report</h3>
+  <ol class="step-list">
+    <li><i data-lucide="git-fork" aria-hidden="true"></i> Clone the Formbricks repository and read <code class="inline-cmd">acceleration/README.md</code> for setup, troubleshooting, and extension guidance.</li>
+    <li><i data-lucide="terminal" aria-hidden="true"></i> Run <code class="inline-cmd">python3 acceleration/scripts/run_acceleration_analysis.py</code>.</li>
+    <li><i data-lucide="file-text" aria-hidden="true"></i> Open <code class="inline-cmd">acceleration/acceleration-report.md</code>.</li>
+    <li><i data-lucide="presentation" aria-hidden="true"></i> Share <code class="inline-cmd">acceleration/executive-presentation.html</code>.</li>
+  </ol>
+</section>

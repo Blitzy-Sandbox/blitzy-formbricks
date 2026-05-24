@@ -1,0 +1,46 @@
+# Development Acceleration Analysis — Python Dependencies
+#
+# AUTHORITY: AAP §0.6.1 (Dependency Inventory)
+#
+# The analysis pipeline runs on Python stdlib alone — no third-party packages
+# are REQUIRED to compute any of the 12 metrics or render any of the
+# deliverables. The entries below are OPTIONAL enhancements.
+#
+# To install (only if you want the enhancements):
+#   python3 -m pip install -r acceleration/requirements.txt
+#
+# To run the analysis WITHOUT installing anything (default mode):
+#   python3 acceleration/scripts/run_acceleration_analysis.py
+
+# -----------------------------------------------------------------------------
+# OPTIONAL: Static-chart export for the Acceleration Curve
+# -----------------------------------------------------------------------------
+# If installed, render_report.py will additionally produce a PNG version of the
+# Acceleration Curve diagram at acceleration/data/acceleration_curve.png. If
+# absent, the Mermaid inline diagram is the sole rendering and is sufficient
+# for the Markdown report and the reveal.js deck.
+# matplotlib==3.9.2
+
+# -----------------------------------------------------------------------------
+# OPTIONAL: Faster HTTP for GitHub API calls
+# -----------------------------------------------------------------------------
+# The default extractors use stdlib urllib via curl subprocess for HTTP. If
+# requests is installed, extract_github.py and extract_ci_tests.py will use it
+# directly, reducing fork/exec overhead. Functionality is identical.
+#
+# Minimum version pinned to 2.32.4 to avoid CVE-2024-47081 (Requests releases
+# prior to 2.32.4 may leak .netrc credentials for maliciously crafted URLs).
+# The lower bound is enforced; the upper bound is left open so that consumers
+# automatically pick up subsequent security patches within the same major
+# series. Re-pin to a fixed version only if a downstream reproducibility
+# concern requires it.
+# requests>=2.32.4,<3
+
+# -----------------------------------------------------------------------------
+# Notes
+# -----------------------------------------------------------------------------
+# - No build-step dependency is declared (no setuptools, wheel).
+# - No linter is declared; the pipeline scripts are formatted with ruff/black
+#   externally if desired.
+# - No test framework is declared at this level; verify_report.py performs
+#   end-to-end validation on the report and deck artifacts.

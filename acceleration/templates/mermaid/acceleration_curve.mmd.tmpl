@@ -1,0 +1,204 @@
+%% =============================================================================
+%% acceleration_curve.mmd.tmpl
+%% Mermaid 11.15.0 xychart-beta template — Acceleration Curve
+%% =============================================================================
+%% ---
+%% AUTHORITY
+%%   AAP §0.3.4   — "Acceleration Curve graphic — A Mermaid line/bar diagram
+%%                  rendered inline in acceleration-report.md showing each
+%%                  metric's value across Baseline → Ramp-Up → Steady-State,
+%%                  satisfying Rule 4 (Visual Architecture Documentation)."
+%%                  This template is the canonical implementation of that
+%%                  diagram. Any deviation from its shape (x-axis labels,
+%%                  line count, line order) requires an entry in
+%%                  acceleration/decision-log.md.
+%%   AAP §0.4.1   — File inventory enumerates this template path.
+%%   AAP §0.4.2   — Content type: template; pure Mermaid file with placeholder
+%%                  tokens replaced by the renderer.
+%%   AAP §0.5.1   — File is in-scope as a runtime template under acceleration/.
+%%   AAP §0.7.1 Rule 4 — Visual Architecture Documentation: every diagram MUST
+%%                  have a descriptive title and an explanatory legend. The
+%%                  title lives on the xychart-beta `title` line; the legend
+%%                  lives in the LEGEND block of this header (xychart-beta
+%%                  does not support per-line legend labels at runtime — the
+%%                  reader consults this comment OR the accompanying §8 table
+%%                  caption in acceleration-report.md).
+%%   AAP §0.7.2.2 Rule 1 (Data Provenance) — Every number plotted here is
+%%                  ultimately sourced from acceleration/data/metrics.json,
+%%                  which the renderer reads and substitutes into the
+%%                  double-brace tokens enumerated in the TOKENS section
+%%                  below.
+%%   AAP §0.7.2.2 Rule 4 (Internal Consistency) — The plotted multipliers
+%%                  MUST equal, byte-for-byte, the corresponding values in
+%%                  §1 Executive Summary, §5 Metric Deep-Dives, §6
+%%                  Requirements Traceability Matrix, and the §8 Acceleration
+%%                  Curve table of acceleration-report.md. Single source of
+%%                  truth: metrics.json. The renderer is the only place where
+%%                  values are substituted.
+%%   AAP §0.8.4   — Temporal Phases: x-axis labels MUST be exactly
+%%                  "Baseline", "Ramp-Up", "Steady State" (matching the
+%%                  brief's casing and hyphenation). When fewer than 90 days
+%%                  of post-introduction data exist, the renderer falls back
+%%                  to a Baseline-vs-Post-Introduction schema with a
+%%                  different chart shape; that fallback is owned by the
+%%                  renderer, not by this template.
+%% ---
+%% RENDERER
+%%   acceleration/scripts/render_report.py performs simple string
+%%   substitution of the double-brace placeholders enumerated in the
+%%   TOKENS section below (and only those placeholders), with values
+%%   pulled from acceleration/data/metrics.json (the single source of
+%%   truth) and writes
+%%   the substituted text into acceleration/acceleration-report.md §8.1
+%%   Graphical Representation. The renderer wraps the substituted text in
+%%   Markdown fenced code-block markers (the triple-backtick mermaid opener
+%%   and the triple-backtick closer) when embedding it into Markdown. THIS
+%%   TEMPLATE MUST NOT contain those fence markers; the renderer adds them.
+%%   Embedding triple-backtick characters anywhere in this file — including
+%%   comments — would close the fenced block prematurely and break the
+%%   diagram.
+%% ---
+%% CONSUMERS
+%%   Exactly one Markdown file embeds this template after substitution:
+%%     1. acceleration/acceleration-report.md — §8.1 Graphical Representation
+%%        (Diagram 2 of the report).
+%%   The executive deck (acceleration/executive-presentation.html, slide 12)
+%%   uses a per-engineer xychart and is NOT rendered from this template; the
+%%   deck's overview slides (03 KPIs, 09 Flow Metrics, 10 DORA) cite the same
+%%   multiplier values but in a different visual layout. Consistency between
+%%   the deck and this chart is enforced by both consumers reading from
+%%   metrics.json (Rule 4).
+%% ---
+%% TOKENS (UPPER_SNAKE_CASE; renderer substitutes each occurrence below)
+%%   {{TITLE_SUFFIX}}             — Optional suffix appended to the chart
+%%                                  title. May be the empty string. Example:
+%%                                  "· Formbricks 2022-06 → 2026-05". Renderer
+%%                                  source: acceleration/data/run_manifest.json
+%%                                  (keys: repo_label, date_range).
+%%   {{Y_MAX}}                    — Integer ≥ 2; upper bound of y-axis.
+%%                                  Computed by the renderer as
+%%                                  ceil(max(observed_multipliers)) clamped
+%%                                  to a minimum of 2. Example: 8. Renderer
+%%                                  source: derived from metrics.json line
+%%                                  series.
+%%   {{FLOW_VELOCITY_RAMPUP}}     — Ramp-Up multiplier for Flow Velocity
+%%                                  (Metric 2). Example: 3.2. Source:
+%%                                  metrics.json[metric_2][ramp_up][multiplier].
+%%   {{FLOW_VELOCITY_STEADY}}     — Steady-State multiplier for Flow Velocity
+%%                                  (Metric 2). Example: 4.5. Source:
+%%                                  metrics.json[metric_2][steady_state][multiplier].
+%%   {{RELEASES_RAMPUP}}          — Ramp-Up multiplier for Releases
+%%                                  (Metric 9). Example: 2.1. Source:
+%%                                  metrics.json[metric_9][ramp_up][multiplier].
+%%   {{RELEASES_STEADY}}          — Steady-State multiplier for Releases
+%%                                  (Metric 9). Example: 2.8. Source:
+%%                                  metrics.json[metric_9][steady_state][multiplier].
+%%   {{FLOW_TIME_RAMPUP}}         — Ramp-Up multiplier for Flow Time
+%%                                  (Metric 7). Lower-value-preferred
+%%                                  convention; the renderer decides whether
+%%                                  to invert the ratio based on the
+%%                                  report-wide convention documented in
+%%                                  decision-log.md. Example: 0.6. Source:
+%%                                  metrics.json[metric_7][ramp_up][multiplier].
+%%   {{FLOW_TIME_STEADY}}         — Steady-State multiplier for Flow Time
+%%                                  (Metric 7). Example: 0.5. Source:
+%%                                  metrics.json[metric_7][steady_state][multiplier].
+%%   {{FLOW_LOAD_RAMPUP}}         — Ramp-Up multiplier for Flow Load
+%%                                  (Metric 1). Example: 1.4. Source:
+%%                                  metrics.json[metric_1][ramp_up][multiplier].
+%%   {{FLOW_LOAD_STEADY}}         — Steady-State multiplier for Flow Load
+%%                                  (Metric 1). Example: 1.3. Source:
+%%                                  metrics.json[metric_1][steady_state][multiplier].
+%%   {{FLOW_EFFICIENCY_RAMPUP}}   — Ramp-Up multiplier for Flow Efficiency
+%%                                  (Metric 5). Example: 1.5. Source:
+%%                                  metrics.json[metric_5][ramp_up][multiplier].
+%%   {{FLOW_EFFICIENCY_STEADY}}   — Steady-State multiplier for Flow
+%%                                  Efficiency (Metric 5). Example: 1.7.
+%%                                  Source:
+%%                                  metrics.json[metric_5][steady_state][multiplier].
+%%   {{PROBLEM_RECORDS_RAMPUP}}   — Ramp-Up multiplier for Problem Records
+%%                                  (Metric 8). Example: 0.9. Source:
+%%                                  metrics.json[metric_8][ramp_up][multiplier].
+%%   {{PROBLEM_RECORDS_STEADY}}   — Steady-State multiplier for Problem
+%%                                  Records (Metric 8). Example: 0.8. Source:
+%%                                  metrics.json[metric_8][steady_state][multiplier].
+%%   {{ESCAPED_DEFECTS_RAMPUP}}   — Ramp-Up multiplier for Escaped Defects
+%%                                  (Metric 11). Example: 1.1. Source:
+%%                                  metrics.json[metric_11][ramp_up][multiplier].
+%%   {{ESCAPED_DEFECTS_STEADY}}   — Steady-State multiplier for Escaped
+%%                                  Defects (Metric 11). Example: 0.9. Source:
+%%                                  metrics.json[metric_11][steady_state][multiplier].
+%% ---
+%% INSUFFICIENT-SIGNAL HANDLING (AAP §0.7.2.1 Boundaries & Preservation)
+%%   When a metric's underlying value is "Insufficient signal — [reason]"
+%%   in metrics.json, the renderer MUST substitute the literal string "1"
+%%   (the Baseline-neutral multiplier) for the corresponding token in this
+%%   template. The line then stays flat at the reference value rather than
+%%   dropping to zero (which would be visually misleading) or leaving an
+%%   unsubstituted double-brace literal (which would break Mermaid parsing).
+%% ---
+%%   The accompanying §5 Metric Deep-Dive section of acceleration-report.md
+%%   carries the full "Insufficient signal — [reason]" caveat per AAP
+%%   §0.7.2.1; readers should consult that section to distinguish a metric
+%%   that is genuinely 1.0× from a metric that is reported as 1.0 here only
+%%   because it is unmeasurable under the runtime data sources available.
+%% ---
+%%   Fallback contract: acceleration/scripts/verify_report.py fails the
+%%   run if any unsubstituted double-brace token remains in the rendered
+%%   Markdown.
+%% ---
+%% LEGEND (line order in render output — DO NOT REORDER without updating the
+%% corresponding §8 table caption in acceleration-report.md, since the
+%% xychart-beta block does not emit per-line labels at runtime and readers
+%% rely on positional correspondence between this list and the rendered
+%% lines)
+%%   line 1  Flow Velocity      (Metric 2)
+%%   line 2  Releases           (Metric 9)
+%%   line 3  Flow Time          (Metric 7)
+%%   line 4  Flow Load          (Metric 1)
+%%   line 5  Flow Efficiency    (Metric 5)
+%%   line 6  Problem Records    (Metric 8)
+%%   line 7  Escaped Defects    (Metric 11)
+%% ---
+%% OMITTED (reported in the accompanying §8 table, not on this chart —
+%% reasons recorded so a reviewer can verify scope coverage at a glance)
+%%   Metric 3  Flow Predictability  — CoV ratio, not a multiplier
+%%   Metric 4  Flow Active          — absolute working time, not a ratio
+%%   Metric 6  Flow Distribution    — work-type mix, not a single value
+%%   Metric 10 Approved Exceptions  — Low-confidence governance metric
+%%   Metric 12 Defects Out of SLA   — Insufficient signal (no SLA source)
+%% ---
+%% INVENTORY (1 title, 1 x-axis, 1 y-axis, 7 line directives)
+%%   - title             — descriptive title with optional TITLE_SUFFIX
+%%   - x-axis            — exactly ["Baseline", "Ramp-Up", "Steady State"]
+%%   - y-axis            — "Multiplier (After / Before)" 0 --> {{Y_MAX}}
+%%   - line directives   — 7 lines, each [1, ramp_up_value, steady_value]
+%%                         where the leading 1 normalizes the baseline to
+%%                         the reference value (multiplier convention is
+%%                         After / Before, so baseline ÷ baseline = 1).
+%% ---
+%% MERMAID 11.15.0 SYNTAX NOTES
+%%   - xychart-beta is a Mermaid 11+ feature (introduced as "beta" in
+%%     Mermaid 10.5 and stabilized in 11.x). The executive deck pins
+%%     Mermaid 11.15.0 (AAP §0.6.1) so this template is compatible.
+%%   - xychart-beta does NOT support per-line legend labels at runtime; the
+%%     LEGEND block above is the authoritative source for line identity.
+%%   - Mermaid xychart-beta y-axis range syntax is `0 --> {{Y_MAX}}` with
+%%     spaces around the arrow.
+%%   - Numeric literals inside line[] directives must be plain numbers
+%%     (integers or decimals); the renderer is responsible for formatting
+%%     each multiplier without thousands separators or units.
+%%   - The Baseline column is always `1` because the multiplier convention
+%%     is After / Before and Baseline / Baseline = 1.
+%% =============================================================================
+xychart-beta
+    title "Acceleration Curve — Multipliers Across Phases {{TITLE_SUFFIX}}"
+    x-axis ["Baseline", "Ramp-Up", "Steady State"]
+    y-axis "Multiplier (After / Before)" 0 --> {{Y_MAX}}
+    line [1, {{FLOW_VELOCITY_RAMPUP}}, {{FLOW_VELOCITY_STEADY}}]
+    line [1, {{RELEASES_RAMPUP}}, {{RELEASES_STEADY}}]
+    line [1, {{FLOW_TIME_RAMPUP}}, {{FLOW_TIME_STEADY}}]
+    line [1, {{FLOW_LOAD_RAMPUP}}, {{FLOW_LOAD_STEADY}}]
+    line [1, {{FLOW_EFFICIENCY_RAMPUP}}, {{FLOW_EFFICIENCY_STEADY}}]
+    line [1, {{PROBLEM_RECORDS_RAMPUP}}, {{PROBLEM_RECORDS_STEADY}}]
+    line [1, {{ESCAPED_DEFECTS_RAMPUP}}, {{ESCAPED_DEFECTS_STEADY}}]

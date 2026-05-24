@@ -1285,6 +1285,20 @@ def _build_run_manifest(
     # are aliases consumed by the deck renderer and compute_metrics
     # respectively.
     generated_at = finished_at or now_iso()
+
+    # QA finding F-7: enrich the manifest with the commit count and the
+    # first / last commit dates so the closing slide and the report's
+    # Environment Verification section can render concrete numbers
+    # without falling back to "n/a". The values are derived from
+    # ``commits.jsonl`` (cheap to scan once) when it is available; the
+    # fallback is ``git rev-list --count HEAD`` plus ``git log
+    # --reverse|HEAD -1`` for the boundary dates. Both fallbacks
+    # respect the read-only contract (no writes outside
+    # ``acceleration/``).
+    commit_count, first_commit_date, last_commit_date = (
+        _derive_commit_stats(output_dir, repo_root)
+    )
+
     return {
         # Legacy / orchestrator-canonical fields (retained for back-compat).
         "run_id": run_id,
@@ -1306,6 +1320,12 @@ def _build_run_manifest(
         "generated_at": generated_at,
         "extraction_timestamp": generated_at,
         "extracted_at": generated_at,
+        # Commit fingerprint (QA finding F-7). Either of the three
+        # fields may be ``None`` when the data source is unavailable;
+        # the renderers fall back to additional sources when so.
+        "commit_count": commit_count,
+        "first_commit_date": first_commit_date,
+        "last_commit_date": last_commit_date,
         # Orchestrator argv snapshot — captured verbatim so a run can
         # be reproduced from the manifest alone.
         "args": {
@@ -1323,6 +1343,166 @@ def _build_run_manifest(
         "python_version": sys.version.split()[0],
         "git_version": git_version,
     }
+
+
+def _derive_commit_stats(
+    output_dir: Path,
+    repo_root: Path,
+) -> tuple[int | None, str | None, str | None]:
+    """Return ``(commit_count, first_commit_date, last_commit_date)``.
+
+    The values are derived from ``commits.jsonl`` when it exists
+    (cheap, deterministic, in-process); otherwise from
+    ``git rev-list --count HEAD`` plus ``git log`` for the boundary
+    dates. Both code paths are read-only and tolerate failure — when
+    no data source is available, all three components are ``None``
+    and downstream consumers fall back to their own resolution chain
+    (see ``render_deck.py:_commit_count_from_jsonl`` and
+    ``render_report.py``).
+
+    Parameters
+    ----------
+    output_dir
+        Directory containing the extractor outputs
+        (``acceleration/data`` by convention).
+    repo_root
+        Path to the repository root used as the working directory for
+        any git invocations.
+
+    Returns
+    -------
+    tuple[int | None, str | None, str | None]
+        Commit count, earliest commit date (``YYYY-MM-DD``), latest
+        commit date (``YYYY-MM-DD``). Any element may be ``None``.
+    """
+
+    commit_count: int | None = None
+    first_date: str | None = None
+    last_date: str | None = None
+
+    commits_path = output_dir / "commits.jsonl"
+    if commits_path.is_file():
+        # Walk the JSONL once: count non-empty lines and compute the
+        # min / max ``authored_at`` (or ``committed_at`` / ``date``)
+        # field. The extractor writes one record per commit.
+        min_iso: str | None = None
+        max_iso: str | None = None
+        count = 0
+        try:
+            with commits_path.open("r", encoding="utf-8") as handle:
+                for raw_line in handle:
+                    line = raw_line.strip()
+                    if not line:
+                        continue
+                    count += 1
+                    try:
+                        rec = json.loads(line)
+                    except json.JSONDecodeError:
+                        continue
+                    # Try a handful of common timestamp field names; the
+                    # extractor convention is ``authored_at``.
+                    raw_ts: Any = (
+                        rec.get("authored_at")
+                        or rec.get("committed_at")
+                        or rec.get("commit_date")
+                        or rec.get("date")
+                    )
+                    if not isinstance(raw_ts, str) or len(raw_ts) < 10:
+                        continue
+                    iso_date = raw_ts[:10]
+                    if min_iso is None or iso_date < min_iso:
+                        min_iso = iso_date
+                    if max_iso is None or iso_date > max_iso:
+                        max_iso = iso_date
+        except OSError:
+            count = 0
+            min_iso = None
+            max_iso = None
+        if count > 0:
+            commit_count = count
+            first_date = min_iso
+            last_date = max_iso
+
+    # Git CLI fallback for any field still missing.
+    if commit_count is None:
+        commit_count = _git_commit_count(repo_root)
+    if first_date is None:
+        first_date = _git_boundary_date(repo_root, oldest=True)
+    if last_date is None:
+        last_date = _git_boundary_date(repo_root, oldest=False)
+
+    return commit_count, first_date, last_date
+
+
+def _git_commit_count(repo_root: Path) -> int | None:
+    """Return ``git rev-list --count HEAD`` or ``None`` on failure."""
+
+    try:
+        completed = subprocess.run(  # noqa: S603,S607 — git invocation is safe
+            ["git", "rev-list", "--count", "HEAD"],
+            cwd=str(repo_root),
+            check=False,
+            capture_output=True,
+            text=True,
+            timeout=15,
+        )
+    except (FileNotFoundError, subprocess.SubprocessError, OSError):
+        return None
+    if completed.returncode != 0:
+        return None
+    text = (completed.stdout or "").strip()
+    return int(text) if text.isdigit() else None
+
+
+def _git_boundary_date(repo_root: Path, *, oldest: bool) -> str | None:
+    """Return the oldest or newest commit's authored date as ``YYYY-MM-DD``.
+
+    Parameters
+    ----------
+    repo_root
+        Path to the repository root (the git working directory).
+    oldest
+        ``True`` returns the earliest reachable commit date;
+        ``False`` returns the latest.
+
+    Returns
+    -------
+    str | None
+        ``"YYYY-MM-DD"`` on success, ``None`` on failure.
+    """
+
+    args = ["git", "log", "--format=%ad", "--date=short"]
+    if oldest:
+        args.extend(["--reverse"])
+    args.append("HEAD")
+    try:
+        completed = subprocess.run(  # noqa: S603,S607 — git invocation is safe
+            args,
+            cwd=str(repo_root),
+            check=False,
+            capture_output=True,
+            text=True,
+            timeout=15,
+        )
+    except (FileNotFoundError, subprocess.SubprocessError, OSError):
+        return None
+    if completed.returncode != 0:
+        return None
+    output = completed.stdout or ""
+    if not output:
+        return None
+    if oldest:
+        first_line = output.partition("\n")[0].strip()
+    else:
+        # Take the last non-empty line — ``git log`` without ``--reverse``
+        # emits newest-first.
+        first_line = ""
+        for line in output.splitlines():
+            stripped = line.strip()
+            if stripped:
+                first_line = stripped
+                break
+    return first_line or None
 
 
 def _write_run_manifest(manifest_path: Path, payload: dict[str, Any]) -> None:

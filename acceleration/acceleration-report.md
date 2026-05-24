@@ -1,6 +1,6 @@
 # Development Acceleration Analysis — formbricks/formbricks
 
-_Generated 2026-05-23T23:54:44Z_
+_Generated 2026-05-24T01:11:19Z_
 
 ## Executive Summary
 
@@ -31,17 +31,17 @@ The fields below are captured at pipeline start by the orchestrator (``accelerat
 |-------|-------|
 | Repository URL | n/a |
 | Repository owner/name | formbricks/formbricks |
-| HEAD SHA | a5aa7453127da400400c15bb4f4850bb18498334 |
+| HEAD SHA | e1356d397aad68b14f8c320c275d17b9af847e68 |
 | Default branch | main |
-| First commit date | n/a |
-| Latest commit date | n/a |
-| Total commits on main | n/a |
+| First commit date | 2022-06-06 |
+| Latest commit date | 2026-05-24 |
+| Total commits on main | 5,178 |
 | Active branch count | n/a |
 | Submodule state | none |
 | Git version | git version 2.51.0 |
 | Python version | 3.13.7 |
 | Node engine (.nvmrc) | n/a |
-| Extraction timestamp UTC | 2026-05-23T23:54:44Z |
+| Extraction timestamp UTC | 2026-05-24T01:11:19Z |
 
 ## Data Source Inventory
 
@@ -61,7 +61,7 @@ The fields below are captured at pipeline start by the orchestrator (``accelerat
 
 ## Methodology
 
-The analysis pipeline runs in batch mode against the cloned repository at HEAD `a5aa7453127da400400c15bb4f4850bb18498334`. Per AAP §0.8.4, the inflection date `2026-01-29` divides every metric into Baseline, Ramp-Up (first 6 windows = 84 days), and Steady State (windows 7+) using Monday-aligned 2-week UTC windows. When fewer than six post-introduction windows exist, the renderer falls back to a Baseline vs Post-Introduction schema and the Acceleration Curve table column labels record that fallback in place of Ramp-Up / Steady State.
+The analysis pipeline runs in batch mode against the cloned repository at HEAD `e1356d397aad68b14f8c320c275d17b9af847e68`. Per AAP §0.8.4, the inflection date `2026-01-29` divides every metric into Baseline, Ramp-Up (first 6 windows = 84 days), and Steady State (windows 7+) using Monday-aligned 2-week UTC windows. When fewer than six post-introduction windows exist, the renderer falls back to a Baseline vs Post-Introduction schema and the Acceleration Curve table column labels record that fallback in place of Ramp-Up / Steady State.
 
 ```mermaid
 %% =============================================================================
@@ -116,7 +116,7 @@ The analysis pipeline runs in batch mode against the cloned repository at HEAD `
 %%   1920x1080 viewport and is NOT rendered from this template.
 %% ---
 %% TOKENS (UPPER_SNAKE_CASE; renderer substitutes each occurrence below)
-%%   n/a      — Total commit count on main at HEAD with optional
+%%   5,178      — Total commit count on main at HEAD with optional
 %%                           thousands separator. Read from
 %%                           run_manifest.json (captured by
 %%                           `git rev-list --count HEAD`). Shape: an
@@ -198,7 +198,7 @@ The analysis pipeline runs in batch mode against the cloned repository at HEAD `
 %% =============================================================================
 flowchart LR
     subgraph DataSources["Data Sources (Read-Only)"]
-        Git["Local Git History<br/>n/a commits"]
+        Git["Local Git History<br/>5,178 commits"]
         GHAPI["GitHub REST/GraphQL API"]
         GHActions["GitHub Actions Artifacts"]
         GHIssues["GitHub Issues"]
@@ -1077,7 +1077,7 @@ git --version
 python3 --version
 
 # 2. Pin to the analysed revision.
-git fetch origin && git checkout a5aa7453127da400400c15bb4f4850bb18498334
+git fetch origin && git checkout e1356d397aad68b14f8c320c275d17b9af847e68
 
 # 3. (Optional) export GITHUB_TOKEN for full API access.
 # export GITHUB_TOKEN=ghp_...

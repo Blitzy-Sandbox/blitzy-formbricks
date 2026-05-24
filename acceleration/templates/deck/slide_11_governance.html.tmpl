@@ -39,6 +39,13 @@
   <span class="eyebrow">Governance</span>
   <h3>Exceptions &amp; SLA (10, 12)</h3>
   <table class="metric-table">
+    <colgroup>
+      <col class="col-icon">
+      <col class="col-metric">
+      <col class="col-value">
+      <col class="col-conf">
+      <col class="col-caveat">
+    </colgroup>
     <thead>
       <tr><th></th><th>Metric</th><th>Result</th><th>Confidence</th><th>Caveat</th></tr>
     </thead>
@@ -46,14 +53,14 @@
       <tr>
         <td><i data-lucide="shield-alert" aria-hidden="true"></i></td>
         <td>10 · Approved Exceptions</td>
-        <td>{{M10_MULT}}</td>
+        <td>{{M10_SHORT}}</td>
         <td><span class="confidence-{{M10_CONF}}">{{M10_CONF_LABEL}}</span></td>
         <td>{{M10_CAVEAT}}</td>
       </tr>
       <tr>
         <td><i data-lucide="clock-alert" aria-hidden="true"></i></td>
         <td>12 · Defects Out of SLA</td>
-        <td>{{M12_MULT}}</td>
+        <td>{{M12_SHORT}}</td>
         <td><span class="confidence-{{M12_CONF}}">{{M12_CONF_LABEL}}</span></td>
         <td>{{M12_CAVEAT}}</td>
       </tr>

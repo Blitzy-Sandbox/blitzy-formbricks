@@ -77,6 +77,7 @@ import json
 import logging
 import os
 import re
+import subprocess
 import sys
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
@@ -262,6 +263,13 @@ import mermaid from "{CDN_MERMAID}";
 // Mermaid initialisation — AAP §0.7.1 Rule 5 requires startOnLoad:false
 // with explicit mermaid.run() invocation after each slidechanged event
 // so that diagrams inside hidden slides render on first display.
+//
+// Theme variables map the Blitzy brand palette onto Mermaid's default
+// theme. The top-level entries (primaryColor, mainBkg, etc.) govern
+// flowcharts and Gantt diagrams. The xyChart sub-object is required
+// for Mermaid 11.x xychart-beta — that renderer ignores the top-level
+// theme variables (QA finding F-6: prior runs rendered cream bars and
+// white-on-white text because no xyChart variables were declared).
 mermaid.initialize({{
   startOnLoad: false,
   theme: "base",
@@ -275,11 +283,33 @@ mermaid.initialize({{
     background: "#FFFFFF",
     mainBkg: "#5B39F3",
     secondBkg: "#94FAD5",
-    fontFamily: "Inter, system-ui, sans-serif"
+    fontFamily: "Inter, system-ui, sans-serif",
+    titleColor: "#1A105F",
+    // xychart-beta carries its own palette — explicit overrides force
+    // the chart bars, axis ticks, title, and labels into the Blitzy
+    // brand palette and make the chart readable. The
+    // plotColorPalette is a comma-separated string of hex values.
+    xyChart: {{
+      backgroundColor: "#FFFFFF",
+      titleColor: "#1A105F",
+      xAxisLabelColor: "#1A105F",
+      xAxisTitleColor: "#1A105F",
+      xAxisTickColor: "#1A105F",
+      xAxisLineColor: "#1A105F",
+      yAxisLabelColor: "#1A105F",
+      yAxisTitleColor: "#1A105F",
+      yAxisTickColor: "#1A105F",
+      yAxisLineColor: "#1A105F",
+      plotColorPalette: "#5B39F3,#94FAD5,#2D1C77,#1A105F"
+    }}
   }},
   gantt: {{
     useMaxWidth: true,
-    fontSize: 11
+    fontSize: 11,
+    leftPadding: 75,
+    rightPadding: 20,
+    barHeight: 24,
+    barGap: 6
   }},
   flowchart: {{
     useMaxWidth: true,
@@ -290,22 +320,113 @@ mermaid.initialize({{
 
 const deck = new Reveal({REVEAL_CONFIG_JSON});
 
-function renderVisuals() {{
-  // Render Lucide icons if the UMD bundle has loaded.
-  if (window.lucide && typeof window.lucide.createIcons === "function") {{
-    window.lucide.createIcons();
-  }}
-  // Render Mermaid diagrams. ``mermaid.run`` is the idempotent API
-  // introduced in Mermaid 10+; calling it on every slidechanged event
-  // is safe because already-rendered <pre class="mermaid"> blocks are
-  // marked processed by Mermaid itself and skipped on re-invocation.
+// QA finding F-3 / F-4 — Mermaid race condition. The original code
+// called ``mermaid.run()`` without a ``nodes`` argument, which causes
+// Mermaid to walk every ``<pre class="mermaid">`` block in the
+// document and render it. At deck-init time only the first slide is
+// visible; hidden slides have ``offsetWidth === 0`` because
+// reveal.js positions them off-canvas, and Mermaid's flowchart and
+// Gantt renderers produce a degenerate SVG (``viewBox="0 0 0 0"`` and
+// negative-width rects) when invoked against a zero-width container.
+// Once a block carries ``data-processed="true"`` Mermaid refuses to
+// re-render it on revisit, so the broken state is permanent for the
+// page lifetime.
+//
+// Fix: render only the Mermaid blocks that live inside the currently
+// visible slide and force a re-render on each ``slidechanged`` event.
+// Blocks already rendered correctly retain their SVG; blocks that
+// were never rendered (or were rendered with width=0) are reset via
+// ``removeAttribute('data-processed')`` and re-processed against
+// their now-visible (non-zero-width) container.
+function renderMermaidIn(slideEl) {{
+  if (!slideEl) return;
+  const blocks = slideEl.querySelectorAll('pre.mermaid');
+  if (blocks.length === 0) return;
+  blocks.forEach((el) => {{
+    // Detect blocks whose first render produced a malformed SVG
+    // (viewBox width = 0 OR negative-width rects). When detected,
+    // strip the rendered children and the ``data-processed`` marker
+    // so Mermaid re-renders the source from scratch.
+    const svg = el.querySelector('svg');
+    let needsRerender = !svg;
+    if (svg) {{
+      const viewBox = svg.getAttribute('viewBox') || '';
+      const parts = viewBox.trim().split(/\\s+/);
+      const width = parts.length === 4 ? parseFloat(parts[2]) : NaN;
+      if (!isFinite(width) || width <= 1) {{
+        needsRerender = true;
+      }} else {{
+        const negativeRect = svg.querySelector(
+          'rect[width^="-"], path[d*="L -"], path[d*=" -"]'
+        );
+        if (negativeRect) {{
+          needsRerender = true;
+        }}
+      }}
+    }}
+    if (needsRerender) {{
+      // Mermaid stores the original DSL source in ``data-original-code``
+      // when present (set by Mermaid 11.x); otherwise restore the
+      // original text from a ``data-source`` attribute the renderer
+      // sets the first time the block is processed.
+      const original =
+        el.getAttribute('data-original-code')
+        || el.getAttribute('data-source');
+      if (original) {{
+        el.textContent = original;
+      }} else if (svg) {{
+        // No stored source — at minimum, clear the broken SVG so
+        // Mermaid does not append a sibling SVG next to it. The
+        // text node restored by removing the SVG is the original
+        // DSL source (Mermaid preserves it in the text node until
+        // first processing).
+        // Walk DOM children in reverse and remove any non-text
+        // descendant. The remaining text content is the source.
+        const childNodes = Array.from(el.childNodes);
+        for (const node of childNodes) {{
+          if (node.nodeType !== Node.TEXT_NODE) {{
+            el.removeChild(node);
+          }}
+        }}
+      }}
+      el.removeAttribute('data-processed');
+    }}
+  }});
   try {{
-    mermaid.run();
+    mermaid.run({{nodes: Array.from(blocks)}});
   }} catch (err) {{
-    // Defensive: do not let a Mermaid rendering failure crash the deck.
     console.warn("Mermaid render failed:", err);
   }}
 }}
+
+function renderVisuals() {{
+  // Render Lucide icons whenever the UMD bundle has loaded. The
+  // <i data-lucide=…> elements are replaced in-place with <svg> so
+  // re-invocation on each slide is idempotent.
+  if (window.lucide && typeof window.lucide.createIcons === "function") {{
+    window.lucide.createIcons();
+  }}
+  // Render Mermaid for the currently visible slide only. Hidden
+  // slides will render lazily on first visit via the slidechanged
+  // handler below.
+  const current = document.querySelector('section.present');
+  renderMermaidIn(current);
+}}
+
+// Capture each Mermaid block's source text at module-load time so the
+// race-condition recovery (in ``renderMermaidIn``) can restore it
+// when Mermaid wrote a malformed SVG over the source on first render.
+// Mermaid 11.x stores the original code under ``data-original-code``
+// once it has processed a block; this loop captures the source BEFORE
+// Mermaid processes anything so a re-render can recover the DSL.
+(function captureMermaidSources() {{
+  const blocks = document.querySelectorAll('pre.mermaid');
+  blocks.forEach((el) => {{
+    if (!el.hasAttribute('data-source')) {{
+      el.setAttribute('data-source', el.textContent);
+    }}
+  }});
+}})();
 
 deck.initialize().then(() => {{
   renderVisuals();
@@ -313,6 +434,18 @@ deck.initialize().then(() => {{
 
 deck.on("slidechanged", () => {{
   renderVisuals();
+}});
+
+// Mermaid Gantt and flowchart diagrams sometimes need a second render
+// pass after the slide's layout has settled (the initial paint can
+// still report a transient zero-width on the very first frame). A
+// short retry verifies the SVG dimensions and re-renders if the
+// initial pass produced a malformed result.
+deck.on("ready", () => {{
+  window.setTimeout(() => {{
+    const current = document.querySelector('section.present');
+    renderMermaidIn(current);
+  }}, 250);
 }});
 </script>
 <script src="{CDN_LUCIDE}"></script>
@@ -403,16 +536,93 @@ def fmt_display(value: Any) -> str:
     return base
 
 
+def fmt_short_value(value: Any) -> str:
+    """Format a metric value for the compact ``kpi-value`` display slot.
+
+    The ``kpi-value`` slot is dimensioned for a short, prominent
+    multiplier (e.g., ``"3.2×"``) and previously overflowed when the
+    extractor wrote the canonical ``"Insufficient signal — <reason>"``
+    phrase into ``metric.multiplier`` — see QA finding F-2. This
+    helper returns:
+
+    * For a numeric value: ``f"{value:.1f}×"`` (identical to
+      :func:`fmt_display`).
+    * For the canonical Insufficient-signal phrase: the short literal
+      ``"Insufficient"`` so the card layout stays compact. The full
+      reason is surfaced separately in the card's ``.kpi-caveat``
+      element.
+    * For ``None`` or an empty string: ``"n/a"``.
+    * For any other string: the string trimmed and truncated to 24
+      characters with an ellipsis when longer.
+
+    Parameters
+    ----------
+    value
+        The raw multiplier read from ``metrics.json``.
+
+    Returns
+    -------
+    str
+        A short display-ready string suitable for the ``kpi-value``
+        slot.
+    """
+
+    if isinstance(value, bool):
+        return "n/a"
+    if isinstance(value, (int, float)):
+        return f"{float(value):.1f}{MULTIPLIER_SIGN}"
+    if isinstance(value, str):
+        stripped = value.strip()
+        if not stripped:
+            return "n/a"
+        # Detect the canonical Insufficient-signal phrase (case-
+        # insensitive, with or without the em-dash and reason). A
+        # short literal placeholder is rendered in the value slot;
+        # the full reason is surfaced separately via the *_CAVEAT
+        # tokens.
+        if stripped.lower().startswith("insufficient"):
+            return "Insufficient"
+        # Any other long string is truncated so it cannot overflow
+        # the card. The ellipsis signals truncation without making
+        # claims about the underlying value.
+        if len(stripped) > 24:
+            return stripped[:22].rstrip() + "\u2026"
+        return stripped
+    return "n/a"
+
+
+def is_short_insufficient(short_value: str) -> bool:
+    """Return ``True`` when ``short_value`` is the short Insufficient marker.
+
+    Parameters
+    ----------
+    short_value
+        The string returned by :func:`fmt_short_value`.
+
+    Returns
+    -------
+    bool
+        ``True`` when the value indicates an Insufficient-signal
+        metric (so the renderer can add the
+        ``kpi-value-insufficient`` CSS class for compact styling),
+        otherwise ``False``.
+    """
+
+    return isinstance(short_value, str) and short_value.strip().lower().startswith(
+        "insufficient"
+    )
+
+
 def confidence_class(conf: Any) -> str:
     """Map a confidence label to the deck's CSS class suffix.
 
-    The output is intentionally restricted to ``"high"`` / ``"medium"``
-    / ``"low"`` because ``theme.css`` only defines three confidence
-    badge styles (.confidence-high / .confidence-medium /
-    .confidence-low). The fourth conceptual tier — Insufficient signal
-    — borrows the ``"low"`` style and is differentiated by the
-    confidence label ("Insufficient") rather than a separate badge
-    color.
+    The output covers four tiers — ``"high"`` / ``"medium"`` /
+    ``"low"`` / ``"insufficient"`` — each mapped to a dedicated CSS
+    class in ``theme.css`` (``.confidence-high``, ``.confidence-medium``,
+    ``.confidence-low``, ``.confidence-insufficient``). The
+    Insufficient-signal tier was added per QA finding F-8b so users
+    can distinguish a Low-confidence metric (computed via an indirect
+    proxy) from an Insufficient-signal metric (no data measured).
 
     Parameters
     ----------
@@ -425,7 +635,7 @@ def confidence_class(conf: Any) -> str:
     Returns
     -------
     str
-        One of ``"high"``, ``"medium"``, ``"low"``.
+        One of ``"high"``, ``"medium"``, ``"low"``, ``"insufficient"``.
     """
 
     if not isinstance(conf, str) or not conf.strip():
@@ -435,7 +645,9 @@ def confidence_class(conf: Any) -> str:
         return "high"
     if c.startswith("med"):
         return "medium"
-    # Insufficient signal and any other label collapse to "low".
+    if c.startswith("insuff"):
+        return "insufficient"
+    # Any other label collapses to "low" for backwards compatibility.
     return "low"
 
 
@@ -887,16 +1099,54 @@ def build_tokens(
     #   REL  → releases (Metric 9)
     #   VEL  → flow_velocity (Metric 2)
     #   TIME → flow_time (Metric 7)
+    #
+    # Per QA finding F-2, the ``*_DISPLAY`` token (used in the long-
+    # form value slot) and the ``*_SHORT`` token (used in the compact
+    # ``kpi-value`` slot on slide 03) are computed separately. The
+    # short form collapses the canonical Insufficient-signal phrase to
+    # the single word "Insufficient" so the card layout stays compact;
+    # the full reason is surfaced via the ``*_CAVEAT`` token. The
+    # ``*_VALUE_CLASS`` token carries the extra CSS class
+    # ``kpi-value-insufficient`` when the value is non-numeric, so the
+    # template can apply a smaller font without an additional
+    # conditional.
     rel_metric = _metric("releases")
     vel_metric = _metric("flow_velocity")
     time_metric = _metric("flow_time")
-    tokens["REL_DISPLAY"] = fmt_display(steady_multiplier(rel_metric))
+    rel_value = steady_multiplier(rel_metric)
+    vel_value = steady_multiplier(vel_metric)
+    time_value = steady_multiplier(time_metric)
+    rel_short = fmt_short_value(rel_value)
+    vel_short = fmt_short_value(vel_value)
+    time_short = fmt_short_value(time_value)
+    tokens["REL_DISPLAY"] = fmt_display(rel_value)
+    tokens["REL_SHORT"] = rel_short
+    tokens["REL_VALUE_CLASS"] = (
+        "kpi-value kpi-value-insufficient"
+        if is_short_insufficient(rel_short)
+        else "kpi-value"
+    )
+    tokens["REL_CAVEAT"] = _extract_caveat(rel_metric)
     tokens["REL_CONF"] = confidence_class(rel_metric.get("confidence"))
     tokens["REL_CONF_LABEL"] = confidence_label(rel_metric.get("confidence"))
-    tokens["VEL_DISPLAY"] = fmt_display(steady_multiplier(vel_metric))
+    tokens["VEL_DISPLAY"] = fmt_display(vel_value)
+    tokens["VEL_SHORT"] = vel_short
+    tokens["VEL_VALUE_CLASS"] = (
+        "kpi-value kpi-value-insufficient"
+        if is_short_insufficient(vel_short)
+        else "kpi-value"
+    )
+    tokens["VEL_CAVEAT"] = _extract_caveat(vel_metric)
     tokens["VEL_CONF"] = confidence_class(vel_metric.get("confidence"))
     tokens["VEL_CONF_LABEL"] = confidence_label(vel_metric.get("confidence"))
-    tokens["TIME_DISPLAY"] = fmt_display(steady_multiplier(time_metric))
+    tokens["TIME_DISPLAY"] = fmt_display(time_value)
+    tokens["TIME_SHORT"] = time_short
+    tokens["TIME_VALUE_CLASS"] = (
+        "kpi-value kpi-value-insufficient"
+        if is_short_insufficient(time_short)
+        else "kpi-value"
+    )
+    tokens["TIME_CAVEAT"] = _extract_caveat(time_metric)
     tokens["TIME_CONF"] = confidence_class(time_metric.get("confidence"))
     tokens["TIME_CONF_LABEL"] = confidence_label(time_metric.get("confidence"))
 
@@ -910,18 +1160,33 @@ def build_tokens(
         tokens["ACTIVE_ENG"] = "n/a"
 
     # -- Per-metric tokens for slides 09, 10, 11 ---------------------------
-    # All twelve metrics receive BOTH ``_DISPLAY`` and ``_MULT`` token
+    # All twelve metrics receive both ``_DISPLAY`` and ``_MULT`` token
     # values because the slide templates use both conventions (slides
     # 09 and 10 use ``_DISPLAY``; slide 11 uses ``_MULT``). The display
     # string is identical for both — including the U+00D7 suffix for
     # numeric values and the canonical Insufficient-signal phrase for
     # string values.
+    #
+    # Per QA finding F-2 each metric ALSO receives a ``_SHORT`` token
+    # and a ``_VALUE_CLASS`` token. The short token collapses the
+    # canonical Insufficient-signal phrase to the single word
+    # "Insufficient" so the compact ``kpi-value`` slot on slide 10
+    # cannot overflow; the value-class token carries the
+    # ``kpi-value-insufficient`` CSS modifier in the same case so the
+    # short placeholder renders at a smaller, neutral-grey font.
     for metric_id, token_key in METRIC_ID_TO_KEY.items():
         metric_entry = _metric(metric_id)
         multiplier = steady_multiplier(metric_entry)
         display_value = fmt_display(multiplier)
+        short_value = fmt_short_value(multiplier)
         tokens[f"{token_key}_DISPLAY"] = display_value
         tokens[f"{token_key}_MULT"] = display_value
+        tokens[f"{token_key}_SHORT"] = short_value
+        tokens[f"{token_key}_VALUE_CLASS"] = (
+            "kpi-value kpi-value-insufficient"
+            if is_short_insufficient(short_value)
+            else "kpi-value"
+        )
         tokens[f"{token_key}_CONF"] = confidence_class(
             metric_entry.get("confidence")
         )
@@ -1008,9 +1273,20 @@ def build_tokens(
         tokens[f"RISK_{i}_CONF_CLASS"] = confidence_class(severity)
 
     # -- Closing slide (17) ------------------------------------------------
-    commit_count = manifest.get("commit_count")
+    # QA finding F-7: the commit count is not always set on the
+    # manifest (the orchestrator wrote a ``commit_count: null`` field
+    # in past runs). Walk a fallback chain so the closing slide does
+    # not render "n/a commits analyzed" when the data is actually
+    # available — first the manifest field, then the metrics field,
+    # then the commits.jsonl line count, then (last resort)
+    # ``git rev-list --count HEAD`` invoked against the repo root.
+    commit_count: Any = manifest.get("commit_count")
     if commit_count is None:
         commit_count = metrics.get("commit_count")
+    if commit_count is None:
+        commit_count = _commit_count_from_jsonl(manifest)
+    if commit_count is None:
+        commit_count = _commit_count_from_git(manifest)
     if isinstance(commit_count, (int, float)) and not isinstance(commit_count, bool):
         tokens["COMMIT_TOTAL"] = f"{int(commit_count):,}"
     elif isinstance(commit_count, str) and commit_count.strip():
@@ -1025,6 +1301,100 @@ def build_tokens(
         tokens["HEAD_SHA_SHORT"] = "n/a"
 
     return tokens
+
+
+def _commit_count_from_jsonl(manifest: dict[str, Any]) -> int | None:
+    """Return the commit count by counting lines in ``commits.jsonl``.
+
+    Used as a fallback for the closing-slide ``COMMIT_TOTAL`` token
+    when neither ``manifest.commit_count`` nor ``metrics.commit_count``
+    is populated (QA finding F-7). The extractor writes one JSON
+    object per commit to ``commits.jsonl`` so a non-empty line count
+    equals the analysed commit count.
+
+    Parameters
+    ----------
+    manifest
+        The decoded ``run_manifest.json`` payload. The
+        ``output_dir`` field points at ``acceleration/data``.
+
+    Returns
+    -------
+    int | None
+        The commit count, or ``None`` when the file is unavailable.
+    """
+
+    candidates: list[Path] = []
+    output_dir = manifest.get("output_dir")
+    if isinstance(output_dir, str) and output_dir.strip():
+        candidates.append(Path(output_dir) / "commits.jsonl")
+    accel_dir = manifest.get("accel_dir")
+    if isinstance(accel_dir, str) and accel_dir.strip():
+        candidates.append(Path(accel_dir) / "data" / "commits.jsonl")
+    repo_root = manifest.get("repo_root")
+    if isinstance(repo_root, str) and repo_root.strip():
+        candidates.append(
+            Path(repo_root) / "acceleration" / "data" / "commits.jsonl"
+        )
+    # Last resort: relative to the renderer's CWD.
+    candidates.append(Path("acceleration") / "data" / "commits.jsonl")
+    for path in candidates:
+        try:
+            if path.is_file():
+                # Counting non-empty lines avoids miscounting a trailing
+                # newline as an extra commit.
+                with path.open("r", encoding="utf-8") as handle:
+                    return sum(1 for line in handle if line.strip())
+        except OSError:
+            continue
+    return None
+
+
+def _commit_count_from_git(manifest: dict[str, Any]) -> int | None:
+    """Return the commit count by invoking ``git rev-list --count HEAD``.
+
+    Final fallback for the closing-slide ``COMMIT_TOTAL`` token. Used
+    only when neither the manifest, metrics, nor ``commits.jsonl``
+    yields a value. The git invocation runs against the manifest's
+    ``repo_root`` so it succeeds even when the renderer is invoked
+    from a different working directory.
+
+    Parameters
+    ----------
+    manifest
+        The decoded ``run_manifest.json`` payload. The ``repo_root``
+        field is the only required entry.
+
+    Returns
+    -------
+    int | None
+        The commit count, or ``None`` when git is unavailable or the
+        invocation fails.
+    """
+
+    repo_root_raw = manifest.get("repo_root")
+    repo_root: Path
+    if isinstance(repo_root_raw, str) and repo_root_raw.strip():
+        repo_root = Path(repo_root_raw)
+    else:
+        repo_root = Path.cwd()
+    try:
+        completed = subprocess.run(  # noqa: S603 — git invocation is safe
+            ["git", "rev-list", "--count", "HEAD"],
+            cwd=str(repo_root),
+            check=False,
+            capture_output=True,
+            text=True,
+            timeout=10,
+        )
+    except (FileNotFoundError, subprocess.SubprocessError, OSError):
+        return None
+    if completed.returncode != 0:
+        return None
+    output = (completed.stdout or "").strip()
+    if not output.isdigit():
+        return None
+    return int(output)
 
 
 def _humanise_timestamp(raw: str) -> str:

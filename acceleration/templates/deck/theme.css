@@ -44,26 +44,43 @@
   --brand-teal:    #94FAD5;
   --brand-navy:    #1A105F;
 
-  /* Neutral palette (greys, white) */
+  /* Neutral palette (Tailwind-aligned greys, white). The full
+   * 50/100/200/300/500/700/900 scale is declared so every neutral
+   * referenced elsewhere in this stylesheet resolves to a concrete
+   * value — see QA finding F-8a (a stray var(--neutral-700) reference
+   * that previously resolved to the CSS initial value). */
   --neutral-50:    #FAFAFA;
   --neutral-100:   #F4F4F5;
   --neutral-200:   #E4E4E7;
   --neutral-300:   #D4D4D8;
   --neutral-500:   #71717A;
+  --neutral-700:   #3F3F46;
   --neutral-900:   #18181B;
   --white:         #FFFFFF;
 
-  /* Semantic colors for confidence/severity badges */
-  --confidence-high-bg:   var(--brand-teal);
-  --confidence-high-fg:   var(--brand-navy);
-  --confidence-medium-bg: #FCD34D;
-  --confidence-medium-fg: var(--brand-navy);
-  --confidence-low-bg:    #FCA5A5;
-  --confidence-low-fg:    var(--neutral-900);
+  /* Semantic colors for confidence/severity badges. Four tiers map to
+   * the High / Medium / Low / Insufficient confidence rubric. The
+   * dedicated Insufficient pair (QA finding F-8b) uses a neutral grey
+   * pair so users can visually distinguish "Low confidence with a
+   * computed value" from "Insufficient signal — no data measured". */
+  --confidence-high-bg:         var(--brand-teal);
+  --confidence-high-fg:         var(--brand-navy);
+  --confidence-medium-bg:       #FCD34D;
+  --confidence-medium-fg:       var(--brand-navy);
+  --confidence-low-bg:          #FCA5A5;
+  --confidence-low-fg:          var(--neutral-900);
+  --confidence-insufficient-bg: var(--neutral-200);
+  --confidence-insufficient-fg: var(--neutral-700);
 
-  /* Gradient utilities (only the two gradients actively referenced by slide variants are declared) */
+  /* Gradient utilities. Three gradients cover the deck variants:
+   *   --gradient-primary : Title slide (purple)
+   *   --gradient-navy    : Closing slide (navy)
+   *   --gradient-teal    : Accent surfaces (hero KPI, teal callouts)
+   * The third gradient (QA finding F-8c) was added so every
+   * brand-aligned background surface resolves to a declared token. */
   --gradient-primary: linear-gradient(135deg, var(--brand-primary), var(--brand-dark));
   --gradient-navy:    linear-gradient(135deg, var(--brand-navy), var(--brand-dark));
+  --gradient-teal:    linear-gradient(135deg, var(--brand-teal), var(--brand-primary));
 
   /* Typography stacks */
   --font-body:      'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
@@ -80,6 +97,22 @@
   font-size: 28px;
   color: var(--neutral-900);
   background: var(--white);
+}
+
+/* QA finding F-2 (Slide 03 KPI overflow) and F-5 (table overflow) root-cause
+ * remediation: reveal.js's default ``.reveal .slides section`` uses
+ * ``box-sizing: content-box`` so the configured 1920px width is the CONTENT
+ * width and any padding (e.g., ``padding: 3em 4em`` => 84px / 112px at the
+ * configured 28px base font-size) inflates the actual section element to
+ * 2144px. Reveal then scales the slides down by 0.96 to compensate, which
+ * (a) makes content render smaller than designed, and (b) still allows the
+ * outermost content (e.g., the 4th KPI card or the rightmost table column)
+ * to extend past the 1920px viewport edge. Forcing border-box keeps padding
+ * inside the configured viewport, eliminating the horizontal overflow without
+ * altering any other layout dimensions. */
+.reveal .slides section,
+.reveal section {
+  box-sizing: border-box;
 }
 
 .reveal h1,
@@ -299,6 +332,28 @@
   color: var(--brand-primary);
   line-height: 1;
   margin-bottom: 0.3em;
+  /* QA finding F-2: the kpi-value slot is dimensioned for short
+   * numeric multipliers ("3.2×") or the short placeholder
+   * "Insufficient". Hard-limit text overflow inside this slot so a
+   * surprisingly-long string from upstream data cannot push the card
+   * past its grid track and clip neighbouring cards off-viewport. The
+   * full Insufficient-signal reason is moved into the .kpi-caveat
+   * element below the badge. */
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  word-break: break-word;
+}
+
+/* Short-form variant used by render_deck.py when the metric's
+ * underlying value is a non-numeric Insufficient-signal phrase. The
+ * font-size is reduced relative to the numeric form so the
+ * placeholder still fits comfortably in the card without dominating
+ * the layout. The full caveat appears in the .kpi-caveat element. */
+.reveal .kpi-card .kpi-value.kpi-value-insufficient {
+  font-size: 1.4em;
+  color: var(--neutral-700);
+  font-weight: 600;
 }
 
 .reveal .kpi-card .kpi-sublabel {
@@ -348,7 +403,8 @@
  */
 .reveal .confidence-high,
 .reveal .confidence-medium,
-.reveal .confidence-low {
+.reveal .confidence-low,
+.reveal .confidence-insufficient {
   display: inline-block;
   font-family: var(--font-mono);
   font-size: 0.6em;
@@ -375,16 +431,39 @@
   color: var(--confidence-low-fg);
 }
 
+/* "Insufficient signal" badge — neutral grey to distinguish from Low
+ * confidence (rose-pink). Per QA finding F-8b, an Insufficient-signal
+ * metric (no data extracted) should be visually distinguishable from a
+ * Low-confidence metric (data extracted via indirect proxy). */
+.reveal .confidence-insufficient {
+  background: var(--confidence-insufficient-bg);
+  color: var(--confidence-insufficient-fg);
+  border: 1px solid var(--neutral-300);
+}
+
 /* ----------------------------------------------------------------------------
  * Phase 9: Metric table (per-engineer & per-metric tabular slides)
  * ----------------------------------------------------------------------------
  */
 .reveal table.metric-table {
+  /* QA finding F-5: tables previously rendered with table-layout:auto
+   * widened past the 1920px viewport on slides 09, 11, and 14 because
+   * the Caveat column carried long boundary-condition text. Switching
+   * to ``table-layout: fixed`` constrains each column to its declared
+   * width and lets ``word-break: break-word`` wrap long strings within
+   * the cell. ``max-width: 100%`` plus ``box-sizing: border-box``
+   * guarantees the rendered table never exceeds its slide's content
+   * area regardless of caveat length. */
   width: 100%;
+  max-width: 100%;
+  table-layout: fixed;
+  box-sizing: border-box;
   border-collapse: collapse;
   font-size: 0.7em;
   font-family: var(--font-body);
   margin-top: 1em;
+  word-break: break-word;
+  overflow-wrap: break-word;
 }
 
 .reveal table.metric-table thead th {
@@ -395,12 +474,16 @@
   padding: 0.8em 1em;
   text-align: left;
   letter-spacing: 0.02em;
+  word-break: break-word;
 }
 
 .reveal table.metric-table tbody td {
   padding: 0.7em 1em;
   border-bottom: 1px solid var(--neutral-200);
   vertical-align: middle;
+  word-break: break-word;
+  overflow-wrap: break-word;
+  hyphens: auto;
 }
 
 .reveal table.metric-table tbody tr:nth-child(odd) {
@@ -426,6 +509,19 @@
   font-variant-numeric: tabular-nums;
 }
 
+/* Column-width hints for the per-metric tables on slides 09/11/14.
+ * The narrow first three columns (index, metric, multiplier or severity)
+ * leave the remaining width for the Confidence + Caveat columns. The
+ * percent widths are interpreted by ``table-layout: fixed`` above. */
+.reveal table.metric-table col.col-index    { width:  4%; }
+.reveal table.metric-table col.col-metric   { width: 18%; }
+.reveal table.metric-table col.col-value    { width: 12%; }
+.reveal table.metric-table col.col-conf     { width: 12%; }
+.reveal table.metric-table col.col-caveat   { width: 54%; }
+.reveal table.metric-table col.col-risk     { width: 78%; }
+.reveal table.metric-table col.col-severity { width: 14%; }
+.reveal table.metric-table col.col-icon     { width:  6%; }
+
 /* ----------------------------------------------------------------------------
  * Phase 10: Mermaid diagram container
  *
@@ -443,13 +539,78 @@
   justify-content: center;
   align-items: center;
   min-height: 200px;
+  max-height: 60vh;
   margin: 1em 0;
   font-family: var(--font-body);
+  overflow: hidden;
 }
 
+/* QA finding F-3b: Mermaid by default renders SVGs at ``width: 100%`` with
+ * height computed from the viewBox aspect ratio, so a gantt with viewBox
+ * ``0 0 300 190`` rendered into a 1465px-wide container balloons to 928px
+ * tall — overflowing the ``max-height: 60vh`` constraint of the wrapper.
+ * ``max-height`` on the SVG must be expressed in absolute units (vh)
+ * because percentage max-height requires the parent to have a fixed
+ * (not a max-) height to compute against. */
 .reveal .mermaid svg {
   max-width: 100% !important;
+  max-height: 56vh !important;
+  width: auto !important;
   height: auto !important;
+}
+
+/* QA finding F-3b: the Gantt chart title was previously rendered far
+ * larger than the available chart area, clipping at left and forcing
+ * the diagram bars into the lower-right corner. SVG font-size is
+ * expressed in user-coordinate units (i.e., viewBox space), and Mermaid's
+ * gantt viewBox spans only 300 units of width. The ``text.titleText``
+ * font-size therefore must be expressed at a value proportional to the
+ * 300-unit canvas — 10px in SVG units yields a readable header without
+ * clipping the title text. Bars and section labels share the same
+ * coordinate space and are tuned in tandem. */
+.reveal .mermaid svg .titleText,
+.reveal .mermaid svg text.titleText {
+  font-size: 10px !important;
+  font-family: var(--font-display) !important;
+  font-weight: 600 !important;
+  fill: var(--brand-navy) !important;
+}
+
+/* Gantt body text: section labels (Baseline / Ramp-Up / Steady State),
+ * task labels (Pre-AI Tool / First 84 days / 90+ days), and tick labels
+ * (2022-07 ...). Constrain to a readable proportion of the 300-unit
+ * canvas. */
+.reveal .mermaid svg .sectionTitle,
+.reveal .mermaid svg .taskText,
+.reveal .mermaid svg .taskTextOutsideRight,
+.reveal .mermaid svg .taskTextOutsideLeft,
+.reveal .mermaid svg .taskTextOutsideRight1,
+.reveal .mermaid svg .grid .tick text {
+  font-size: 8px !important;
+  font-family: var(--font-body) !important;
+  fill: var(--brand-navy) !important;
+}
+
+/* QA finding F-6: ensure xychart-beta titles and axis labels render in
+ * brand colors at readable sizes. The Mermaid xychart-beta renderer's
+ * default white-on-white text rendering is mitigated here as a
+ * secondary defense to the themeVariables injected in the parent
+ * HTML's mermaid.initialize() block — if the library's internal
+ * palette ever drifts, these CSS overrides still guarantee readable
+ * text on the slide. */
+.reveal .mermaid svg .xychart-title,
+.reveal .mermaid svg .xychart-axis-label,
+.reveal .mermaid svg .xychart-axis-tick-label,
+.reveal .mermaid svg .xychart-x-axis text,
+.reveal .mermaid svg .xychart-y-axis text {
+  fill: var(--brand-navy) !important;
+  font-family: var(--font-body) !important;
+  font-weight: 500 !important;
+}
+
+.reveal .mermaid svg .xychart-plot rect,
+.reveal .mermaid svg .xychart-plot path {
+  fill: var(--brand-primary) !important;
 }
 
 /* ----------------------------------------------------------------------------

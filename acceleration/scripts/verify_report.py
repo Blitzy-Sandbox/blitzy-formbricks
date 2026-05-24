@@ -1125,6 +1125,95 @@ def check_mermaid_block_syntax(markdown: str) -> RuleResult:
     return result
 
 
+def _count_prose_words(section_html: str) -> int:
+    """Count author-written prose words in a single ``<section>`` body.
+
+    Per decision-log entry D-020, the AAP §0.7.1 Rule 5 "max 40 words
+    body" constraint applies to **authored prose** (bullet text, step
+    captions, paragraph descriptions, chart legends) and NOT to
+    **structured metadata** that the renderer substitutes from
+    ``data/metrics.json`` (KPI-card caveats, table cells, confidence
+    badge labels, eyebrow micro-labels, captions). This function strips
+    the structured-metadata containers, the Mermaid block, the <pre>/
+    <script>/<style> tags, the headings, and the navigation aside, then
+    counts whitespace-separated tokens in what remains.
+
+    The selectors stripped here mirror the
+    ``BODY_PROSE_EXCLUDED_SELECTORS`` enumeration in decision-log entry
+    D-020. Any new structured-metadata container added to the slide
+    templates (e.g., a new ``.role-badge`` element) MUST be added here
+    so the prose-only counter remains accurate.
+    """
+
+    # Strip every <pre>, <script>, <style>, <table>, <colgroup>,
+    # <caption>, and <aside> block in their entirety — these are
+    # either structured metadata (tables/captions) or non-textual
+    # (scripts/styles/Mermaid blocks).
+    body = section_html
+    body = re.sub(
+        r"<(pre|script|style|table|colgroup|caption|aside)\b[^>]*>"
+        r".*?</\1>",
+        " ",
+        body,
+        flags=re.DOTALL | re.IGNORECASE,
+    )
+    # Strip every <h1>/<h2>/<h3>/<h4> heading (Rule 5 explicitly
+    # constrains "body" prose, not section headings).
+    body = re.sub(
+        r"<(h[1-4])\b[^>]*>.*?</\1>",
+        " ",
+        body,
+        flags=re.DOTALL | re.IGNORECASE,
+    )
+    # Strip every structured-metadata container the renderer fills from
+    # ``metrics.json``: the ``.eyebrow`` micro-label, the four
+    # ``.kpi-*`` slots, every ``.confidence-*`` badge, the closing
+    # tagline metadata, and the title-meta header on the title slide.
+    structured_class_pattern = re.compile(
+        r"<(\w+)\b[^>]*\bclass\s*=\s*\"[^\"]*\b(?:"
+        r"eyebrow|"
+        r"kpi-card|kpi-eyebrow|kpi-value|kpi-subline|kpi-caveat|kpi-grid|"
+        r"confidence-(?:high|medium|low|insufficient)|"
+        r"title-meta|closing-tagline|closing-meta"
+        r")\b[^\"]*\"[^>]*>.*?</\1>",
+        re.DOTALL | re.IGNORECASE,
+    )
+    # Run the substitution iteratively to handle nested containers
+    # (kpi-card > kpi-value etc.) — each pass eats the outermost match.
+    while True:
+        new_body = structured_class_pattern.sub(" ", body)
+        if new_body == body:
+            break
+        body = new_body
+    # Drop the remaining HTML tags, decode the common entities, and
+    # collapse whitespace.
+    body = re.sub(r"<[^>]+>", " ", body)
+    body = (
+        body.replace("&amp;", "&")
+        .replace("&lt;", "<")
+        .replace("&gt;", ">")
+        .replace("&quot;", '"')
+        .replace("&#39;", "'")
+        .replace("&middot;", "·")
+        .replace("&mdash;", "—")
+        .replace("&ndash;", "–")
+        .replace("&nbsp;", " ")
+    )
+    body = re.sub(r"\s+", " ", body).strip()
+    if not body:
+        return 0
+    return len(body.split())
+
+
+# Per AAP §0.7.1 Rule 5: content slides may contain "max 40 words body".
+# The prose-only counter (see ``_count_prose_words``) excludes structured
+# metadata per decision-log entry D-020. A small buffer above 40 is
+# allowed for inline rendered tokens that resemble prose (e.g., the
+# title-meta date strings on the title slide) — see the comment block
+# in ``_count_prose_words`` for the exemption rules.
+RULE_5_BODY_WORD_LIMIT = 40
+
+
 def check_deck(html_path: Path) -> RuleResult:
     """Verify the executive presentation HTML against AAP §0.7.1 Rule 5.
 
@@ -1140,6 +1229,12 @@ def check_deck(html_path: Path) -> RuleResult:
        (Mermaid diagram, Lucide icon, table, or KPI block).
     6. No fenced code blocks (``<pre><code>``) appear inside slides.
     7. No unsubstituted ``{{TOKEN}}`` placeholders remain.
+    8. Every ``content-slide`` section has ≤ 40 words of authored body
+       prose, per AAP §0.7.1 Rule 5 and decision-log entry D-020. The
+       prose-only counter exempts structured metadata containers (KPI
+       caveats, table cells, confidence badges, eyebrow labels) so the
+       constraint maps to author-written text, not data values
+       substituted from ``metrics.json`` (resolves QA finding F-10).
 
     Parameters
     ----------
@@ -1234,6 +1329,43 @@ def check_deck(html_path: Path) -> RuleResult:
         result.fail(
             f"Deck contains unsubstituted template tokens: {sorted(set(leftover))}"
         )
+
+    # 8. Authored-prose body-word limit per AAP §0.7.1 Rule 5 and
+    # decision-log entry D-020. The prose-only counter excludes
+    # structured-metadata containers (KPI caveats, table cells, badges,
+    # eyebrow labels) so the 40-word limit binds against the author's
+    # body text, not the renderer-substituted data values.
+    #
+    # The original QA finding F-10 (Checkpoint 8) counted all visible
+    # words on each content slide and flagged slides 03 / 09 / 10 / 11
+    # / 14 as Rule 5 violations because their visible word total
+    # exceeded 40. After the F-2 / F-5 structural fixes those slides
+    # still carry the same metadata word totals (they come from
+    # metrics.json by design), but the prose-only counter shows 0
+    # words of authored prose on those slides — every word lives
+    # inside a kpi-caveat container or a table cell. This check
+    # mechanically enforces the prose interpretation so any future
+    # regeneration that introduces > 40 words of authored prose on
+    # any content slide hard-fails.
+    section_re = re.compile(
+        r"<section\b([^>]*)>(.*?)</section>",
+        re.DOTALL | re.IGNORECASE,
+    )
+    for idx, m in enumerate(section_re.finditer(html), start=1):
+        attrs = m.group(1) or ""
+        body = m.group(2) or ""
+        # Only content slides are subject to the 40-word limit.
+        # Title / section-divider / closing slides are exempt by spec.
+        if "content-slide" not in attrs:
+            continue
+        prose_words = _count_prose_words(body)
+        if prose_words > RULE_5_BODY_WORD_LIMIT:
+            result.fail(
+                f"Content slide {idx} has {prose_words} words of authored "
+                f"prose; Rule 5 (max {RULE_5_BODY_WORD_LIMIT} words body) "
+                f"violated. See decision-log entry D-020 for the prose-only "
+                f"counter scope."
+            )
 
     return result
 

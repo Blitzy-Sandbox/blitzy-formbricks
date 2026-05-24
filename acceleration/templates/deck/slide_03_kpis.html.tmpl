@@ -138,23 +138,27 @@
   <div class="kpi-grid">
     <div class="kpi-card">
       <span class="kpi-label">Releases / Window</span>
-      <div class="kpi-value">{{REL_DISPLAY}}</div>
+      <div class="{{REL_VALUE_CLASS}}">{{REL_SHORT}}</div>
       <span class="confidence-{{REL_CONF}}">{{REL_CONF_LABEL}}</span>
+      <span class="kpi-caveat">{{REL_CAVEAT}}</span>
     </div>
     <div class="kpi-card">
       <span class="kpi-label">Flow Velocity</span>
-      <div class="kpi-value">{{VEL_DISPLAY}}</div>
+      <div class="{{VEL_VALUE_CLASS}}">{{VEL_SHORT}}</div>
       <span class="confidence-{{VEL_CONF}}">{{VEL_CONF_LABEL}}</span>
+      <span class="kpi-caveat">{{VEL_CAVEAT}}</span>
     </div>
     <div class="kpi-card">
       <span class="kpi-label">Flow Time</span>
-      <div class="kpi-value">{{TIME_DISPLAY}}</div>
+      <div class="{{TIME_VALUE_CLASS}}">{{TIME_SHORT}}</div>
       <span class="confidence-{{TIME_CONF}}">{{TIME_CONF_LABEL}}</span>
+      <span class="kpi-caveat">{{TIME_CAVEAT}}</span>
     </div>
     <div class="kpi-card">
       <span class="kpi-label">Active Engineers (After)</span>
       <div class="kpi-value">{{ACTIVE_ENG}}</div>
       <span class="confidence-high">High</span>
+      <span class="kpi-caveat"></span>
     </div>
   </div>
 </section>

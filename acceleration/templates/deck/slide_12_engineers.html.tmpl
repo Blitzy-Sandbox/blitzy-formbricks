@@ -41,7 +41,7 @@
       ordering and bar values here must match the Per-Engineer Acceleration
       table in acceleration-report.md (Rule 4 — Internal Consistency).
 -->
-<section class="content-slide">
+<section class="content-slide eng-slide">
   <span class="eyebrow">Per-Engineer View</span>
   <h3>Contributions by Engineer · After Period</h3>
   <pre class="mermaid">
@@ -52,5 +52,13 @@ xychart-beta
     y-axis "Contribution"
     bar {{ENG_VALUES}}
   </pre>
-  <p class="diagram-legend"><i data-lucide="info" aria-hidden="true"></i> Per AAP §0.8.1, Blitzy Agent appears as one row in the after period. Real names use the resolved aliases in actor_aliases.json.</p>
+  <table class="eng-name-table" aria-label="Engineer name reference">
+    <thead>
+      <tr><th>Chart label</th><th>Full name</th><th>Value</th></tr>
+    </thead>
+    <tbody>
+{{ENG_TABLE_ROWS}}
+    </tbody>
+  </table>
+  <p class="diagram-legend"><i data-lucide="info" aria-hidden="true"></i> Chart x-axis uses short labels for readability; the table maps each short label to the engineer's full display name (per AAP §0.8.1, Blitzy Agent appears as one row in the after period; real names use resolved aliases in actor_aliases.json).</p>
 </section>

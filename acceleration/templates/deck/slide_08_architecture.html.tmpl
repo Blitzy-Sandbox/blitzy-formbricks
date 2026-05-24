@@ -53,19 +53,20 @@
   <span class="eyebrow">Architecture</span>
   <h3>Analysis Pipeline</h3>
   <pre class="mermaid">
+%%{init: {"flowchart": {"htmlLabels": false, "padding": 18, "nodeSpacing": 35, "rankSpacing": 60, "curve": "linear", "useMaxWidth": true}}}%%
 flowchart LR
-    G[Git History] --> E1[Extractors]
-    GH[GitHub API] --> E1
-    CI[CI Artifacts] --> E1
-    E1 --> JL[Normalized JSONL]
-    JL --> C[Classifier + Computer]
-    C --> SoT[(metrics.json)]
-    SoT --> R[Report Renderer]
-    SoT --> D[Deck Renderer]
-    SoT --> V[Verifier]
-    R --> Report[acceleration-report.md]
-    D --> Deck[executive-presentation.html]
-    V --> Pass{Rules 1-6 Pass?}
+    G["Git History"] --> E1["Extractors"]
+    GH["GitHub API"] --> E1
+    CI["CI Artifacts"] --> E1
+    E1 --> JL["Normalized JSONL"]
+    JL --> C["Classifier + Computer"]
+    C --> SoT[("metrics.json")]
+    SoT --> R["Report Renderer"]
+    SoT --> D["Deck Renderer"]
+    SoT --> V["Verifier"]
+    R --> Report["acceleration-report.md"]
+    D --> Deck["executive-presentation.html"]
+    V --> Pass{"Rules 1-6 Pass?"}
   </pre>
   <p class="diagram-legend"><i data-lucide="info" aria-hidden="true"></i> Read-only data flows left to right. metrics.json is the single source of truth consumed by every renderer.</p>
 </section>

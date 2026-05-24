@@ -4151,14 +4151,98 @@ def aggregate_per_engineer(
     rows.sort(key=_post_value, reverse=True)
     top = rows[:8]
     summary = _build_per_engineer_summary(rows, attributable_metrics)
+
+    # QA finding UX-5 — the deck's Mermaid xychart-beta on slide 12
+    # cannot fit long full names on the x-axis (e.g., "Chowdhury Tafsir
+    # Ahmed Siddiki" collides with its neighbour). Compose a short
+    # first-name-only label per top-N engineer that fits comfortably on
+    # the chart axis; ties are broken by appending an initial of the
+    # next name component so the chart remains unambiguous.
+    full_labels: list[str] = [row["display_name"] for row in top]
+    short_labels: list[str] = _compose_short_labels(full_labels)
     return {
         "rows": rows,
-        "labels": [row["display_name"] for row in top],
+        # ``labels`` continues to carry the long display names for
+        # back-compat with consumers that have not yet upgraded; the
+        # deck renderer now reads ``short_labels`` for the Mermaid
+        # x-axis and surfaces ``labels`` separately in a slide-level
+        # table beneath the chart.
+        "labels": full_labels,
+        "short_labels": short_labels,
         "values": [round(_post_value(row), 4) for row in top],
         "metric_label": "Post-introduction Flow Velocity (Metric 2)",
         "attributable_metrics": list(attributable_metrics),
         "summary": summary,
     }
+
+
+def _compose_short_labels(full_labels: list[str]) -> list[str]:
+    """Compose short, unique first-name-style labels for chart axes.
+
+    Per QA finding UX-5, long display names (e.g., "Chowdhury Tafsir
+    Ahmed Siddiki") collide on the Mermaid xychart-beta x-axis at the
+    1920×1080 deck viewport. This helper returns a parallel list of
+    short labels:
+
+    * The first whitespace-delimited token is the candidate short
+      label (typically the first name).
+    * When two engineers in ``full_labels`` would resolve to the same
+      first name, the disambiguator is the next name component's
+      first character (e.g., "Anshuman" and "Anshuman P." for two
+      engineers both first-named "Anshuman").
+    * Empty / whitespace-only display names fall back to the original
+      string so the caller never receives an empty label.
+
+    The output preserves the input ordering and length, which is
+    required by the deck template (positional pairing with the
+    bar-values array).
+
+    Parameters
+    ----------
+    full_labels
+        The ordered list of full display names (e.g., the
+        ``display_name`` of each row in the top-N slice).
+
+    Returns
+    -------
+    list[str]
+        Parallel list of short labels suitable for direct
+        substitution into the ``x-axis [...]`` array of Mermaid
+        xychart-beta.
+    """
+
+    if not full_labels:
+        return []
+
+    def _tokens(name: str) -> list[str]:
+        return [t for t in (name or "").split() if t]
+
+    # First pass: take the first token as a candidate.
+    candidates: list[str] = []
+    for name in full_labels:
+        tokens = _tokens(name)
+        candidates.append(tokens[0] if tokens else (name or ""))
+
+    # Second pass: disambiguate collisions by appending the next
+    # token's first character (e.g., "Anshuman P.").
+    seen: dict[str, int] = {}
+    for label in candidates:
+        seen[label] = seen.get(label, 0) + 1
+
+    final: list[str] = []
+    for i, name in enumerate(full_labels):
+        tokens = _tokens(name)
+        first = candidates[i]
+        if seen.get(first, 0) <= 1:
+            final.append(first)
+            continue
+        if len(tokens) >= 2 and tokens[1]:
+            final.append(f"{first} {tokens[1][0]}.")
+        else:
+            # Single-token name that collides with another single-token
+            # entry — fall back to the original (long) display name.
+            final.append(name)
+    return final
 
 
 def _build_per_engineer_summary(

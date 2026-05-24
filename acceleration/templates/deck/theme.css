@@ -291,6 +291,19 @@
   align-items: start;
 }
 
+/* QA finding UX-2 — vertical-centering modifier for two-column layouts
+ * whose left and right columns differ in height (e.g., a single eyebrow
+ * + h3 paired with a 4-bullet list). When the left column is shorter
+ * than the right column, ``align-items: center`` puts the vertical
+ * centres of both columns on the same line; the resulting layout
+ * reads as visually balanced rather than top-heavy. Used by slide 06
+ * (``Why Measure Acceleration``); other slides that use two-column
+ * without ``align-center`` retain the default ``align-items: start``
+ * which is preferable for taller diagrams. */
+.reveal section.content-slide .two-column.align-center {
+  align-items: center;
+}
+
 /* ----------------------------------------------------------------------------
  * Phase 7: KPI grid & cards
  *
@@ -313,6 +326,24 @@
   padding: 1.5em;
   text-align: left;
   box-shadow: 0 2px 6px rgba(26, 16, 95, 0.05);
+  /* QA finding UX-4: add an interactive-state affordance so the
+   * card-shaped surface communicates that it is responsive to the
+   * pointer. The card is not strictly clickable, but the subtle
+   * elevation on hover matches contemporary UX expectations for
+   * card-like surfaces in executive presentations. The transition
+   * is short enough (180ms) to feel responsive without distracting
+   * from slide content. */
+  transition:
+    transform 180ms ease,
+    box-shadow 180ms ease,
+    border-left-color 180ms ease;
+}
+
+.reveal .kpi-card:hover,
+.reveal .kpi-card:focus-within {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(91, 57, 243, 0.18);
+  border-left-color: var(--brand-dark);
 }
 
 .reveal .kpi-card .kpi-label {
@@ -522,6 +553,64 @@
 .reveal table.metric-table col.col-severity { width: 14%; }
 .reveal table.metric-table col.col-icon     { width:  6%; }
 
+/* QA finding UX-5: per-engineer "name reference" table beneath the
+ * Mermaid xychart-beta on slide 12. The Mermaid x-axis renders the
+ * short labels (first name / first name + initial) computed by
+ * compute_metrics._compose_short_labels, and this table maps each
+ * short label to the engineer's full display name so the executive
+ * reader can resolve any ambiguity. The table is intentionally
+ * compact and constrained to keep slide 12 within the 1920×1080
+ * viewport even when 8 engineers are listed. The eng-slide modifier
+ * on the parent <section> tightens the gantt-style mermaid container
+ * cap so the chart + table fit together. */
+.reveal section.content-slide.eng-slide .mermaid {
+  max-height: 38vh;
+  margin: 0.4em 0;
+  padding: 0.8em;
+}
+.reveal section.content-slide.eng-slide .mermaid svg {
+  max-height: 36vh !important;
+}
+.reveal table.eng-name-table {
+  width: 100%;
+  max-width: 100%;
+  table-layout: fixed;
+  box-sizing: border-box;
+  border-collapse: collapse;
+  font-size: 0.55em;
+  font-family: var(--font-body);
+  margin-top: 0.6em;
+  word-break: break-word;
+  overflow-wrap: break-word;
+}
+.reveal table.eng-name-table thead th {
+  background: var(--brand-navy);
+  color: var(--white);
+  font-family: var(--font-display);
+  font-weight: 600;
+  padding: 0.4em 0.8em;
+  text-align: left;
+  letter-spacing: 0.02em;
+}
+.reveal table.eng-name-table tbody td {
+  padding: 0.35em 0.8em;
+  border-bottom: 1px solid var(--neutral-200);
+  vertical-align: middle;
+}
+.reveal table.eng-name-table tbody tr:nth-child(odd) {
+  background: var(--neutral-50);
+}
+.reveal table.eng-name-table th:nth-child(1),
+.reveal table.eng-name-table td:nth-child(1) { width: 22%; }
+.reveal table.eng-name-table th:nth-child(2),
+.reveal table.eng-name-table td:nth-child(2) { width: 58%; }
+.reveal table.eng-name-table th:nth-child(3),
+.reveal table.eng-name-table td:nth-child(3) {
+  width: 20%;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
 /* ----------------------------------------------------------------------------
  * Phase 10: Mermaid diagram container
  *
@@ -611,6 +700,48 @@
 .reveal .mermaid svg .xychart-plot rect,
 .reveal .mermaid svg .xychart-plot path {
   fill: var(--brand-primary) !important;
+}
+
+/* QA finding UX-3 (chk11): Mermaid flowchart node-label clipping. The
+ * Mermaid 11.15.0 flowchart renderer measures text width with the default
+ * font (sans-serif fallback) BEFORE Inter has loaded; the foreignObject
+ * width set at measurement time is then 1–3px narrower than the
+ * actually-rendered Inter text needs. Result: the last 1–2 characters of
+ * every node label are clipped by the right edge of the foreignObject's
+ * bounding box. Fix: switch the slide_08 flowchart to ``htmlLabels:false``
+ * (so labels are SVG <text> elements measured against the actual font),
+ * and harden the CSS so that any future htmlLabel-based diagram still
+ * displays full labels by allowing the foreignObject and its inner div to
+ * overflow visibly. The diagram remains horizontally bounded by the
+ * parent ``max-width:100%`` rule on .reveal .mermaid svg above. */
+.reveal .mermaid svg foreignObject {
+  overflow: visible !important;
+}
+.reveal .mermaid svg foreignObject > div,
+.reveal .mermaid svg .nodeLabel,
+.reveal .mermaid svg .label,
+.reveal .mermaid svg foreignObject span.nodeLabel {
+  overflow: visible !important;
+  white-space: nowrap !important;
+}
+
+/* Flowchart node SVG text — when htmlLabels:false is selected (slide 08),
+ * the node labels are <text> elements with class .nodeLabel rendered
+ * inside the node group. Apply consistent Blitzy typography so labels
+ * match the rest of the deck. */
+.reveal .mermaid svg .flowchart-label text,
+.reveal .mermaid svg g.node text,
+.reveal .mermaid svg g.node .nodeLabel {
+  font-family: var(--font-body) !important;
+  font-weight: 500 !important;
+  fill: #FFFFFF !important;
+}
+
+/* Edge labels (if any) on flowcharts: keep them brand-navy on a
+ * neutral background for readability. */
+.reveal .mermaid svg .edgeLabel,
+.reveal .mermaid svg .edgeLabel rect {
+  fill: var(--brand-navy) !important;
 }
 
 /* ----------------------------------------------------------------------------

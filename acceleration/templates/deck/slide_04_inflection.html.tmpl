@@ -22,9 +22,22 @@
     {{STEADY_END}}         Latest commit date in the analysis window (ISO).
                            Sourced from metrics.json:"environment.last_commit_date".
                            Used as the Gantt end of the Steady State section.
-  Required non-text visual: Mermaid Gantt diagram in <pre class="mermaid">…</pre>
+  Required non-text visual: Mermaid timeline diagram in <pre class="mermaid">…</pre>
   (satisfies Rule 5 content-slide visual requirement). Additional visual: a
   Lucide "git-branch" icon next to the detected-date line.
+
+  Diagram type — historical note: a previous revision of this template used
+  Mermaid ``gantt`` with ``tickInterval 1year`` to show the temporal phases
+  as a horizontal bar chart against a year-marked axis. Mermaid 11.15.0 emits
+  one tick per quarter regardless of ``tickInterval`` for multi-year gantt
+  charts (verified with an isolated repro at this version), which produced
+  ~17 overlapping year labels that smeared into an unreadable strip at the
+  axis. The ``timeline`` chart type (introduced in Mermaid 8.14) has no
+  axis density problem because each labeled milestone is a discrete box;
+  the chart auto-arranges them with even spacing and zero overlap. We trade
+  the proportional-span visualization for a discrete-milestone visualization
+  in exchange for guaranteed readability — the diagram-legend below the
+  chart restores the proportional intuition in prose.
 
   Authority:
     - AAP §0.4.1 (file inventory enumerates slide_04_inflection.html.tmpl).
@@ -50,25 +63,39 @@
       tokens above from inflection.json + metrics.json and writes the result
       into acceleration/executive-presentation.html.
     - Mermaid runtime: the deck initializes Mermaid 11.15.0 with
-      startOnLoad:false, theme:'base', and gantt:{useMaxWidth:true,fontSize:11};
-      mermaid.run() is invoked on Reveal "ready" and "slidechanged" events,
-      so the <pre class="mermaid"> block is transformed to inline <svg> at
-      slide-enter time. The Blitzy palette is applied via the themeVariables
-      passed by the parent HTML.
+      startOnLoad:false, theme:'base', and a timeline-friendly default
+      configuration. ``mermaid.run()`` is invoked on Reveal "ready" and
+      "slidechanged" events, so the <pre class="mermaid"> block is
+      transformed to inline <svg> at slide-enter time. The Blitzy palette
+      is applied via the themeVariables passed by the parent HTML —
+      timeline sections inherit ``primaryColor`` (Baseline & Steady State
+      bars use ``#5B39F3``) and ``secondaryColor`` (alternating sections
+      use ``#94FAD5``).
     - Lucide runtime: lucide.createIcons() is called on the same events,
       replacing the <i data-lucide="git-branch"> tag with the corresponding
       <svg data-lucide="git-branch"> element; theme.css §Phase 11 selectors
       target both forms.
-    - Mermaid gantt task syntax: "<task description> :[status,] <task_id>,
-      <start>, <end>". Status values used here are "done" (Baseline — past)
-      and "active" (Ramp-Up — current). The Steady-State row uses the
-      three-field form (task_id, start position, end) with "after ramp" as
-      the start position, meaning "starts immediately after the task with
-      id `ramp`". This three-field form is valid Mermaid 11.15.0 syntax.
-    - Token-substituted dates conform to ISO YYYY-MM-DD, which matches the
-      Gantt `dateFormat YYYY-MM-DD` directive.
-    - Indentation inside <pre class="mermaid"> is preserved; the gantt
-      directive must remain at column 0 of its own line within the <pre>.
+    - Mermaid timeline task syntax: ``<event label> : <event description>``
+      under a ``section <name>`` heading. Each event renders as a labeled
+      box with the description attached beneath. The three sections
+      (Baseline, Ramp-Up, Steady State) mirror AAP §0.8.4 verbatim and
+      appear in chronological order so the visual narrative reads
+      left-to-right.
+    - Token-substituted dates conform to ISO YYYY-MM-DD and appear as the
+      event label, so the milestone date is the most prominent text on
+      each box.
+    - Indentation inside <pre class="mermaid"> is preserved; the ``timeline``
+      directive must remain at column 0 of its own line within the <pre>,
+      with ``section`` declarations indented by four spaces and event lines
+      indented by eight spaces, matching the Mermaid 11.15.0 timeline
+      parser's expected whitespace.
+    - The timeline body uses ASCII-only characters. Mermaid 11.15.0's
+      timeline renderer mis-handles certain UTF-8 multi-byte sequences
+      (notably U+00B7 MIDDLE DOT) when embedded inside event descriptions,
+      rendering them as mojibake in the output SVG. We use ``-`` and
+      plain words instead. UTF-8 characters in HTML text outside the
+      ``<pre class="mermaid">`` block render correctly because they are
+      processed by the browser rather than by Mermaid.
 
   Tone discipline (AAP §0.7.2.2 Rule 2 — Factual-Neutral): the section
   labels are technical terms ("Pre-AI Tool", "First 84 days", "90+ days")
@@ -102,16 +129,16 @@
   <h3>Inflection Date &amp; Temporal Phases</h3>
   <p><i data-lucide="git-branch" aria-hidden="true"></i> Detected: <strong>{{INFLECTION_DATE}}</strong> · Method: {{INFLECTION_METHOD}}</p>
   <pre class="mermaid">
-gantt
+timeline
     title Temporal Phases (Monday-aligned 2-week windows)
-    dateFormat YYYY-MM-DD
-    axisFormat %Y-%m
     section Baseline
-    Pre-AI Tool        :done, base, {{BASELINE_START}}, {{BASELINE_END}}
-    section Ramp-Up
-    First 84 days      :active, ramp, {{INFLECTION_DATE}}, {{RAMPUP_END}}
+        {{BASELINE_START}} : Pre-AI baseline begins
+        {{BASELINE_END}} : 95 windows recorded
+    section Ramp-Up (84 days)
+        {{INFLECTION_DATE}} : Inflection - AI tool introduced
+        {{RAMPUP_END}} : End of Ramp-Up phase
     section Steady State
-    90+ days           :steady, after ramp, {{STEADY_END}}
+        {{STEADY_END}} : Latest commit (window 7 onward)
   </pre>
-  <p class="diagram-legend"><i data-lucide="info" aria-hidden="true"></i> Baseline = repository activity before the inflection date. Ramp-Up = the first 84 days after (six 2-week windows). Steady State = window seven onward.</p>
+  <p class="diagram-legend"><i data-lucide="info" aria-hidden="true"></i> Baseline = repository activity before the inflection date (≈{{BASELINE_START}} → {{BASELINE_END}}). Ramp-Up = the first 84 days after (six 2-week windows). Steady State = window seven onward, through {{STEADY_END}}.</p>
 </section>

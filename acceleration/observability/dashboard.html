@@ -9,6 +9,19 @@
   <meta name="theme-color" content="#5B39F3">
 
   <!--
+    Inline favicon — QA finding D-3 (favicon.ico 404).
+    Browsers issue an auto-request for ``/favicon.ico`` when no ``<link
+    rel="icon">`` is present in <head>; under the HTTP server used to
+    serve this dashboard the request returns 404 and pollutes the
+    DevTools Network panel. The ``data:,`` URI is an empty data URL
+    that returns synchronously with an empty body and HTTP 200, which
+    is sufficient to suppress the 404 without adding any external file
+    dependency (preserving the "self-contained" promise of this
+    dashboard template; see comment block below).
+  -->
+  <link rel="icon" href="data:,">
+
+  <!--
     AAP Rule 1 (Observability) — self-contained dashboard template.
     External assets are limited to CDN-pinned libraries (Mermaid 11.15.0, Lucide 0.460.0)
     and Google Fonts (Inter, Space Grotesk, Fira Code). All CSS is inlined in the <style>
@@ -984,6 +997,58 @@
       return String(v);
     }
 
+    // -----------------------------------------------------------------
+    // Compose a short, human-readable summary from an object-valued
+    // metric. Used by formatPhase() when the phase ``value`` field is
+    // itself a dict (e.g., M06 Flow Distribution which stores a
+    // work-type-keyed proportion map:
+    //     { feature: 0.1286, defect: 0.6571, risk_compliance: 0.0,
+    //       tech_debt: 0.2143, unknown: 0.0 }
+    // ).
+    //
+    // Returns a compact " / "-separated string of
+    // "<label> <percentage>%" entries, dropping zero proportions and
+    // hyphenating compound work-type keys (``risk_compliance`` →
+    // ``risk-compliance``, ``tech_debt`` → ``tech-debt``) so the
+    // rendered cell reads naturally — e.g., "defect 66% / tech-debt
+    // 21% / feature 13%". The components are ordered by descending
+    // proportion so the dominant work type appears first.
+    //
+    // Returns null when the object contains no numeric entries (the
+    // caller falls back to ``'—'``).
+    //
+    // Per AAP §0.8.6 (multi-module weighting) the work-type keys are
+    // canonical identifiers; we display them as-is with underscores
+    // replaced by hyphens to match the report body's casing convention
+    // (see acceleration-report.md "Metric 6 — Flow Distribution"
+    // table headers).
+    // -----------------------------------------------------------------
+    function formatObjectValue(v) {
+      if (v == null || typeof v !== 'object') return null;
+      const entries = Object.entries(v)
+        .filter(([, val]) =>
+          typeof val === 'number' && Number.isFinite(val))
+        .map(([key, val]) => ({ key, val: Number(val) }));
+      if (!entries.length) return null;
+      // Detect whether the values look like proportions (sum ≈ 1, all
+      // in [0, 1]) so we can render percentages; otherwise show the
+      // raw numeric values formatted by formatScalar.
+      const sum = entries.reduce((acc, e) => acc + e.val, 0);
+      const allInUnitRange = entries.every((e) => e.val >= 0 && e.val <= 1.0001);
+      const looksLikeProportions =
+        allInUnitRange && Math.abs(sum - 1.0) < 0.05;
+      // Order by descending value so the dominant category appears first.
+      entries.sort((a, b) => b.val - a.val);
+      const parts = entries.map(({ key, val }) => {
+        const label = String(key).replace(/_/g, '-');
+        if (looksLikeProportions) {
+          return label + ' ' + Math.round(val * 100) + '%';
+        }
+        return label + ' ' + formatScalar(val);
+      });
+      return parts.join(' / ');
+    }
+
     function formatPhase(entry, alts) {
       const v = pickPhaseValue(entry, alts);
       if (v == null) return '—';
@@ -999,8 +1064,21 @@
           return v.value;
         }
         if (typeof v.numeric === 'number') return formatScalar(v.numeric);
+        // QA finding D-1 — object-shaped phase ``value`` (e.g., M06
+        // Flow Distribution stores a work-type proportion map). When
+        // ``v.value`` is an object, compose a "<type> <pct>% / ..."
+        // summary instead of falling through to ``String(v)`` which
+        // produces the literal "[object Object]" string.
+        if (v.value && typeof v.value === 'object') {
+          const composed = formatObjectValue(v.value);
+          if (composed) return composed;
+        }
+        // ``v`` itself may be the dict (some shapes flatten the value
+        // directly onto the phase entry without a ``value`` wrapper).
+        const composed = formatObjectValue(v);
+        if (composed) return composed;
       }
-      return String(v);
+      return '—';
     }
 
     function formatMultiplier(m) {
@@ -1321,32 +1399,96 @@
     }
 
     // -----------------------------------------------------------------
-    // Run-log tail. Tolerates both event-style and log-line-style
-    // run_manifest.json shapes:
-    //   { events: [ { ts, level, logger, msg, extra } ... ] }
-    //   { logs:   [ { ts, level, logger, msg, extra } ... ] }
+    // Run-log tail. Tolerates multiple run_manifest.json shapes (the
+    // orchestrator schema has evolved over time and the dashboard must
+    // continue to render against historical runs):
+    //
+    //   { events:    [ { ts, level, logger, msg, extra } ... ] }
+    //   { logs:      [ { ts, level, logger, msg, extra } ... ] }
     //   { log_lines: [ "<JSON line>\n", ... ] }
+    //   { log_tail:  [ { ts, level, logger, msg, extra } ... ] }   (D-2)
+    //
+    // Fallback: if none of those keys are present, derive a tail from
+    // ``steps[]`` (the canonical orchestrator schema produced by
+    // run_acceleration_analysis.py). Each step record carries
+    // ``started_at`` (ISO 8601), ``elapsed_seconds``, ``status``, and
+    // ``exit_code``; we emit one "step started" entry per step and one
+    // "step finished (status=..., exit_code=...)" entry per step, with
+    // the finish timestamp computed from ``started_at +
+    // elapsed_seconds`` so the log is chronologically ordered. The
+    // log level is derived from the step's status — ``ok`` and
+    // ``skipped`` are INFO/WARN, ``failed`` is ERROR — so the run-log
+    // tail surfaces failures with the visual treatment defined by the
+    // ``.log-level-error`` rule. QA finding D-2 (Run Log Tail empty)
+    // is resolved by this branch; the legacy ``step.start`` /
+    // ``step.end`` reading is preserved for back-compat with any
+    // tooling that uses those alias keys.
     // -----------------------------------------------------------------
     function selectLogEntries(runManifest) {
       if (!runManifest || typeof runManifest !== 'object') return [];
       if (Array.isArray(runManifest.events)) return runManifest.events;
       if (Array.isArray(runManifest.logs)) return runManifest.logs;
+      if (Array.isArray(runManifest.log_tail)) return runManifest.log_tail;
       if (Array.isArray(runManifest.log_lines)) {
         return runManifest.log_lines.map((line) => {
           try { return JSON.parse(line); } catch (_e) { return { msg: line }; }
         });
       }
-      // Sometimes the orchestrator stores a single step's "steps" list with
-      // start/end/exit_code fields. Surface those as log entries too.
+      // Fallback to ``steps`` — derive synthetic log entries from the
+      // canonical orchestrator schema. The ``started_at`` /
+      // ``elapsed_seconds`` pair is the authoritative source; the
+      // legacy ``start`` / ``end`` aliases are accepted too.
       if (Array.isArray(runManifest.steps)) {
         return runManifest.steps.flatMap((step) => {
+          if (!step || typeof step !== 'object') return [];
           const out = [];
-          if (step && step.start) {
-            out.push({ ts: step.start, level: 'INFO', logger: step.name || 'orchestrator', msg: 'step started' });
+          const startTs = step.started_at || step.start || null;
+          const elapsed = (typeof step.elapsed_seconds === 'number')
+            ? step.elapsed_seconds : null;
+          // Compute finish timestamp from start + elapsed when
+          // ``finished_at`` is not present on the step record.
+          let endTs = step.finished_at || step.end || null;
+          if (!endTs && startTs && elapsed != null) {
+            const t = Date.parse(startTs);
+            if (!Number.isNaN(t)) {
+              endTs = new Date(t + Math.round(elapsed * 1000))
+                .toISOString().replace(/\.\d{3}Z$/, 'Z');
+            }
           }
-          if (step && step.end) {
-            const lvl = (step.exit_code === 0 || step.exit_code == null) ? 'INFO' : 'ERROR';
-            out.push({ ts: step.end, level: lvl, logger: step.name || 'orchestrator', msg: 'step finished (exit_code=' + step.exit_code + ')' });
+          const status = String(step.status || '').toLowerCase();
+          const isError = status === 'failed' || status === 'error';
+          const isSkipped = status === 'skipped';
+          const finLevel = isError ? 'ERROR' : (isSkipped ? 'WARN' : 'INFO');
+          const logger = step.name || 'orchestrator';
+          if (startTs) {
+            const startExtra = {};
+            if (step.description) startExtra.description = step.description;
+            if (step.optional != null) startExtra.optional = step.optional;
+            out.push({
+              ts: startTs,
+              level: 'INFO',
+              logger,
+              msg: 'step started',
+              extra: Object.keys(startExtra).length ? startExtra : null
+            });
+          }
+          if (endTs) {
+            const endExtra = {};
+            if (step.exit_code != null) endExtra.exit_code = step.exit_code;
+            if (status) endExtra.status = status;
+            if (elapsed != null) endExtra.elapsed_seconds = elapsed;
+            if (step.timed_out) endExtra.timed_out = step.timed_out;
+            if (step.error) endExtra.error = step.error;
+            const finMsg = isError
+              ? 'step finished with error'
+              : (isSkipped ? 'step skipped' : 'step finished');
+            out.push({
+              ts: endTs,
+              level: finLevel,
+              logger,
+              msg: finMsg,
+              extra: Object.keys(endExtra).length ? endExtra : null
+            });
           }
           return out;
         });

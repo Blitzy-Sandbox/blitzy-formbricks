@@ -205,6 +205,26 @@ COMMENT_RE: re.Pattern[str] = re.compile(r"<!--.*?-->", re.DOTALL)
 # accidental substitution and makes the intent explicit.
 MULTIPLIER_SIGN: str = "\u00d7"
 
+# Token identifiers whose substitution VALUE is a pre-rendered HTML
+# fragment composed by :func:`build_tokens` from already-escaped leaf
+# values. ``substitute_tokens`` passes these through verbatim so that
+# the embedded ``<tr>`` / ``<td>`` markup reaches the output unaltered.
+# This is the deck renderer's equivalent of an "html-safe" template
+# filter: the trust contract is that :func:`build_tokens` is the SOLE
+# producer of raw-HTML token values and that it MUST call
+# :func:`html.escape` with ``quote=True`` on every untrusted leaf
+# before concatenating into the fragment. New entries here require
+# explicit review per the XSS hardening notes in
+# :func:`substitute_tokens`.
+_RAW_HTML_TOKENS: frozenset[str] = frozenset({
+    # Slide 12 (per-engineer) full-name reference table beneath the
+    # Mermaid xychart-beta. The fragment is a sequence of <tr><td>...
+    # rows whose textual contents are individually HTML-escaped at
+    # composition time in :func:`build_tokens`. (Resolved QA finding
+    # UX-5 — long engineer names collide on the chart's x-axis.)
+    "ENG_TABLE_ROWS",
+})
+
 # Mapping of canonical metric IDs (the keys used in metrics.json) to
 # the abbreviated tokens used in the slide templates. M1–M7 are the
 # Flow Framework metrics (slide 09), M8/M9/M11 are DORA-adjacent
@@ -241,6 +261,9 @@ HTML_SHELL: str = """<!doctype html>
 <meta name="viewport" content="width=1920, initial-scale=1.0">
 <meta name="generator" content="acceleration/scripts/render_deck.py">
 <meta name="theme-color" content="#5B39F3">
+<!-- Inline favicon — QA finding D-3 (parity with dashboard.html). Suppresses
+     the auto-issued /favicon.ico 404 when the deck is HTTP-served. -->
+<link rel="icon" href="data:,">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="{GOOGLE_FONTS_URL}">
@@ -1211,10 +1234,20 @@ def build_tokens(
     # HTML escaping on top, which would corrupt the JSON literal.
     eng_labels_raw = per_engineer.get("labels") or []
     eng_values_raw = per_engineer.get("values") or []
+    # QA finding UX-5 — compute_metrics.py now emits ``short_labels``
+    # (first-name-only or first-name + initial) alongside the long
+    # ``labels`` array so the Mermaid xychart-beta axis can render
+    # without collision. When the source is an older runtime that
+    # predates this field, fall back to the long labels (the worst
+    # case is the legacy collision behaviour, which is acceptable
+    # rather than silently dropping the chart).
+    eng_short_labels_raw = per_engineer.get("short_labels") or eng_labels_raw
     if not isinstance(eng_labels_raw, list):
         eng_labels_raw = []
     if not isinstance(eng_values_raw, list):
         eng_values_raw = []
+    if not isinstance(eng_short_labels_raw, list):
+        eng_short_labels_raw = list(eng_labels_raw)
     # Defensive normalisation: ensure every label is a string and every
     # value is a JSON number-or-null. Drop ASCII control characters
     # other than ordinary whitespace before JSON-encoding so a malicious
@@ -1223,6 +1256,13 @@ def build_tokens(
     eng_labels: list[str] = [
         _sanitise_for_mermaid_label(label) for label in eng_labels_raw
     ]
+    eng_short_labels: list[str] = [
+        _sanitise_for_mermaid_label(label) for label in eng_short_labels_raw
+    ]
+    # Defensive: if short_labels is shorter than labels (schema drift),
+    # pad with long labels so the positional pairing remains intact.
+    while len(eng_short_labels) < len(eng_labels):
+        eng_short_labels.append(eng_labels[len(eng_short_labels)])
     eng_values: list[Any] = []
     for value in eng_values_raw:
         if isinstance(value, (int, float)) and not isinstance(value, bool):
@@ -1233,8 +1273,42 @@ def build_tokens(
             # Non-numeric values would break the Mermaid bar definition;
             # fall back to 0 rather than render the literal string.
             eng_values.append(0)
-    tokens["ENG_LABELS"] = json.dumps(eng_labels, ensure_ascii=False)
+    # ``ENG_LABELS`` is interpolated into the Mermaid xychart x-axis
+    # array; we now emit the short labels there to fit the available
+    # axis width. ``ENG_LABELS_FULL`` carries the long display names
+    # for the slide-level table beneath the chart so the reader can
+    # cross-reference the short label to the engineer's full name.
+    tokens["ENG_LABELS"] = json.dumps(eng_short_labels, ensure_ascii=False)
+    tokens["ENG_LABELS_FULL"] = json.dumps(eng_labels, ensure_ascii=False)
     tokens["ENG_VALUES"] = json.dumps(eng_values)
+    # ``ENG_TABLE_ROWS`` is a pre-rendered HTML <tbody> sequence the
+    # template substitutes verbatim. Each row pairs the short label
+    # (as it appears on the chart) with the full display name and the
+    # numeric contribution value so the executive reader can resolve
+    # any visual ambiguity from the chart back to a specific person.
+    table_rows: list[str] = []
+    for idx in range(len(eng_short_labels)):
+        short = eng_short_labels[idx]
+        full = eng_labels[idx] if idx < len(eng_labels) else short
+        raw_val: Any = eng_values[idx] if idx < len(eng_values) else None
+        if isinstance(raw_val, bool) or not isinstance(raw_val, (int, float)):
+            val_str = "—"
+        else:
+            val_str = f"{raw_val:.1f}"
+        table_rows.append(
+            "      <tr><td>"
+            + html.escape(str(short), quote=True)
+            + "</td><td>"
+            + html.escape(str(full), quote=True)
+            + "</td><td>"
+            + html.escape(val_str, quote=True)
+            + "</td></tr>"
+        )
+    tokens["ENG_TABLE_ROWS"] = (
+        "\n".join(table_rows)
+        if table_rows
+        else "      <tr><td>—</td><td>—</td><td>—</td></tr>"
+    )
     metric_label = per_engineer.get("metric_label")
     # ``METRIC_LABEL`` is interpolated into a Mermaid ``title "…"``
     # directive (slide 12). The wrapping double quotes are part of the
@@ -1516,10 +1590,22 @@ def substitute_tokens(template: str, tokens: dict[str, str]) -> str:
         # HTML text & attribute context: escape so that ``<``, ``>``,
         # ``&``, single and double quotes cannot break out of the
         # surrounding HTML structure.
+        #
+        # Exception: a small set of tokens carry pre-rendered HTML
+        # fragments that are assembled inside :func:`build_tokens` from
+        # already-escaped components (each individual cell value passes
+        # through ``html.escape(..., quote=True)`` at composition
+        # time). Those tokens are listed in :data:`_RAW_HTML_TOKENS`
+        # below and substitute verbatim; the trust contract is that
+        # :func:`build_tokens` is the only producer of raw-HTML tokens
+        # and that it MUST escape every untrusted leaf value before
+        # concatenating into the fragment.
         key = match.group(1)
         value = tokens.get(key)
         if value is None:
             return "n/a"
+        if key in _RAW_HTML_TOKENS:
+            return str(value)
         return html.escape(str(value), quote=True)
 
     def _replace_mermaid(match: re.Match[str]) -> str:

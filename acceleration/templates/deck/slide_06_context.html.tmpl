@@ -5,12 +5,26 @@
   Required non-text visual: Lucide icons (one per bullet)
 -->
 <section class="content-slide">
-  <span class="eyebrow">Context</span>
-  <h3>Why Measure Acceleration</h3>
-  <ul class="bullet-list">
-    <li><i data-lucide="bar-chart-3" aria-hidden="true"></i> Quantify engineering output before and after AI tool introduction.</li>
-    <li><i data-lucide="users" aria-hidden="true"></i> Distinguish actor contributions: humans and Blitzy Agent.</li>
-    <li><i data-lucide="shield-check" aria-hidden="true"></i> Preserve governance: identical methodology across periods.</li>
-    <li><i data-lucide="repeat" aria-hidden="true"></i> Reproducible from a clean clone via documented commands.</li>
-  </ul>
+  <!-- QA finding UX-2 — slide 6 vertical alignment imbalance.
+       Previously the eyebrow + h3 were stacked above a 4-bullet list as a
+       single column; the heading occupied ~1 line while the bullets stacked
+       to ~4 lines, creating a visual "top-heavy" feel where the eyebrow
+       and the bullets were vertically offset by ~80px. The two-column
+       layout below makes the left/right vertical centers coincide and
+       balances the slide. The shared .align-center modifier on
+       .two-column applies ``align-items: center`` to the grid so the
+       left column (eyebrow + h3) and the right column (bullets) share
+       the same vertical centre line. -->
+  <div class="two-column align-center">
+    <div>
+      <span class="eyebrow">Context</span>
+      <h3>Why Measure Acceleration</h3>
+    </div>
+    <ul class="bullet-list">
+      <li><i data-lucide="bar-chart-3" aria-hidden="true"></i> Quantify engineering output before and after AI tool introduction.</li>
+      <li><i data-lucide="users" aria-hidden="true"></i> Distinguish actor contributions: humans and Blitzy Agent.</li>
+      <li><i data-lucide="shield-check" aria-hidden="true"></i> Preserve governance: identical methodology across periods.</li>
+      <li><i data-lucide="repeat" aria-hidden="true"></i> Reproducible from a clean clone via documented commands.</li>
+    </ul>
+  </div>
 </section>

@@ -1,6 +1,6 @@
 # Development Acceleration Analysis — formbricks/formbricks
 
-_Generated 2026-05-24T01:11:19Z_
+_Generated 2026-05-24T02:05:05Z_
 
 ## Executive Summary
 
@@ -31,17 +31,17 @@ The fields below are captured at pipeline start by the orchestrator (``accelerat
 |-------|-------|
 | Repository URL | n/a |
 | Repository owner/name | formbricks/formbricks |
-| HEAD SHA | e1356d397aad68b14f8c320c275d17b9af847e68 |
+| HEAD SHA | 47a115065dc907f75f35ed954f69d8c1f8d56a0a |
 | Default branch | main |
 | First commit date | 2022-06-06 |
-| Latest commit date | 2026-05-24 |
+| Latest commit date | 2026-05-15 |
 | Total commits on main | 5,178 |
 | Active branch count | n/a |
 | Submodule state | none |
 | Git version | git version 2.51.0 |
 | Python version | 3.13.7 |
 | Node engine (.nvmrc) | n/a |
-| Extraction timestamp UTC | 2026-05-24T01:11:19Z |
+| Extraction timestamp UTC | 2026-05-24T02:05:05Z |
 
 ## Data Source Inventory
 
@@ -61,7 +61,7 @@ The fields below are captured at pipeline start by the orchestrator (``accelerat
 
 ## Methodology
 
-The analysis pipeline runs in batch mode against the cloned repository at HEAD `e1356d397aad68b14f8c320c275d17b9af847e68`. Per AAP §0.8.4, the inflection date `2026-01-29` divides every metric into Baseline, Ramp-Up (first 6 windows = 84 days), and Steady State (windows 7+) using Monday-aligned 2-week UTC windows. When fewer than six post-introduction windows exist, the renderer falls back to a Baseline vs Post-Introduction schema and the Acceleration Curve table column labels record that fallback in place of Ramp-Up / Steady State.
+The analysis pipeline runs in batch mode against the cloned repository at HEAD `47a115065dc907f75f35ed954f69d8c1f8d56a0a`. Per AAP §0.8.4, the inflection date `2026-01-29` divides every metric into Baseline, Ramp-Up (first 6 windows = 84 days), and Steady State (windows 7+) using Monday-aligned 2-week UTC windows. When fewer than six post-introduction windows exist, the renderer falls back to a Baseline vs Post-Introduction schema and the Acceleration Curve table column labels record that fallback in place of Ramp-Up / Steady State.
 
 ```mermaid
 %% =============================================================================
@@ -477,20 +477,19 @@ Per AAP §0.8.5, real names are used. Per AAP §0.8.1, ``Blitzy Agent`` appears 
 
 | Engineer | Commits | M2 Flow Velocity (post) | M2 Flow Velocity (baseline → post) | M4 Flow Active (post) | M4 Flow Active (baseline → post) | M5 Flow Efficiency (post) | M5 Flow Efficiency (baseline → post) | M6 Flow Distribution (post) | M6 Flow Distribution (baseline → post) | M10 Approved Exceptions (post) | M10 Approved Exceptions (baseline → post) |
 |---|---|---|---|---|---|---|---|---|---|---|---|
+| **Median (post)** | — | 1.00 | n = 14 | n/a | n = 0 | n/a | n = 0 | defect=0.68, feature=0.00, risk_compliance=0.00, tech_debt=0.17, unknown=0.00 | n = 14 | n/a | n = 0 |
+| **Range (post)** | — | 0.50 → 10.00 | — | n/a | — | n/a | — | defect 0.00→1.00, feature 0.00→0.29, risk_compliance 0.00→0.00, tech_debt 0.00→1.00, unknown 0.00→0.00 | — | n/a | — |
 | Blitzy Agent | 208 | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a |
 | Matthias Nannt | 1,247 | 3.00 | 7.90 → 3.00 | n/a | n/a | n/a | n/a | {"defect": 0.8333, "feature": 0.0, "risk_compliance": 0.0, "tech_debt": 0.1667, "unknown": 0.0} | {"defect": 0.3838, "feature": 0.0564, "risk_compliance": 0.0028, "tech_debt": 0.4388, "unknown": 0.1183} → {"defect": 0.8333, "feature": 0.0, "risk_compliance": 0.0, "tech_debt": 0.1667, "unknown": 0.0} | n/a | n/a |
-| Dhruwang Jariwala | 675 | 10.00 | 7.12 → 10.00 | n/a | n/a | n/a | n/a | {"defect": 0.65, "feature": 0.15, "risk_compliance": 0.0, "tech_debt": 0.2, "unknown": 0.0} | {"defect": 0.6809, "feature": 0.116, "risk_compliance": 0.0, "tech_debt": 0.1985, "unknown": 0.0046} → {"defect": 0.65, "feature": 0.15, "risk_compliance": 0.0, "tech_debt": 0.2, "unknown": 0.0} | n/a | n/a |
-| Johannes | 348 | 0.50 | 3.53 → 0.50 | n/a | n/a | n/a | n/a | {"defect": 1.0, "feature": 0.0, "risk_compliance": 0.0, "tech_debt": 0.0, "unknown": 0.0} | {"defect": 0.4338, "feature": 0.1077, "risk_compliance": 0.0, "tech_debt": 0.3015, "unknown": 0.1569} → {"defect": 1.0, "feature": 0.0, "risk_compliance": 0.0, "tech_debt": 0.0, "unknown": 0.0} | n/a | n/a |
-| Piyush Gupta | 317 | n/a | 3.47 → n/a | n/a | 0.70 → n/a | n/a | 1.00 → n/a | n/a | {"defect": 0.5517, "feature": 0.2727, "risk_compliance": 0.0, "tech_debt": 0.1693, "unknown": 0.0063} → n/a | n/a | n/a |
-| Anshuman Pandey | 314 | 5.50 | 3.29 → 5.50 | n/a | n/a | n/a | n/a | {"defect": 0.6364, "feature": 0.1818, "risk_compliance": 0.0, "tech_debt": 0.1818, "unknown": 0.0} | {"defect": 0.7756, "feature": 0.1485, "risk_compliance": 0.0, "tech_debt": 0.0693, "unknown": 0.0066} → {"defect": 0.6364, "feature": 0.1818, "risk_compliance": 0.0, "tech_debt": 0.1818, "unknown": 0.0} | n/a | n/a |
+| Dhruwang Jariwala | 709 | 10.00 | 7.12 → 10.00 | n/a | n/a | n/a | n/a | {"defect": 0.65, "feature": 0.15, "risk_compliance": 0.0, "tech_debt": 0.2, "unknown": 0.0} | {"defect": 0.6809, "feature": 0.116, "risk_compliance": 0.0, "tech_debt": 0.1985, "unknown": 0.0046} → {"defect": 0.65, "feature": 0.15, "risk_compliance": 0.0, "tech_debt": 0.2, "unknown": 0.0} | n/a | n/a |
+| Johannes | 518 | 0.50 | 3.53 → 0.50 | n/a | n/a | n/a | n/a | {"defect": 1.0, "feature": 0.0, "risk_compliance": 0.0, "tech_debt": 0.0, "unknown": 0.0} | {"defect": 0.4338, "feature": 0.1077, "risk_compliance": 0.0, "tech_debt": 0.3015, "unknown": 0.1569} → {"defect": 1.0, "feature": 0.0, "risk_compliance": 0.0, "tech_debt": 0.0, "unknown": 0.0} | n/a | n/a |
+| Piyush Gupta | 358 | n/a | 3.47 → n/a | n/a | 0.70 → n/a | n/a | 1.00 → n/a | n/a | {"defect": 0.5517, "feature": 0.2727, "risk_compliance": 0.0, "tech_debt": 0.1693, "unknown": 0.0063} → n/a | n/a | n/a |
+| Anshuman Pandey | 315 | 5.50 | 3.29 → 5.50 | n/a | n/a | n/a | n/a | {"defect": 0.6364, "feature": 0.1818, "risk_compliance": 0.0, "tech_debt": 0.1818, "unknown": 0.0} | {"defect": 0.7756, "feature": 0.1485, "risk_compliance": 0.0, "tech_debt": 0.0693, "unknown": 0.0066} → {"defect": 0.6364, "feature": 0.1818, "risk_compliance": 0.0, "tech_debt": 0.1818, "unknown": 0.0} | n/a | n/a |
 | Shubham Palriwala | 311 | n/a | 2.64 → n/a | n/a | n/a | n/a | n/a | n/a | {"defect": 0.4362, "feature": 0.4156, "risk_compliance": 0.0, "tech_debt": 0.1317, "unknown": 0.0165} → n/a | n/a | n/a |
-| Johannes | 170 | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a |
 | knugget | 78 | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a |
 | Victor Hugo dos Santos | 77 | n/a | 0.83 → n/a | n/a | n/a | n/a | n/a | n/a | {"defect": 0.25, "feature": 0.2368, "risk_compliance": 0.0, "tech_debt": 0.5132, "unknown": 0.0} → n/a | n/a | n/a |
 | dependabot[bot] | 43 | n/a | 0.46 → n/a | n/a | n/a | n/a | n/a | n/a | {"defect": 0.0, "feature": 0.0, "risk_compliance": 0.0, "tech_debt": 1.0, "unknown": 0.0} → n/a | n/a | n/a |
-| Piyush Gupta | 41 | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a |
-| Rotimi Best | 38 | n/a | 0.30 → n/a | n/a | n/a | n/a | n/a | n/a | {"defect": 0.2857, "feature": 0.1429, "risk_compliance": 0.0, "tech_debt": 0.5714, "unknown": 0.0} → n/a | n/a | n/a |
-| Dhruwang | 34 | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a |
+| Rotimi Best | 39 | n/a | 0.32 → n/a | n/a | n/a | n/a | n/a | n/a | {"defect": 0.2759, "feature": 0.1379, "risk_compliance": 0.0, "tech_debt": 0.5862, "unknown": 0.0} → n/a | n/a | n/a |
 | Harsh Shrikant Bhat | 34 | 1.00 | 0.35 → 1.00 | n/a | n/a | n/a | n/a | {"defect": 0.0, "feature": 0.0, "risk_compliance": 0.0, "tech_debt": 1.0, "unknown": 0.0} | {"defect": 0.0, "feature": 0.0, "risk_compliance": 0.0, "tech_debt": 1.0, "unknown": 0.0} → {"defect": 0.0, "feature": 0.0, "risk_compliance": 0.0, "tech_debt": 1.0, "unknown": 0.0} | n/a | n/a |
 | Jakob Schott | 33 | n/a | 0.36 → n/a | n/a | n/a | n/a | n/a | n/a | {"defect": 0.4545, "feature": 0.1515, "risk_compliance": 0.0, "tech_debt": 0.3939, "unknown": 0.0} → n/a | n/a | n/a |
 | Jonas Höbenreich | 33 | n/a | 0.36 → n/a | n/a | n/a | n/a | n/a | n/a | {"defect": 0.5455, "feature": 0.3333, "risk_compliance": 0.0, "tech_debt": 0.1212, "unknown": 0.0} → n/a | n/a | n/a |
@@ -504,8 +503,10 @@ Per AAP §0.8.5, real names are used. Per AAP §0.8.1, ``Blitzy Agent`` appears 
 | Theodór Tómas | 15 | 6.00 | 0.03 → 6.00 | n/a | n/a | n/a | n/a | {"defect": 0.75, "feature": 0.0833, "risk_compliance": 0.0, "tech_debt": 0.1667, "unknown": 0.0} | {"defect": 0.0, "feature": 0.3333, "risk_compliance": 0.0, "tech_debt": 0.6667, "unknown": 0.0} → {"defect": 0.75, "feature": 0.0833, "risk_compliance": 0.0, "tech_debt": 0.1667, "unknown": 0.0} | n/a | n/a |
 | Meet Patel | 14 | n/a | 0.01 → n/a | n/a | n/a | n/a | n/a | n/a | {"defect": 1.0, "feature": 0.0, "risk_compliance": 0.0, "tech_debt": 0.0, "unknown": 0.0} → n/a | n/a | n/a |
 | Naitik | 14 | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a |
+| Anjy Gupta | 13 | n/a | 0.08 → n/a | n/a | n/a | n/a | n/a | n/a | {"defect": 0.4286, "feature": 0.5714, "risk_compliance": 0.0, "tech_debt": 0.0, "unknown": 0.0} → n/a | n/a | n/a |
+| Ankur Datta | 13 | n/a | 0.03 → n/a | n/a | n/a | n/a | n/a | n/a | {"defect": 0.6667, "feature": 0.0, "risk_compliance": 0.0, "tech_debt": 0.0, "unknown": 0.3333} → n/a | n/a | n/a |
 | Bhagya Amarasinghe | 11 | 3.50 | 0.04 → 3.50 | n/a | n/a | n/a | n/a | {"defect": 0.7143, "feature": 0.2857, "risk_compliance": 0.0, "tech_debt": 0.0, "unknown": 0.0} | {"defect": 0.75, "feature": 0.0, "risk_compliance": 0.0, "tech_debt": 0.25, "unknown": 0.0} → {"defect": 0.7143, "feature": 0.2857, "risk_compliance": 0.0, "tech_debt": 0.0, "unknown": 0.0} | n/a | n/a |
-| Ankur Datta | 10 | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a |
+| Abhinav Arya | 10 | n/a | 0.08 → n/a | n/a | n/a | n/a | n/a | n/a | {"defect": 1.0, "feature": 0.0, "risk_compliance": 0.0, "tech_debt": 0.0, "unknown": 0.0} → n/a | n/a | n/a |
 | Ashutosh Bhadauriya | 10 | n/a | 0.01 → n/a | n/a | n/a | n/a | n/a | n/a | {"defect": 1.0, "feature": 0.0, "risk_compliance": 0.0, "tech_debt": 0.0, "unknown": 0.0} → n/a | n/a | n/a |
 | moritzrengert | 10 | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a |
 | DivyanshuLohani | 9 | n/a | 0.10 → n/a | n/a | n/a | n/a | n/a | n/a | {"defect": 0.7778, "feature": 0.2222, "risk_compliance": 0.0, "tech_debt": 0.0, "unknown": 0.0} → n/a | n/a | n/a |
@@ -516,45 +517,42 @@ Per AAP §0.8.5, real names are used. Per AAP §0.8.1, ``Blitzy Agent`` appears 
 | Olasunkanmi Balogun | 8 | n/a | 0.09 → n/a | n/a | n/a | n/a | n/a | n/a | {"defect": 0.125, "feature": 0.25, "risk_compliance": 0.0, "tech_debt": 0.625, "unknown": 0.0} → n/a | n/a | n/a |
 | Sai Suhas Sawant | 8 | n/a | 0.09 → n/a | n/a | n/a | n/a | n/a | n/a | {"defect": 0.625, "feature": 0.375, "risk_compliance": 0.0, "tech_debt": 0.0, "unknown": 0.0} → n/a | n/a | n/a |
 | Timothy Krechel | 8 | n/a | 0.08 → n/a | n/a | n/a | n/a | n/a | n/a | {"defect": 0.1429, "feature": 0.1429, "risk_compliance": 0.0, "tech_debt": 0.0, "unknown": 0.7143} → n/a | n/a | n/a |
-| Abhinav Arya | 7 | n/a | 0.08 → n/a | n/a | n/a | n/a | n/a | n/a | {"defect": 1.0, "feature": 0.0, "risk_compliance": 0.0, "tech_debt": 0.0, "unknown": 0.0} → n/a | n/a | n/a |
-| Anjy Gupta | 7 | n/a | 0.08 → n/a | n/a | n/a | n/a | n/a | n/a | {"defect": 0.4286, "feature": 0.5714, "risk_compliance": 0.0, "tech_debt": 0.0, "unknown": 0.0} → n/a | n/a | n/a |
 | Paribesh Nepal | 7 | n/a | 0.08 → n/a | n/a | n/a | n/a | n/a | n/a | {"defect": 0.7143, "feature": 0.2857, "risk_compliance": 0.0, "tech_debt": 0.0, "unknown": 0.0} → n/a | n/a | n/a |
 | Peter Pesti-Varga | 7 | n/a | 0.08 → n/a | n/a | n/a | n/a | n/a | n/a | {"defect": 0.7143, "feature": 0.2857, "risk_compliance": 0.0, "tech_debt": 0.0, "unknown": 0.0} → n/a | n/a | n/a |
+| Shyam Raghuwanshi | 7 | n/a | 0.08 → n/a | n/a | n/a | n/a | n/a | n/a | {"defect": 0.8571, "feature": 0.1429, "risk_compliance": 0.0, "tech_debt": 0.0, "unknown": 0.0} → n/a | n/a | n/a |
+| Yatharth Verma | 7 | n/a | 0.01 → n/a | n/a | n/a | n/a | n/a | n/a | {"defect": 1.0, "feature": 0.0, "risk_compliance": 0.0, "tech_debt": 0.0, "unknown": 0.0} → n/a | n/a | n/a |
+| gitstart-formbricks | 7 | n/a | 0.02 → n/a | n/a | n/a | n/a | n/a | n/a | {"defect": 1.0, "feature": 0.0, "risk_compliance": 0.0, "tech_debt": 0.0, "unknown": 0.0} → n/a | n/a | n/a |
 | ty kerr | 7 | n/a | 0.08 → n/a | n/a | n/a | n/a | n/a | n/a | {"defect": 0.2857, "feature": 0.7143, "risk_compliance": 0.0, "tech_debt": 0.0, "unknown": 0.0} → n/a | n/a | n/a |
-| Anjy Gupta | 6 | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a |
-| Shyam Raghuwanshi | 6 | n/a | 0.07 → n/a | n/a | n/a | n/a | n/a | n/a | {"defect": 1.0, "feature": 0.0, "risk_compliance": 0.0, "tech_debt": 0.0, "unknown": 0.0} → n/a | n/a | n/a |
+| Neil Chauhan | 6 | n/a | 0.07 → n/a | n/a | n/a | n/a | n/a | n/a | {"defect": 0.3333, "feature": 0.3333, "risk_compliance": 0.0, "tech_debt": 0.3333, "unknown": 0.0} → n/a | n/a | n/a |
 | Thomas Kaul | 6 | n/a | 0.03 → n/a | n/a | n/a | n/a | n/a | n/a | {"defect": 0.6667, "feature": 0.0, "risk_compliance": 0.0, "tech_debt": 0.3333, "unknown": 0.0} → n/a | n/a | n/a |
-| Yatharth Verma | 6 | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a |
 | Ikko Eltociear Ashimine | 5 | n/a | 0.05 → n/a | n/a | n/a | n/a | n/a | n/a | {"defect": 0.4, "feature": 0.0, "risk_compliance": 0.0, "tech_debt": 0.6, "unknown": 0.0} → n/a | n/a | n/a |
-| Neil Chauhan | 5 | n/a | 0.05 → n/a | n/a | n/a | n/a | n/a | n/a | {"defect": 0.4, "feature": 0.2, "risk_compliance": 0.0, "tech_debt": 0.4, "unknown": 0.0} → n/a | n/a | n/a |
 | Rohan Gupta | 5 | n/a | 0.05 → n/a | n/a | n/a | n/a | n/a | n/a | {"defect": 0.8, "feature": 0.2, "risk_compliance": 0.0, "tech_debt": 0.0, "unknown": 0.0} → n/a | n/a | n/a |
 | devin-ai-integration[bot] | 5 | 0.50 | 0.04 → 0.50 | n/a | n/a | n/a | n/a | {"defect": 0.0, "feature": 0.0, "risk_compliance": 0.0, "tech_debt": 1.0, "unknown": 0.0} | {"defect": 0.25, "feature": 0.25, "risk_compliance": 0.0, "tech_debt": 0.5, "unknown": 0.0} → {"defect": 0.0, "feature": 0.0, "risk_compliance": 0.0, "tech_debt": 1.0, "unknown": 0.0} | n/a | n/a |
-| gitstart-formbricks | 5 | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a |
 | joe-shajan | 5 | n/a | 0.03 → n/a | n/a | n/a | n/a | n/a | n/a | {"defect": 0.3333, "feature": 0.3333, "risk_compliance": 0.0, "tech_debt": 0.0, "unknown": 0.3333} → n/a | n/a | n/a |
 | mintlify[bot] | 5 | n/a | 0.05 → n/a | n/a | n/a | n/a | n/a | n/a | {"defect": 0.0, "feature": 0.0, "risk_compliance": 0.0, "tech_debt": 1.0, "unknown": 0.0} → n/a | n/a | n/a |
 | Balázs Úr | 4 | 2.00 | 2.00 | n/a | n/a | n/a | n/a | {"defect": 0.5, "feature": 0.25, "risk_compliance": 0.0, "tech_debt": 0.25, "unknown": 0.0} | {"defect": 0.5, "feature": 0.25, "risk_compliance": 0.0, "tech_debt": 0.25, "unknown": 0.0} | n/a | n/a |
 | Laurens Nienhaus | 4 | n/a | 0.04 → n/a | n/a | n/a | n/a | n/a | n/a | {"defect": 0.0, "feature": 0.25, "risk_compliance": 0.0, "tech_debt": 0.75, "unknown": 0.0} → n/a | n/a | n/a |
 | Pushan Thimmegowda | 4 | n/a | 0.04 → n/a | n/a | n/a | n/a | n/a | n/a | {"defect": 1.0, "feature": 0.0, "risk_compliance": 0.0, "tech_debt": 0.0, "unknown": 0.0} → n/a | n/a | n/a |
+| Salim B | 4 | n/a | 0.03 → n/a | n/a | n/a | n/a | n/a | n/a | {"defect": 0.3333, "feature": 0.0, "risk_compliance": 0.0, "tech_debt": 0.6667, "unknown": 0.0} → n/a | n/a | n/a |
 | Shubhdeep Chhabra | 4 | n/a | 0.04 → n/a | n/a | n/a | n/a | n/a | n/a | {"defect": 1.0, "feature": 0.0, "risk_compliance": 0.0, "tech_debt": 0.0, "unknown": 0.0} → n/a | n/a | n/a |
 | Smriti Doneria | 4 | n/a | 0.04 → n/a | n/a | n/a | n/a | n/a | n/a | {"defect": 0.5, "feature": 0.5, "risk_compliance": 0.0, "tech_debt": 0.0, "unknown": 0.0} → n/a | n/a | n/a |
 | TUSHAR JINDAL | 4 | n/a | 0.04 → n/a | n/a | n/a | n/a | n/a | n/a | {"defect": 0.0, "feature": 1.0, "risk_compliance": 0.0, "tech_debt": 0.0, "unknown": 0.0} → n/a | n/a | n/a |
 | Vijay | 4 | n/a | 0.04 → n/a | n/a | n/a | n/a | n/a | n/a | {"defect": 1.0, "feature": 0.0, "risk_compliance": 0.0, "tech_debt": 0.0, "unknown": 0.0} → n/a | n/a | n/a |
-| Abhinav Arya | 3 | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a |
-| Ankur Datta | 3 | n/a | 0.03 → n/a | n/a | n/a | n/a | n/a | n/a | {"defect": 0.6667, "feature": 0.0, "risk_compliance": 0.0, "tech_debt": 0.0, "unknown": 0.3333} → n/a | n/a | n/a |
 | Bhavesh Mishra | 3 | n/a | 0.03 → n/a | n/a | n/a | n/a | n/a | n/a | {"defect": 0.3333, "feature": 0.6667, "risk_compliance": 0.0, "tech_debt": 0.0, "unknown": 0.0} → n/a | n/a | n/a |
 | Chase Nelson | 3 | n/a | 0.03 → n/a | n/a | n/a | n/a | n/a | n/a | {"defect": 0.6667, "feature": 0.3333, "risk_compliance": 0.0, "tech_debt": 0.0, "unknown": 0.0} → n/a | n/a | n/a |
 | Digvijay Gupta | 3 | n/a | 0.03 → n/a | n/a | n/a | n/a | n/a | n/a | {"defect": 1.0, "feature": 0.0, "risk_compliance": 0.0, "tech_debt": 0.0, "unknown": 0.0} → n/a | n/a | n/a |
+| Kiran K | 3 | n/a | 0.03 → n/a | n/a | n/a | n/a | n/a | n/a | {"defect": 0.3333, "feature": 0.0, "risk_compliance": 0.0, "tech_debt": 0.6667, "unknown": 0.0} → n/a | n/a | n/a |
 | Mohit Negi | 3 | n/a | 0.03 → n/a | n/a | n/a | n/a | n/a | n/a | {"defect": 1.0, "feature": 0.0, "risk_compliance": 0.0, "tech_debt": 0.0, "unknown": 0.0} → n/a | n/a | n/a |
 | Nafees Nazik | 3 | n/a | 0.03 → n/a | n/a | n/a | n/a | n/a | n/a | {"defect": 0.6667, "feature": 0.3333, "risk_compliance": 0.0, "tech_debt": 0.0, "unknown": 0.0} → n/a | n/a | n/a |
 | Naresh | 3 | n/a | 0.03 → n/a | n/a | n/a | n/a | n/a | n/a | {"defect": 1.0, "feature": 0.0, "risk_compliance": 0.0, "tech_debt": 0.0, "unknown": 0.0} → n/a | n/a | n/a |
 | Nitesh Seram | 3 | n/a | 0.03 → n/a | n/a | n/a | n/a | n/a | n/a | {"defect": 0.6667, "feature": 0.0, "risk_compliance": 0.0, "tech_debt": 0.0, "unknown": 0.3333} → n/a | n/a | n/a |
+| Pradumn Kumar | 3 | n/a | 0.03 → n/a | n/a | n/a | n/a | n/a | n/a | {"defect": 1.0, "feature": 0.0, "risk_compliance": 0.0, "tech_debt": 0.0, "unknown": 0.0} → n/a | n/a | n/a |
 | Prasoon Mahawar | 3 | n/a | 0.01 → n/a | n/a | n/a | n/a | n/a | n/a | {"defect": 1.0, "feature": 0.0, "risk_compliance": 0.0, "tech_debt": 0.0, "unknown": 0.0} → n/a | n/a | n/a |
 | Pratik | 3 | n/a | 0.03 → n/a | n/a | n/a | n/a | n/a | n/a | {"defect": 0.0, "feature": 0.6667, "risk_compliance": 0.0, "tech_debt": 0.3333, "unknown": 0.0} → n/a | n/a | n/a |
 | RajuGangitla | 3 | n/a | 0.03 → n/a | n/a | n/a | n/a | n/a | n/a | {"defect": 0.6667, "feature": 0.3333, "risk_compliance": 0.0, "tech_debt": 0.0, "unknown": 0.0} → n/a | n/a | n/a |
 | Ratish jain | 3 | n/a | 0.03 → n/a | n/a | n/a | n/a | n/a | n/a | {"defect": 1.0, "feature": 0.0, "risk_compliance": 0.0, "tech_debt": 0.0, "unknown": 0.0} → n/a | n/a | n/a |
 | Ronit Panda | 3 | n/a | 0.03 → n/a | n/a | n/a | n/a | n/a | n/a | {"defect": 0.3333, "feature": 0.6667, "risk_compliance": 0.0, "tech_debt": 0.0, "unknown": 0.0} → n/a | n/a | n/a |
 | Sachin Mittal | 3 | n/a | 0.03 → n/a | n/a | n/a | n/a | n/a | n/a | {"defect": 1.0, "feature": 0.0, "risk_compliance": 0.0, "tech_debt": 0.0, "unknown": 0.0} → n/a | n/a | n/a |
-| Salim B | 3 | n/a | 0.02 → n/a | n/a | n/a | n/a | n/a | n/a | {"defect": 0.0, "feature": 0.0, "risk_compliance": 0.0, "tech_debt": 1.0, "unknown": 0.0} → n/a | n/a | n/a |
 | StepSecurity Bot | 3 | n/a | 0.03 → n/a | n/a | n/a | n/a | n/a | n/a | {"defect": 0.6667, "feature": 0.0, "risk_compliance": 0.0, "tech_debt": 0.3333, "unknown": 0.0} → n/a | n/a | n/a |
 | Sushant | 3 | n/a | 0.03 → n/a | n/a | n/a | n/a | n/a | n/a | {"defect": 0.6667, "feature": 0.3333, "risk_compliance": 0.0, "tech_debt": 0.0, "unknown": 0.0} → n/a | n/a | n/a |
 | Vardhaman Bhandari | 3 | n/a | 0.03 → n/a | n/a | n/a | n/a | n/a | n/a | {"defect": 1.0, "feature": 0.0, "risk_compliance": 0.0, "tech_debt": 0.0, "unknown": 0.0} → n/a | n/a | n/a |
@@ -579,7 +577,6 @@ Per AAP §0.8.5, real names are used. Per AAP §0.8.1, ``Blitzy Agent`` appears 
 | Hicham El Bouaaichi | 2 | n/a | 0.02 → n/a | n/a | n/a | n/a | n/a | n/a | {"defect": 0.5, "feature": 0.5, "risk_compliance": 0.0, "tech_debt": 0.0, "unknown": 0.0} → n/a | n/a | n/a |
 | Kartik Saini | 2 | n/a | 0.02 → n/a | n/a | n/a | n/a | n/a | n/a | {"defect": 1.0, "feature": 0.0, "risk_compliance": 0.0, "tech_debt": 0.0, "unknown": 0.0} → n/a | n/a | n/a |
 | Khaja Shaik | 2 | n/a | 0.02 → n/a | n/a | n/a | n/a | n/a | n/a | {"defect": 0.5, "feature": 0.5, "risk_compliance": 0.0, "tech_debt": 0.0, "unknown": 0.0} → n/a | n/a | n/a |
-| Kiran K | 2 | n/a | 0.02 → n/a | n/a | n/a | n/a | n/a | n/a | {"defect": 0.5, "feature": 0.0, "risk_compliance": 0.0, "tech_debt": 0.5, "unknown": 0.0} → n/a | n/a | n/a |
 | Konrad Kalemba | 2 | n/a | 0.02 → n/a | n/a | n/a | n/a | n/a | n/a | {"defect": 0.5, "feature": 0.0, "risk_compliance": 0.0, "tech_debt": 0.0, "unknown": 0.5} → n/a | n/a | n/a |
 | Kshitij Sharma | 2 | n/a | 0.02 → n/a | n/a | n/a | n/a | n/a | n/a | {"defect": 1.0, "feature": 0.0, "risk_compliance": 0.0, "tech_debt": 0.0, "unknown": 0.0} → n/a | n/a | n/a |
 | M. Palanikannan | 2 | n/a | 0.02 → n/a | n/a | n/a | n/a | n/a | n/a | {"defect": 0.0, "feature": 0.5, "risk_compliance": 0.0, "tech_debt": 0.0, "unknown": 0.5} → n/a | n/a | n/a |
@@ -589,7 +586,6 @@ Per AAP §0.8.5, real names are used. Per AAP §0.8.1, ``Blitzy Agent`` appears 
 | NilanjanPramanik | 2 | n/a | 0.02 → n/a | n/a | n/a | n/a | n/a | n/a | {"defect": 1.0, "feature": 0.0, "risk_compliance": 0.0, "tech_debt": 0.0, "unknown": 0.0} → n/a | n/a | n/a |
 | Parth Gupta | 2 | n/a | 0.02 → n/a | n/a | n/a | n/a | n/a | n/a | {"defect": 0.5, "feature": 0.5, "risk_compliance": 0.0, "tech_debt": 0.0, "unknown": 0.0} → n/a | n/a | n/a |
 | Piotr Gaczkowski | 2 | n/a | 0.02 → n/a | n/a | n/a | n/a | n/a | n/a | {"defect": 1.0, "feature": 0.0, "risk_compliance": 0.0, "tech_debt": 0.0, "unknown": 0.0} → n/a | n/a | n/a |
-| Pradumn Kumar | 2 | n/a | 0.02 → n/a | n/a | n/a | n/a | n/a | n/a | {"defect": 1.0, "feature": 0.0, "risk_compliance": 0.0, "tech_debt": 0.0, "unknown": 0.0} → n/a | n/a | n/a |
 | PratikAwaik | 2 | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a |
 | RajuGangitla | 2 | n/a | 0.02 → n/a | n/a | n/a | n/a | n/a | n/a | {"defect": 1.0, "feature": 0.0, "risk_compliance": 0.0, "tech_debt": 0.0, "unknown": 0.0} → n/a | n/a | n/a |
 | Satyanarayan Prashar | 2 | n/a | 0.02 → n/a | n/a | n/a | n/a | n/a | n/a | {"defect": 1.0, "feature": 0.0, "risk_compliance": 0.0, "tech_debt": 0.0, "unknown": 0.0} → n/a | n/a | n/a |
@@ -603,7 +599,6 @@ Per AAP §0.8.5, real names are used. Per AAP §0.8.1, ``Blitzy Agent`` appears 
 | Tomas Valenta | 2 | n/a | 0.02 → n/a | n/a | n/a | n/a | n/a | n/a | {"defect": 0.5, "feature": 0.0, "risk_compliance": 0.0, "tech_debt": 0.5, "unknown": 0.0} → n/a | n/a | n/a |
 | Vaishak K | 2 | n/a | 0.02 → n/a | n/a | n/a | n/a | n/a | n/a | {"defect": 1.0, "feature": 0.0, "risk_compliance": 0.0, "tech_debt": 0.0, "unknown": 0.0} → n/a | n/a | n/a |
 | Vikas Patil | 2 | n/a | 0.02 → n/a | n/a | n/a | n/a | n/a | n/a | {"defect": 0.5, "feature": 0.5, "risk_compliance": 0.0, "tech_debt": 0.0, "unknown": 0.0} → n/a | n/a | n/a |
-| gitstart-formbricks | 2 | n/a | 0.02 → n/a | n/a | n/a | n/a | n/a | n/a | {"defect": 1.0, "feature": 0.0, "risk_compliance": 0.0, "tech_debt": 0.0, "unknown": 0.0} → n/a | n/a | n/a |
 | om pharate | 2 | n/a | 0.02 → n/a | n/a | n/a | n/a | n/a | n/a | {"defect": 1.0, "feature": 0.0, "risk_compliance": 0.0, "tech_debt": 0.0, "unknown": 0.0} → n/a | n/a | n/a |
 | plant | 2 | n/a | 0.02 → n/a | n/a | n/a | n/a | n/a | n/a | {"defect": 0.5, "feature": 0.0, "risk_compliance": 0.0, "tech_debt": 0.5, "unknown": 0.0} → n/a | n/a | n/a |
 | ss10 | 2 | n/a | 0.02 → n/a | n/a | n/a | n/a | n/a | n/a | {"defect": 1.0, "feature": 0.0, "risk_compliance": 0.0, "tech_debt": 0.0, "unknown": 0.0} → n/a | n/a | n/a |
@@ -628,7 +623,6 @@ Per AAP §0.8.5, real names are used. Per AAP §0.8.1, ``Blitzy Agent`` appears 
 | AndresAIFR | 1 | 0.50 | 0.50 | n/a | n/a | n/a | n/a | {"defect": 1.0, "feature": 0.0, "risk_compliance": 0.0, "tech_debt": 0.0, "unknown": 0.0} | {"defect": 1.0, "feature": 0.0, "risk_compliance": 0.0, "tech_debt": 0.0, "unknown": 0.0} | n/a | n/a |
 | Anik Dhabal Babu | 1 | n/a | 0.01 → n/a | n/a | n/a | n/a | n/a | n/a | {"defect": 0.0, "feature": 1.0, "risk_compliance": 0.0, "tech_debt": 0.0, "unknown": 0.0} → n/a | n/a | n/a |
 | Anne Deepa Prasanna | 1 | n/a | 0.01 → n/a | n/a | n/a | n/a | n/a | n/a | {"defect": 0.0, "feature": 1.0, "risk_compliance": 0.0, "tech_debt": 0.0, "unknown": 0.0} → n/a | n/a | n/a |
-| Anshuman Pandey | 1 | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a |
 | Anush Deokar | 1 | n/a | 0.01 → n/a | n/a | n/a | n/a | n/a | n/a | {"defect": 1.0, "feature": 0.0, "risk_compliance": 0.0, "tech_debt": 0.0, "unknown": 0.0} → n/a | n/a | n/a |
 | Archit Sehgal | 1 | n/a | 0.01 → n/a | n/a | n/a | n/a | n/a | n/a | {"defect": 1.0, "feature": 0.0, "risk_compliance": 0.0, "tech_debt": 0.0, "unknown": 0.0} → n/a | n/a | n/a |
 | Armaan | 1 | n/a | 0.01 → n/a | n/a | n/a | n/a | n/a | n/a | {"defect": 0.0, "feature": 0.0, "risk_compliance": 0.0, "tech_debt": 1.0, "unknown": 0.0} → n/a | n/a | n/a |
@@ -683,7 +677,6 @@ Per AAP §0.8.5, real names are used. Per AAP §0.8.1, ``Blitzy Agent`` appears 
 | Kanishk Rawat | 1 | n/a | 0.01 → n/a | n/a | n/a | n/a | n/a | n/a | {"defect": 0.0, "feature": 0.0, "risk_compliance": 0.0, "tech_debt": 1.0, "unknown": 0.0} → n/a | n/a | n/a |
 | Karishma Shukla | 1 | n/a | 0.01 → n/a | n/a | n/a | n/a | n/a | n/a | {"defect": 0.0, "feature": 1.0, "risk_compliance": 0.0, "tech_debt": 0.0, "unknown": 0.0} → n/a | n/a | n/a |
 | Khanh Ho | 1 | n/a | 0.01 → n/a | n/a | n/a | n/a | n/a | n/a | {"defect": 0.0, "feature": 1.0, "risk_compliance": 0.0, "tech_debt": 0.0, "unknown": 0.0} → n/a | n/a | n/a |
-| Kiran K | 1 | n/a | 0.01 → n/a | n/a | n/a | n/a | n/a | n/a | {"defect": 0.0, "feature": 0.0, "risk_compliance": 0.0, "tech_debt": 1.0, "unknown": 0.0} → n/a | n/a | n/a |
 | Krishanu Saha | 1 | n/a | 0.01 → n/a | n/a | n/a | n/a | n/a | n/a | {"defect": 1.0, "feature": 0.0, "risk_compliance": 0.0, "tech_debt": 0.0, "unknown": 0.0} → n/a | n/a | n/a |
 | Kuluru Vineeth Kumar Reddy | 1 | n/a | 0.01 → n/a | n/a | n/a | n/a | n/a | n/a | {"defect": 0.0, "feature": 1.0, "risk_compliance": 0.0, "tech_debt": 0.0, "unknown": 0.0} → n/a | n/a | n/a |
 | Kunal Garg | 1 | n/a | 0.01 → n/a | n/a | n/a | n/a | n/a | n/a | {"defect": 0.0, "feature": 1.0, "risk_compliance": 0.0, "tech_debt": 0.0, "unknown": 0.0} → n/a | n/a | n/a |
@@ -701,7 +694,6 @@ Per AAP §0.8.5, real names are used. Per AAP §0.8.1, ``Blitzy Agent`` appears 
 | Nathan Clevenger | 1 | n/a | 0.01 → n/a | n/a | n/a | n/a | n/a | n/a | {"defect": 1.0, "feature": 0.0, "risk_compliance": 0.0, "tech_debt": 0.0, "unknown": 0.0} → n/a | n/a | n/a |
 | Nathan Flurry | 1 | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a |
 | Nathanaël | 1 | n/a | 0.01 → n/a | n/a | n/a | n/a | n/a | n/a | {"defect": 0.0, "feature": 0.0, "risk_compliance": 0.0, "tech_debt": 1.0, "unknown": 0.0} → n/a | n/a | n/a |
-| Neil Chauhan | 1 | n/a | 0.01 → n/a | n/a | n/a | n/a | n/a | n/a | {"defect": 0.0, "feature": 1.0, "risk_compliance": 0.0, "tech_debt": 0.0, "unknown": 0.0} → n/a | n/a | n/a |
 | Nick van Leeuwen | 1 | n/a | 0.01 → n/a | n/a | n/a | n/a | n/a | n/a | {"defect": 0.0, "feature": 1.0, "risk_compliance": 0.0, "tech_debt": 0.0, "unknown": 0.0} → n/a | n/a | n/a |
 | Nikolay Bonev | 1 | n/a | 0.01 → n/a | n/a | n/a | n/a | n/a | n/a | {"defect": 0.0, "feature": 0.0, "risk_compliance": 0.0, "tech_debt": 1.0, "unknown": 0.0} → n/a | n/a | n/a |
 | Nya Candy | 1 | n/a | 0.01 → n/a | n/a | n/a | n/a | n/a | n/a | {"defect": 1.0, "feature": 0.0, "risk_compliance": 0.0, "tech_debt": 0.0, "unknown": 0.0} → n/a | n/a | n/a |
@@ -713,7 +705,6 @@ Per AAP §0.8.5, real names are used. Per AAP §0.8.1, ``Blitzy Agent`` appears 
 | Peer Richelsen | 1 | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a |
 | Philipp Dormann | 1 | n/a | 0.01 → n/a | n/a | n/a | n/a | n/a | n/a | {"defect": 0.0, "feature": 1.0, "risk_compliance": 0.0, "tech_debt": 0.0, "unknown": 0.0} → n/a | n/a | n/a |
 | Piyush Garg | 1 | n/a | 0.01 → n/a | n/a | n/a | n/a | n/a | n/a | {"defect": 0.0, "feature": 1.0, "risk_compliance": 0.0, "tech_debt": 0.0, "unknown": 0.0} → n/a | n/a | n/a |
-| Pradumn Kumar | 1 | n/a | 0.01 → n/a | n/a | n/a | n/a | n/a | n/a | {"defect": 1.0, "feature": 0.0, "risk_compliance": 0.0, "tech_debt": 0.0, "unknown": 0.0} → n/a | n/a | n/a |
 | Prajyot | 1 | n/a | 0.01 → n/a | n/a | n/a | n/a | n/a | n/a | {"defect": 1.0, "feature": 0.0, "risk_compliance": 0.0, "tech_debt": 0.0, "unknown": 0.0} → n/a | n/a | n/a |
 | Pranavx1 | 1 | n/a | 0.01 → n/a | n/a | n/a | n/a | n/a | n/a | {"defect": 1.0, "feature": 0.0, "risk_compliance": 0.0, "tech_debt": 0.0, "unknown": 0.0} → n/a | n/a | n/a |
 | Pranoy Roy | 1 | n/a | 0.01 → n/a | n/a | n/a | n/a | n/a | n/a | {"defect": 0.0, "feature": 1.0, "risk_compliance": 0.0, "tech_debt": 0.0, "unknown": 0.0} → n/a | n/a | n/a |
@@ -730,12 +721,10 @@ Per AAP §0.8.5, real names are used. Per AAP §0.8.1, ``Blitzy Agent`` appears 
 | Rohit Dadgal | 1 | n/a | 0.01 → n/a | n/a | n/a | n/a | n/a | n/a | {"defect": 0.0, "feature": 0.0, "risk_compliance": 0.0, "tech_debt": 1.0, "unknown": 0.0} → n/a | n/a | n/a |
 | Rohit Mondal | 1 | n/a | 0.01 → n/a | n/a | n/a | n/a | n/a | n/a | {"defect": 0.0, "feature": 0.0, "risk_compliance": 0.0, "tech_debt": 1.0, "unknown": 0.0} → n/a | n/a | n/a |
 | Romit | 1 | n/a | 0.01 → n/a | n/a | n/a | n/a | n/a | n/a | {"defect": 1.0, "feature": 0.0, "risk_compliance": 0.0, "tech_debt": 0.0, "unknown": 0.0} → n/a | n/a | n/a |
-| Rotimi Best | 1 | n/a | 0.01 → n/a | n/a | n/a | n/a | n/a | n/a | {"defect": 0.0, "feature": 0.0, "risk_compliance": 0.0, "tech_debt": 1.0, "unknown": 0.0} → n/a | n/a | n/a |
 | Ryan Martin | 1 | n/a | 0.01 → n/a | n/a | n/a | n/a | n/a | n/a | {"defect": 0.0, "feature": 0.0, "risk_compliance": 0.0, "tech_debt": 1.0, "unknown": 0.0} → n/a | n/a | n/a |
 | Sachin Jain | 1 | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a |
 | Sadiq Mohammed | 1 | 0.50 | 0.50 | n/a | n/a | n/a | n/a | {"defect": 0.0, "feature": 0.0, "risk_compliance": 0.0, "tech_debt": 1.0, "unknown": 0.0} | {"defect": 0.0, "feature": 0.0, "risk_compliance": 0.0, "tech_debt": 1.0, "unknown": 0.0} | n/a | n/a |
 | Sagnik Sahoo | 1 | n/a | 0.01 → n/a | n/a | n/a | n/a | n/a | n/a | {"defect": 1.0, "feature": 0.0, "risk_compliance": 0.0, "tech_debt": 0.0, "unknown": 0.0} → n/a | n/a | n/a |
-| Salim B | 1 | n/a | 0.01 → n/a | n/a | n/a | n/a | n/a | n/a | {"defect": 1.0, "feature": 0.0, "risk_compliance": 0.0, "tech_debt": 0.0, "unknown": 0.0} → n/a | n/a | n/a |
 | Samiksha Mishra | 1 | n/a | 0.01 → n/a | n/a | n/a | n/a | n/a | n/a | {"defect": 0.0, "feature": 0.0, "risk_compliance": 0.0, "tech_debt": 1.0, "unknown": 0.0} → n/a | n/a | n/a |
 | Sandra Dylus | 1 | n/a | 0.01 → n/a | n/a | n/a | n/a | n/a | n/a | {"defect": 0.0, "feature": 0.0, "risk_compliance": 0.0, "tech_debt": 0.0, "unknown": 1.0} → n/a | n/a | n/a |
 | Sandy-1711 | 1 | n/a | 0.01 → n/a | n/a | n/a | n/a | n/a | n/a | {"defect": 1.0, "feature": 0.0, "risk_compliance": 0.0, "tech_debt": 0.0, "unknown": 0.0} → n/a | n/a | n/a |
@@ -747,7 +736,6 @@ Per AAP §0.8.5, real names are used. Per AAP §0.8.1, ``Blitzy Agent`` appears 
 | Shashank | 1 | n/a | 0.01 → n/a | n/a | n/a | n/a | n/a | n/a | {"defect": 1.0, "feature": 0.0, "risk_compliance": 0.0, "tech_debt": 0.0, "unknown": 0.0} → n/a | n/a | n/a |
 | Shivani Palya | 1 | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a |
 | Shrey | 1 | n/a | 0.01 → n/a | n/a | n/a | n/a | n/a | n/a | {"defect": 0.0, "feature": 1.0, "risk_compliance": 0.0, "tech_debt": 0.0, "unknown": 0.0} → n/a | n/a | n/a |
-| Shyam Raghuwanshi | 1 | n/a | 0.01 → n/a | n/a | n/a | n/a | n/a | n/a | {"defect": 0.0, "feature": 1.0, "risk_compliance": 0.0, "tech_debt": 0.0, "unknown": 0.0} → n/a | n/a | n/a |
 | Siddheya Kulkarni | 1 | n/a | 0.01 → n/a | n/a | n/a | n/a | n/a | n/a | {"defect": 1.0, "feature": 0.0, "risk_compliance": 0.0, "tech_debt": 0.0, "unknown": 0.0} → n/a | n/a | n/a |
 | Sidi jeddou | 1 | n/a | 0.01 → n/a | n/a | n/a | n/a | n/a | n/a | {"defect": 0.0, "feature": 1.0, "risk_compliance": 0.0, "tech_debt": 0.0, "unknown": 0.0} → n/a | n/a | n/a |
 | Sital Adhikari | 1 | n/a | 0.01 → n/a | n/a | n/a | n/a | n/a | n/a | {"defect": 1.0, "feature": 0.0, "risk_compliance": 0.0, "tech_debt": 0.0, "unknown": 0.0} → n/a | n/a | n/a |
@@ -781,7 +769,6 @@ Per AAP §0.8.5, real names are used. Per AAP §0.8.1, ``Blitzy Agent`` appears 
 | Yannick Torrès | 1 | n/a | 0.01 → n/a | n/a | n/a | n/a | n/a | n/a | {"defect": 1.0, "feature": 0.0, "risk_compliance": 0.0, "tech_debt": 0.0, "unknown": 0.0} → n/a | n/a | n/a |
 | Yash | 1 | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a | n/a |
 | Yash Gupta | 1 | n/a | 0.01 → n/a | n/a | n/a | n/a | n/a | n/a | {"defect": 0.0, "feature": 1.0, "risk_compliance": 0.0, "tech_debt": 0.0, "unknown": 0.0} → n/a | n/a | n/a |
-| Yatharth Verma | 1 | n/a | 0.01 → n/a | n/a | n/a | n/a | n/a | n/a | {"defect": 1.0, "feature": 0.0, "risk_compliance": 0.0, "tech_debt": 0.0, "unknown": 0.0} → n/a | n/a | n/a |
 | Yuhang | 1 | n/a | 0.01 → n/a | n/a | n/a | n/a | n/a | n/a | {"defect": 0.0, "feature": 0.0, "risk_compliance": 0.0, "tech_debt": 1.0, "unknown": 0.0} → n/a | n/a | n/a |
 | Yuuenn | 1 | n/a | 0.01 → n/a | n/a | n/a | n/a | n/a | n/a | {"defect": 0.0, "feature": 1.0, "risk_compliance": 0.0, "tech_debt": 0.0, "unknown": 0.0} → n/a | n/a | n/a |
 | Zorig | 1 | n/a | 0.01 → n/a | n/a | n/a | n/a | n/a | n/a | {"defect": 1.0, "feature": 0.0, "risk_compliance": 0.0, "tech_debt": 0.0, "unknown": 0.0} → n/a | n/a | n/a |
@@ -1048,7 +1035,7 @@ Per AAP §0.7.2.4 Quality Gate, every Low-confidence metric and every insufficie
 
 ## Limitations
 
-- Per-actor breakdown uses heuristic alias resolution (Jaccard ≥ 0.6 on touched files plus 30-day overlap floor); false-merge probability is non-zero.
+- Per-actor breakdown uses heuristic alias resolution (Jaccard ≥ 0.6 on touched files plus 30-day overlap floor, supplemented by display-name token matching for multi-token names — see decision-log entry D-004); false-merge probability is non-zero, and residual false-splits remain possible for engineers whose only shared signal is a common single-token alias and whose commit intervals are disjoint.
 - PR work-type classification depends on linked-issue labels, conventional-commit PR-title prefixes, and keyword matching — historical PRs predating the convention may be classified as unknown.
 - Reverts whose original commit cannot be identified (no explicit SHA reference and no tree-match) are excluded from Metric 8's fallback path.
 - Flow Active uses the first-commit → merge interval as a proxy when explicit review-event timestamps are unavailable; review wait time is therefore included in the span (Flow Efficiency separately normalises this).
@@ -1077,7 +1064,7 @@ git --version
 python3 --version
 
 # 2. Pin to the analysed revision.
-git fetch origin && git checkout e1356d397aad68b14f8c320c275d17b9af847e68
+git fetch origin && git checkout 47a115065dc907f75f35ed954f69d8c1f8d56a0a
 
 # 3. (Optional) export GITHUB_TOKEN for full API access.
 # export GITHUB_TOKEN=ghp_...

@@ -1172,6 +1172,39 @@ def render_per_engineer(metrics: dict[str, Any]) -> str:
     lines.append("| " + " | ".join(header_cells) + " |")
     lines.append("|" + "|".join(["---"] * len(header_cells)) + "|")
 
+    # AAP §0.8.5 mandates "range and median for metrics where individual
+    # attribution is available." The summary block precedes the per-row
+    # data so the reader can compare each engineer's value against the
+    # cross-engineer median without scanning to a footer. The leading
+    # ``Engineer`` cell labels the row; the ``Commits`` cell carries the
+    # population count (engineers with a non-null post-introduction
+    # value for that metric) which is computed independently per
+    # metric. See decision-log entry D-020.
+    summary = per_engineer.get("summary") or {}
+    if summary:
+        for label, key in (("Median (post)", "median_text"), ("Range (post)", "range_text")):
+            summary_cells: list[str] = [f"**{label}**", "—"]
+            for mid in PER_ACTOR_METRIC_IDS:
+                summary_entry = summary.get(mid) or {}
+                value_text = str(summary_entry.get(key) or "n/a")
+                value_text = value_text.replace("|", "\\|")
+                # Post column carries the summary value; the
+                # baseline→post column shows the population size
+                # used to compute that aggregate so the reader sees
+                # over how many engineers each summary is taken
+                # (D-020 transparency).
+                if key == "median_text":
+                    count_value = summary_entry.get("count")
+                    population_text = (
+                        f"n = {int(count_value)}" if isinstance(count_value, int) else "—"
+                    )
+                    summary_cells.append(value_text)
+                    summary_cells.append(population_text)
+                else:
+                    summary_cells.append(value_text)
+                    summary_cells.append("—")
+            lines.append("| " + " | ".join(summary_cells) + " |")
+
     for row in rows:
         display_name = str(row.get("display_name") or "n/a")
         # Escape pipe characters in the display name to keep table layout.

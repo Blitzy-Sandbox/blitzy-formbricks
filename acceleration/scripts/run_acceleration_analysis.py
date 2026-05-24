@@ -1351,12 +1351,36 @@ def _derive_commit_stats(
 ) -> tuple[int | None, str | None, str | None]:
     """Return ``(commit_count, first_commit_date, last_commit_date)``.
 
-    The values are derived from ``commits.jsonl`` when it exists
-    (cheap, deterministic, in-process); otherwise from
-    ``git rev-list --count HEAD`` plus ``git log`` for the boundary
-    dates. Both code paths are read-only and tolerate failure — when
-    no data source is available, all three components are ``None``
-    and downstream consumers fall back to their own resolution chain
+    Resolution chain (preferred → fallback):
+
+    1. ``extract_git_access.json`` — the canonical receipt written by
+       ``extract_git.py`` when it walked the analysis target branch
+       (``main`` by default). This is the single source of truth for
+       the commit count and the first / last author dates and is
+       guaranteed to match the date range reported by the Data Source
+       Inventory section (rendered from ``metrics.json:date_range``,
+       which is itself derived from this same access JSON). Using it
+       as the primary source closes QA finding F-001 — the Environment
+       Verification section's "Latest commit date" cell now reflects
+       the actual extraction target (``main``) rather than the
+       working-branch HEAD's commit timestamp.
+    2. ``commits.jsonl`` walk — a deterministic per-record scan over
+       the extractor output. The extractor convention writes the
+       timestamps under the field names ``author_date`` and
+       ``committer_date`` (ISO 8601 strings). Earlier drafts of this
+       helper used the aliases ``authored_at`` / ``committed_at``;
+       both alias sets are now tolerated.
+    3. ``git rev-list --count HEAD`` + ``git log`` for boundary
+       dates — final fallback when neither of the JSON sources is
+       available. This path uses ``HEAD`` and therefore reflects the
+       current working branch; consumers should treat its boundary
+       dates as a last-resort fingerprint rather than the analysis
+       target. See F-001 in the QA log for the rationale for ranking
+       this path last.
+
+    All paths are read-only and tolerate failure — when no data
+    source is available, the corresponding component is ``None`` and
+    downstream consumers fall back to their own resolution chain
     (see ``render_deck.py:_commit_count_from_jsonl`` and
     ``render_report.py``).
 
@@ -1380,50 +1404,98 @@ def _derive_commit_stats(
     first_date: str | None = None
     last_date: str | None = None
 
-    commits_path = output_dir / "commits.jsonl"
-    if commits_path.is_file():
-        # Walk the JSONL once: count non-empty lines and compute the
-        # min / max ``authored_at`` (or ``committed_at`` / ``date``)
-        # field. The extractor writes one record per commit.
-        min_iso: str | None = None
-        max_iso: str | None = None
-        count = 0
+    # ---- Source 1: extract_git_access.json -------------------------
+    # This is the canonical receipt that ``extract_git.py`` writes
+    # after it walks the analysis target branch. The fields
+    # ``commit_count_reported_by_rev_list``, ``first_author_date``,
+    # and ``last_author_date`` are the ground truth that the rest of
+    # the pipeline (and the report's Data Source Inventory section)
+    # consume; ranking this source first guarantees cross-section
+    # parity between Environment Verification and Data Source
+    # Inventory (QA finding F-001).
+    access_path = output_dir / "extract_git_access.json"
+    if access_path.is_file():
         try:
-            with commits_path.open("r", encoding="utf-8") as handle:
-                for raw_line in handle:
-                    line = raw_line.strip()
-                    if not line:
-                        continue
-                    count += 1
-                    try:
-                        rec = json.loads(line)
-                    except json.JSONDecodeError:
-                        continue
-                    # Try a handful of common timestamp field names; the
-                    # extractor convention is ``authored_at``.
-                    raw_ts: Any = (
-                        rec.get("authored_at")
-                        or rec.get("committed_at")
-                        or rec.get("commit_date")
-                        or rec.get("date")
-                    )
-                    if not isinstance(raw_ts, str) or len(raw_ts) < 10:
-                        continue
+            access = json.loads(access_path.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError):
+            access = None
+        if isinstance(access, dict):
+            raw_count = access.get("commit_count_reported_by_rev_list")
+            if raw_count is None:
+                raw_count = access.get("commit_count_seen_in_stream")
+            if isinstance(raw_count, int) and raw_count > 0:
+                commit_count = raw_count
+            for field, dest in (
+                ("first_author_date", "first"),
+                ("last_author_date", "last"),
+            ):
+                raw_ts = access.get(field)
+                if isinstance(raw_ts, str) and len(raw_ts) >= 10:
                     iso_date = raw_ts[:10]
-                    if min_iso is None or iso_date < min_iso:
-                        min_iso = iso_date
-                    if max_iso is None or iso_date > max_iso:
-                        max_iso = iso_date
-        except OSError:
-            count = 0
-            min_iso = None
-            max_iso = None
-        if count > 0:
-            commit_count = count
-            first_date = min_iso
-            last_date = max_iso
+                    if dest == "first":
+                        first_date = iso_date
+                    else:
+                        last_date = iso_date
 
-    # Git CLI fallback for any field still missing.
+    # ---- Source 2: commits.jsonl walk ------------------------------
+    # Only consulted when the access JSON did not supply every field.
+    # The extractor convention writes ``author_date`` /
+    # ``committer_date`` (ISO 8601). Earlier draft consumers used
+    # the aliases ``authored_at`` / ``committed_at``; both are
+    # tolerated here so a future extractor variant that switches
+    # field names does not silently regress this helper.
+    if commit_count is None or first_date is None or last_date is None:
+        commits_path = output_dir / "commits.jsonl"
+        if commits_path.is_file():
+            min_iso: str | None = None
+            max_iso: str | None = None
+            count = 0
+            try:
+                with commits_path.open("r", encoding="utf-8") as handle:
+                    for raw_line in handle:
+                        line = raw_line.strip()
+                        if not line:
+                            continue
+                        count += 1
+                        try:
+                            rec = json.loads(line)
+                        except json.JSONDecodeError:
+                            continue
+                        # Canonical field names first (current
+                        # extractor convention), then legacy aliases.
+                        raw_ts: Any = (
+                            rec.get("author_date")
+                            or rec.get("committer_date")
+                            or rec.get("authored_at")
+                            or rec.get("committed_at")
+                            or rec.get("commit_date")
+                            or rec.get("date")
+                        )
+                        if not isinstance(raw_ts, str) or len(raw_ts) < 10:
+                            continue
+                        iso_date = raw_ts[:10]
+                        if min_iso is None or iso_date < min_iso:
+                            min_iso = iso_date
+                        if max_iso is None or iso_date > max_iso:
+                            max_iso = iso_date
+            except OSError:
+                count = 0
+                min_iso = None
+                max_iso = None
+            if count > 0:
+                if commit_count is None:
+                    commit_count = count
+                if first_date is None:
+                    first_date = min_iso
+                if last_date is None:
+                    last_date = max_iso
+
+    # ---- Source 3: git CLI fallback --------------------------------
+    # Uses ``HEAD`` (the current working branch). Ranked last so its
+    # boundary dates only surface when both JSON sources are absent;
+    # this keeps Environment Verification aligned with Data Source
+    # Inventory even when the orchestrator runs from a branch whose
+    # HEAD differs from the analysis target.
     if commit_count is None:
         commit_count = _git_commit_count(repo_root)
     if first_date is None:

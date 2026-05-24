@@ -1128,7 +1128,7 @@ def check_mermaid_block_syntax(markdown: str) -> RuleResult:
 def _count_prose_words(section_html: str) -> int:
     """Count author-written prose words in a single ``<section>`` body.
 
-    Per decision-log entry D-020, the AAP §0.7.1 Rule 5 "max 40 words
+    Per decision-log entry D-018, the AAP §0.7.1 Rule 5 "max 40 words
     body" constraint applies to **authored prose** (bullet text, step
     captions, paragraph descriptions, chart legends) and NOT to
     **structured metadata** that the renderer substitutes from
@@ -1140,7 +1140,7 @@ def _count_prose_words(section_html: str) -> int:
 
     The selectors stripped here mirror the
     ``BODY_PROSE_EXCLUDED_SELECTORS`` enumeration in decision-log entry
-    D-020. Any new structured-metadata container added to the slide
+    D-018. Any new structured-metadata container added to the slide
     templates (e.g., a new ``.role-badge`` element) MUST be added here
     so the prose-only counter remains accurate.
     """
@@ -1207,7 +1207,7 @@ def _count_prose_words(section_html: str) -> int:
 
 # Per AAP §0.7.1 Rule 5: content slides may contain "max 40 words body".
 # The prose-only counter (see ``_count_prose_words``) excludes structured
-# metadata per decision-log entry D-020. A small buffer above 40 is
+# metadata per decision-log entry D-018. A small buffer above 40 is
 # allowed for inline rendered tokens that resemble prose (e.g., the
 # title-meta date strings on the title slide) — see the comment block
 # in ``_count_prose_words`` for the exemption rules.
@@ -1230,7 +1230,7 @@ def check_deck(html_path: Path) -> RuleResult:
     6. No fenced code blocks (``<pre><code>``) appear inside slides.
     7. No unsubstituted ``{{TOKEN}}`` placeholders remain.
     8. Every ``content-slide`` section has ≤ 40 words of authored body
-       prose, per AAP §0.7.1 Rule 5 and decision-log entry D-020. The
+       prose, per AAP §0.7.1 Rule 5 and decision-log entry D-018. The
        prose-only counter exempts structured metadata containers (KPI
        caveats, table cells, confidence badges, eyebrow labels) so the
        constraint maps to author-written text, not data values
@@ -1331,7 +1331,7 @@ def check_deck(html_path: Path) -> RuleResult:
         )
 
     # 8. Authored-prose body-word limit per AAP §0.7.1 Rule 5 and
-    # decision-log entry D-020. The prose-only counter excludes
+    # decision-log entry D-018. The prose-only counter excludes
     # structured-metadata containers (KPI caveats, table cells, badges,
     # eyebrow labels) so the 40-word limit binds against the author's
     # body text, not the renderer-substituted data values.
@@ -1363,7 +1363,7 @@ def check_deck(html_path: Path) -> RuleResult:
             result.fail(
                 f"Content slide {idx} has {prose_words} words of authored "
                 f"prose; Rule 5 (max {RULE_5_BODY_WORD_LIMIT} words body) "
-                f"violated. See decision-log entry D-020 for the prose-only "
+                f"violated. See decision-log entry D-018 for the prose-only "
                 f"counter scope."
             )
 

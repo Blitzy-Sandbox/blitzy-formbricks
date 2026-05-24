@@ -1159,7 +1159,7 @@ def resolve_aliases(
         if record["last_seen"] is None or dt > record["last_seen"]:
             record["last_seen"] = dt
 
-    # ---- Pass 2: greedy pairwise merge ----------------------------
+    # ---- Pass 2: greedy pairwise merge by Jaccard + temporal overlap
     keys = list(by_email.keys())
     consumed: set[str] = set()
     merged: dict[str, dict[str, Any]] = {}
@@ -1209,6 +1209,146 @@ def resolve_aliases(
             consumed.add(k2)
         merged[k1] = bucket
 
+    # ---- Pass 2.5: complementary display-name equivalence merge ---
+    # The Jaccard-on-touched-files pass above fails to catch a common
+    # false-split pattern in a long-lived monorepo: the same engineer
+    # commits under two email addresses (e.g., a GitHub
+    # ``noreply.github.com`` masked email and a corporate email) but
+    # their work spans different parts of the codebase across the
+    # years (the codebase evolves, the engineer rotates between
+    # modules), so the touched-file Jaccard similarity falls below
+    # :data:`JACCARD_THRESHOLD` even though both addresses belong to
+    # the same person. AAP §0.3.4 names this exact failure mode
+    # ("Matti Nannt" vs "Matthias Nannt") and mandates that aliases
+    # "are detected by Jaccard similarity on commit-touched files AND
+    # timestamp clustering" — display-name equivalence is the
+    # complementary signal to the touched-file signal. Adding this
+    # pass closes QA finding F-002 (Per-Engineer table contains
+    # duplicate-name rows for the same human engineer).
+    #
+    # Three rules fire here, ordered from strongest to weakest
+    # signal so a single greedy pass produces deterministic output:
+    #
+    # 1. **Exact multi-token name match** (e.g., "Piyush Gupta" ==
+    #    "Piyush Gupta", "Rotimi Best" == "Rotimi Best"). Merge
+    #    unconditionally — a two-or-more-token full-name collision
+    #    between unrelated contributors is an extreme low-probability
+    #    event (the same case the AAP "Matti Nannt" / "Matthias
+    #    Nannt" example targets). Temporal-overlap is not required
+    #    because real engineers DO switch emails sequentially when
+    #    they change jobs or rotate accounts, producing adjacent but
+    #    non-overlapping intervals.
+    # 2. **Exact single-token name match with temporal overlap**
+    #    (e.g., "Johannes" == "Johannes"). Single-token names carry
+    #    higher collision risk (common first names exist), so the
+    #    temporal-overlap gate (``ACTOR_OVERLAP_MIN_DAYS`` days)
+    #    safeguards against false merges of unrelated single-name
+    #    contributors.
+    # 3. **Token-subset name match with temporal overlap and
+    #    first-token equality** (e.g., "Dhruwang" ⊆ "Dhruwang
+    #    Jariwala"). Catches the casual first-name-only variation
+    #    pattern. The first-token equality and temporal-overlap
+    #    requirements together prevent unrelated contributors who
+    #    only share a common first name from being merged.
+    #
+    # The order of operations matters: this pass runs AFTER the
+    # Jaccard pass so any merge it performs is additive — Jaccard
+    # already collapsed the high-file-overlap cases, and this pass
+    # only sees the residual false-splits where the names converge
+    # but the files diverged.
+    keys = list(merged.keys())
+    for i, k1 in enumerate(keys):
+        if k1 not in merged:
+            # Was consumed by a prior iteration of this pass.
+            continue
+        bucket_a = merged[k1]
+        if bucket_a.get("is_ai_actor"):
+            # AI buckets are handled in Pass 3; never collapse a
+            # human into the AI bucket here.
+            continue
+        name_a_norm, name_a_tokens = _normalize_actor_name(bucket_a["display_name"])
+        if not name_a_norm:
+            continue
+        for k2 in keys[i + 1 :]:
+            if k2 not in merged:
+                continue
+            bucket_b = merged[k2]
+            if bucket_b.get("is_ai_actor"):
+                continue
+            name_b_norm, name_b_tokens = _normalize_actor_name(bucket_b["display_name"])
+            if not name_b_norm:
+                continue
+            # Determine whether the two names match by one of the
+            # three rules. ``rule`` is recorded on the merged bucket
+            # so a reviewer can inspect why each collapse happened.
+            rule: str | None = None
+            require_temporal_overlap = True
+            if name_a_norm == name_b_norm:
+                if len(name_a_tokens) >= 2:
+                    # Rule 1: exact multi-token match — high
+                    # confidence; temporal overlap not required.
+                    rule = "display_name_exact_multi_token"
+                    require_temporal_overlap = False
+                else:
+                    # Rule 2: exact single-token match — protect
+                    # with temporal overlap.
+                    rule = "display_name_exact_single_token"
+            elif _name_subset_match(name_a_tokens, name_b_tokens):
+                # Rule 3: subset match — protect with temporal
+                # overlap and first-token equality (already enforced
+                # by _name_subset_match).
+                rule = "display_name_token_subset"
+            if rule is None:
+                continue
+            # Temporal-overlap gate (applies to rules 2 and 3). The
+            # endpoints are stored as ISO strings on the bucket;
+            # convert to ``datetime`` via the local ``_iso_to_dt``
+            # helper, which preserves ``None`` so
+            # ``_interval_overlap_days`` correctly returns -1 and the
+            # merge is rejected when either endpoint is missing.
+            overlap_days = _interval_overlap_days(
+                _iso_to_dt(bucket_a.get("first_seen")),
+                _iso_to_dt(bucket_a.get("last_seen")),
+                _iso_to_dt(bucket_b.get("first_seen")),
+                _iso_to_dt(bucket_b.get("last_seen")),
+            )
+            if require_temporal_overlap and overlap_days < ACTOR_OVERLAP_MIN_DAYS:
+                continue
+            # Merge b into a.
+            bucket_a["aliases"].extend(bucket_b.get("aliases", []))
+            bucket_a["commit_count"] = int(bucket_a.get("commit_count", 0) or 0) + int(
+                bucket_b.get("commit_count", 0) or 0
+            )
+            # Prefer the longer / fuller display name across both
+            # buckets so "Dhruwang Jariwala" wins over "Dhruwang".
+            if len(bucket_b.get("display_name") or "") > len(
+                bucket_a.get("display_name") or ""
+            ):
+                bucket_a["display_name"] = bucket_b["display_name"]
+            # Widen interval edges.
+            for edge_field, picker in (
+                ("first_seen", min),
+                ("last_seen", max),
+            ):
+                edges = [
+                    e for e in (bucket_a.get(edge_field), bucket_b.get(edge_field))
+                    if e
+                ]
+                if edges:
+                    bucket_a[edge_field] = picker(edges)
+            # Record provenance of this collapse so a reviewer can
+            # inspect actor_aliases.json and understand why two
+            # emails became one row.
+            collapses = bucket_a.setdefault("name_merge_evidence", [])
+            collapses.append(
+                {
+                    "rule": rule,
+                    "merged_email": bucket_b.get("canonical_email"),
+                    "overlap_days": overlap_days,
+                }
+            )
+            del merged[k2]
+
     # ---- Pass 3: AI canonicalisation -------------------------------
     ai_buckets: list[dict[str, Any]] = []
     for ai_email in AI_ACTOR_EMAILS:
@@ -1246,6 +1386,162 @@ def _iso_or_none(dt: datetime | None) -> str | None:
     if dt is None:
         return None
     return dt.isoformat()
+
+
+def _iso_to_dt(value: Any) -> datetime | None:
+    """Parse an ISO 8601 string and return ``None`` when input is falsy.
+
+    The module-level :func:`parse_iso` deliberately substitutes
+    ``datetime.now()`` for ``None`` or empty input so per-metric
+    extractors that filter on phase bounds elide malformed records
+    cleanly. The alias-resolution path needs the opposite contract:
+    if a bucket has no recorded first-seen / last-seen timestamp,
+    the merge must be rejected (``_interval_overlap_days`` returns
+    -1 when any endpoint is ``None``). This helper preserves
+    ``None`` and only parses concrete ISO strings.
+
+    Parameters
+    ----------
+    value : Any
+        Typically an ISO 8601 string from a bucket record. Anything
+        else returns ``None``.
+
+    Returns
+    -------
+    datetime.datetime | None
+        UTC-aware datetime when ``value`` is a parseable ISO string;
+        ``None`` otherwise.
+    """
+
+    if not value or not isinstance(value, str):
+        return None
+    try:
+        dt = datetime.fromisoformat(
+            value[:-1] + "+00:00" if value.endswith("Z") else value
+        )
+    except ValueError:
+        return None
+    if dt.tzinfo is None:
+        dt = dt.replace(tzinfo=timezone.utc)
+    return dt.astimezone(timezone.utc)
+
+
+# Display-name tokens that are obvious noise / non-identifying. They
+# are stripped during the name-equivalence pass so a bracketed bot
+# suffix or a parenthetical handle does not prevent an otherwise
+# clear collapse.
+_NAME_NOISE_TOKENS: frozenset[str] = frozenset({"bot", "dependabot", "users"})
+
+
+def _normalize_actor_name(name: str | None) -> tuple[str, tuple[str, ...]]:
+    """Return ``(normalised_string, token_tuple)`` for a display name.
+
+    The normalisation strips bracketed suffixes (``"[bot]"``,
+    ``"(GitHub)"``), lower-cases the result, collapses internal
+    whitespace, and tokenises on whitespace and underscores so the
+    name-equivalence rules in :func:`resolve_aliases` Pass 2.5 can
+    compare buckets deterministically.
+
+    Both outputs are produced from the same input pass so the
+    caller never has to re-tokenise.
+
+    Parameters
+    ----------
+    name : str or None
+        The display name as observed on a git commit (may be ``None``
+        when the commit author had no display name).
+
+    Returns
+    -------
+    tuple[str, tuple[str, ...]]
+        ``(normalised_lowercase_name, ordered_token_tuple)``. Both
+        components are empty when the input contains no
+        identifying tokens after noise removal.
+    """
+
+    if not name or not isinstance(name, str):
+        return "", ()
+    text = name.strip()
+    # Strip bracketed suffixes such as "[bot]", "(GitHub)" — the
+    # bracket content can drift between observations of the same
+    # contributor and is rarely identifying.
+    while True:
+        for open_ch, close_ch in (("[", "]"), ("(", ")"), ("<", ">"), ("{", "}")):
+            start = text.find(open_ch)
+            end = text.find(close_ch, start + 1)
+            if 0 <= start < end:
+                text = (text[:start] + " " + text[end + 1 :]).strip()
+                break
+        else:
+            break
+    # Tokenise. Underscores and hyphens are treated as word
+    # separators so "rotimi-best" matches "Rotimi Best".
+    chars = []
+    for ch in text.lower():
+        if ch.isalnum():
+            chars.append(ch)
+        else:
+            chars.append(" ")
+    tokens_all = [t for t in "".join(chars).split() if t]
+    # Drop generic noise tokens (e.g., the trailing ``"bot"`` suffix
+    # that was stripped from the bracket pass above but may also
+    # appear bare). Pure-digit tokens are kept (they may be a user
+    # ID prefix that helps disambiguate).
+    tokens = tuple(t for t in tokens_all if t not in _NAME_NOISE_TOKENS)
+    if not tokens:
+        return "", ()
+    return " ".join(tokens), tokens
+
+
+def _name_subset_match(
+    tokens_a: tuple[str, ...], tokens_b: tuple[str, ...]
+) -> bool:
+    """Return ``True`` when one token tuple is a confident subset of the other.
+
+    The rule below is intentionally conservative to avoid merging
+    unrelated contributors who share a common first name (e.g.,
+    "Mike" + "Mike Smith"):
+
+    - Tokens must be non-empty for both sides.
+    - The smaller token set must be a strict subset of the larger.
+    - The first token (almost always the given name) must match
+      exactly between the two sets.
+    - The larger token set must have at least two tokens — i.e.,
+      we never merge "Mike" with "Mike" via this rule (that case is
+      handled by the exact-name-equality rule, which requires
+      temporal overlap as its only safeguard).
+
+    Parameters
+    ----------
+    tokens_a, tokens_b : tuple[str, ...]
+        Normalised token tuples produced by
+        :func:`_normalize_actor_name`.
+
+    Returns
+    -------
+    bool
+        ``True`` iff the rule above is satisfied.
+    """
+
+    if not tokens_a or not tokens_b:
+        return False
+    if tokens_a == tokens_b:
+        # Exact equality is handled by the dedicated rule in the
+        # caller; this helper returns False so the caller does not
+        # double-count the same case.
+        return False
+    set_a, set_b = set(tokens_a), set(tokens_b)
+    smaller, larger = (set_a, set_b) if len(set_a) <= len(set_b) else (set_b, set_a)
+    if not smaller.issubset(larger):
+        return False
+    if len(larger) < 2:
+        return False
+    # First-token equality. We use the FIRST token of each ordered
+    # tuple, which conventionally is the given name and is the most
+    # identifying single component.
+    if tokens_a[0] != tokens_b[0]:
+        return False
+    return True
 
 
 def _interval_overlap_days(
@@ -3785,7 +4081,19 @@ def aggregate_per_engineer(
 
     The block also includes ``labels`` and ``values`` arrays
     pre-sorted by the steady-state Flow Velocity column so the deck
-    renderer can build a horizontal-bar chart without re-sorting.
+    renderer can build a horizontal-bar chart without re-sorting,
+    plus a ``summary`` sub-dict containing the **range** and
+    **median** aggregates per attributable metric (AAP §0.8.5 — "real
+    names, range and median for metrics where individual attribution
+    is available"). The summary aggregates are computed over the
+    population of engineers who contributed a non-null
+    post-introduction value for each metric; engineers with ``n/a``
+    or zero are excluded independently per metric so a metric with
+    high `n/a` density (e.g., M4 Flow Active, M5 Flow Efficiency —
+    which require PR-merge timestamps that are unavailable without
+    GitHub API access) is summarised over a smaller, explicitly
+    counted population. See decision-log entry D-020 for the
+    rationale.
 
     Parameters
     ----------
@@ -3799,8 +4107,9 @@ def aggregate_per_engineer(
     Returns
     -------
     dict
-        ``{rows: [...], labels: [...], values: [...], metric_label: str}``
-        suitable for direct embedding in ``metrics.json``.
+        ``{rows: [...], labels: [...], values: [...], metric_label:
+        str, summary: dict, attributable_metrics: list}`` suitable
+        for direct embedding in ``metrics.json``.
     """
 
     attributable_metrics = (
@@ -3841,13 +4150,208 @@ def aggregate_per_engineer(
 
     rows.sort(key=_post_value, reverse=True)
     top = rows[:8]
+    summary = _build_per_engineer_summary(rows, attributable_metrics)
     return {
         "rows": rows,
         "labels": [row["display_name"] for row in top],
         "values": [round(_post_value(row), 4) for row in top],
         "metric_label": "Post-introduction Flow Velocity (Metric 2)",
         "attributable_metrics": list(attributable_metrics),
+        "summary": summary,
     }
+
+
+def _build_per_engineer_summary(
+    rows: list[dict[str, Any]],
+    attributable_metrics: tuple[str, ...],
+) -> dict[str, dict[str, Any]]:
+    """Compute range and median aggregates across per-engineer rows.
+
+    Per AAP §0.8.5 ("real names, range and median for metrics where
+    individual attribution is available") the Per-Engineer section
+    must expose range and median summary statistics per attributable
+    metric. This helper extracts the post-introduction value from
+    each row's per-metric entry (preferring steady-state → ramp-up
+    → post-introduction in the same precedence the deck renderer
+    uses for the headline-bar chart) and computes min / max / median
+    over the population of engineers with a non-null, non-zero
+    value.
+
+    The Flow Distribution metric (M6) is a special case: its value
+    is a dict of work-type proportions rather than a single scalar,
+    so the summary records the population count and the per-type
+    median proportion instead of a single range.
+
+    Parameters
+    ----------
+    rows : list[dict]
+        The per-engineer rows produced by
+        :func:`aggregate_per_engineer`. Each row's ``metrics``
+        sub-dict contains the per-metric per-phase entries.
+    attributable_metrics : tuple[str, ...]
+        Metric IDs whose per-actor breakdown is computed (Metrics 2,
+        4, 5, 6, 10 by AAP §0.8.5).
+
+    Returns
+    -------
+    dict
+        ``{metric_id: {min, max, median, count, range_text,
+        median_text}}`` for each attributable metric. ``range_text``
+        and ``median_text`` are pre-formatted Markdown strings the
+        renderer can paste directly into the table.
+    """
+
+    summary: dict[str, dict[str, Any]] = {}
+
+    def _scalar_post_value(metric_entry: dict[str, Any]) -> float | None:
+        """Return the most-recent post-introduction scalar value, or None.
+
+        Phase precedence mirrors the headline-bar logic in
+        :func:`aggregate_per_engineer`: steady_state → ramp_up →
+        post_introduction. The first phase with a finite, non-zero
+        value wins; ``None`` means the engineer contributed no
+        usable post-introduction value for this metric.
+        """
+
+        if not isinstance(metric_entry, dict):
+            return None
+        for phase in ("steady_state", "ramp_up", "post_introduction"):
+            entry = metric_entry.get(phase) or {}
+            value = entry.get("value")
+            if isinstance(value, (int, float)) and not isinstance(value, bool):
+                # Filter out zeros — they typically mean the actor
+                # had no PR-merge activity in that phase, which is
+                # an absence rather than a measured value.
+                if value:
+                    return float(value)
+        return None
+
+    def _distribution_post_value(
+        metric_entry: dict[str, Any],
+    ) -> dict[str, float] | None:
+        """Return the most-recent post-introduction distribution dict.
+
+        Flow Distribution stores ``value`` as a work-type-keyed dict
+        of proportions rather than a scalar; the aggregate is
+        therefore per-type rather than a single number. ``None``
+        indicates no usable post-introduction distribution.
+        """
+
+        if not isinstance(metric_entry, dict):
+            return None
+        for phase in ("steady_state", "ramp_up", "post_introduction"):
+            entry = metric_entry.get(phase) or {}
+            value = entry.get("value")
+            if isinstance(value, dict) and value:
+                # Keep only the numeric components; defensive
+                # against future schema extension.
+                clean = {
+                    str(k): float(v)
+                    for k, v in value.items()
+                    if isinstance(v, (int, float)) and not isinstance(v, bool)
+                }
+                if clean:
+                    return clean
+        return None
+
+    def _median(values: list[float]) -> float | None:
+        if not values:
+            return None
+        ordered = sorted(values)
+        n = len(ordered)
+        mid = n // 2
+        if n % 2 == 1:
+            return ordered[mid]
+        return (ordered[mid - 1] + ordered[mid]) / 2.0
+
+    def _fmt(v: float | None) -> str:
+        if v is None:
+            return "n/a"
+        # Two decimal places matches the precision used by
+        # :func:`render_report._per_actor_summary` for individual
+        # per-actor cells so the summary row is visually
+        # consistent with the data rows below.
+        return f"{v:.2f}"
+
+    for metric_id in attributable_metrics:
+        if metric_id == "flow_distribution":
+            # Per-work-type median + population count.
+            per_type_values: dict[str, list[float]] = {}
+            count = 0
+            for row in rows:
+                dist = _distribution_post_value(
+                    (row.get("metrics") or {}).get(metric_id, {})
+                )
+                if dist is None:
+                    continue
+                count += 1
+                for work_type, proportion in dist.items():
+                    per_type_values.setdefault(work_type, []).append(proportion)
+            medians: dict[str, float] = {}
+            ranges: dict[str, tuple[float, float]] = {}
+            for work_type, values in per_type_values.items():
+                m = _median(values)
+                if m is not None:
+                    medians[work_type] = round(m, 4)
+                    ranges[work_type] = (
+                        round(min(values), 4),
+                        round(max(values), 4),
+                    )
+            # Pre-formatted multi-type strings for the renderer.
+            if medians:
+                median_text = ", ".join(
+                    f"{k}={v:.2f}" for k, v in sorted(medians.items())
+                )
+                range_text = ", ".join(
+                    f"{k} {lo:.2f}→{hi:.2f}"
+                    for k, (lo, hi) in sorted(ranges.items())
+                )
+            else:
+                median_text = "n/a"
+                range_text = "n/a"
+            summary[metric_id] = {
+                "type": "distribution",
+                "count": count,
+                "per_work_type": {
+                    "median": medians,
+                    "range": {
+                        k: {"min": v[0], "max": v[1]}
+                        for k, v in ranges.items()
+                    },
+                },
+                "median_text": median_text,
+                "range_text": range_text,
+            }
+            continue
+        # Scalar metrics (M2, M4, M5, M10).
+        values: list[float] = []
+        for row in rows:
+            v = _scalar_post_value((row.get("metrics") or {}).get(metric_id, {}))
+            if v is not None:
+                values.append(v)
+        if not values:
+            summary[metric_id] = {
+                "type": "scalar",
+                "count": 0,
+                "min": None,
+                "max": None,
+                "median": None,
+                "median_text": "n/a",
+                "range_text": "n/a",
+            }
+            continue
+        min_v, max_v = min(values), max(values)
+        med = _median(values)
+        summary[metric_id] = {
+            "type": "scalar",
+            "count": len(values),
+            "min": round(min_v, 4),
+            "max": round(max_v, 4),
+            "median": round(med, 4) if med is not None else None,
+            "median_text": _fmt(med),
+            "range_text": f"{_fmt(min_v)} → {_fmt(max_v)}",
+        }
+    return summary
 
 
 # ---------------------------------------------------------------------------
@@ -3937,7 +4441,12 @@ def synthesize_limitations(metrics: dict[str, Any]) -> list[str]:
         (
             "Per-actor breakdown uses heuristic alias resolution "
             "(Jaccard ≥ 0.6 on touched files plus 30-day overlap "
-            "floor); false-merge probability is non-zero."
+            "floor, supplemented by display-name token matching for "
+            "multi-token names — see decision-log entry D-004); "
+            "false-merge probability is non-zero, and residual "
+            "false-splits remain possible for engineers whose only "
+            "shared signal is a common single-token alias and whose "
+            "commit intervals are disjoint."
         ),
         (
             "PR work-type classification depends on linked-issue "

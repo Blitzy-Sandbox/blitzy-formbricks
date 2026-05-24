@@ -1,6 +1,6 @@
 # Development Acceleration Analysis — formbricks/formbricks
 
-_Generated 2026-05-24T03:33:30Z_
+_Generated 2026-05-24T03:42:08Z_
 
 ## Executive Summary
 
@@ -31,7 +31,7 @@ The fields below are captured at pipeline start by the orchestrator (``accelerat
 |-------|-------|
 | Repository URL | n/a |
 | Repository owner/name | formbricks/formbricks |
-| HEAD SHA | 75470449ec97a70be6964351b20f807f85cb37e9 |
+| HEAD SHA | bf6be739a4c010dd6b493cf7fdaa89aee2a9f979 |
 | Default branch | main |
 | First commit date | 2022-06-06 |
 | Latest commit date | 2026-05-15 |
@@ -41,7 +41,7 @@ The fields below are captured at pipeline start by the orchestrator (``accelerat
 | Git version | git version 2.51.0 |
 | Python version | 3.13.7 |
 | Node engine (.nvmrc) | n/a |
-| Extraction timestamp UTC | 2026-05-24T03:33:30Z |
+| Extraction timestamp UTC | 2026-05-24T03:42:08Z |
 
 ## Data Source Inventory
 
@@ -61,7 +61,7 @@ The fields below are captured at pipeline start by the orchestrator (``accelerat
 
 ## Methodology
 
-The analysis pipeline runs in batch mode against the cloned repository at HEAD `75470449ec97a70be6964351b20f807f85cb37e9`. Per AAP §0.8.4, the inflection date `2026-01-29` divides every metric into Baseline, Ramp-Up (first 6 windows = 84 days), and Steady State (windows 7+) using Monday-aligned 2-week UTC windows. When fewer than six post-introduction windows exist, the renderer falls back to a Baseline vs Post-Introduction schema and the Acceleration Curve table column labels record that fallback in place of Ramp-Up / Steady State.
+The analysis pipeline runs in batch mode against the cloned repository at HEAD `bf6be739a4c010dd6b493cf7fdaa89aee2a9f979`. Per AAP §0.8.4, the inflection date `2026-01-29` divides every metric into Baseline, Ramp-Up (first 6 windows = 84 days), and Steady State (windows 7+) using Monday-aligned 2-week UTC windows. When fewer than six post-introduction windows exist, the renderer falls back to a Baseline vs Post-Introduction schema and the Acceleration Curve table column labels record that fallback in place of Ramp-Up / Steady State.
 
 ```mermaid
 %% =============================================================================
@@ -1064,7 +1064,7 @@ git --version
 python3 --version
 
 # 2. Pin to the analysed revision.
-git fetch origin && git checkout 75470449ec97a70be6964351b20f807f85cb37e9
+git fetch origin && git checkout bf6be739a4c010dd6b493cf7fdaa89aee2a9f979
 
 # 3. (Optional) export GITHUB_TOKEN for full API access.
 # export GITHUB_TOKEN=ghp_...
